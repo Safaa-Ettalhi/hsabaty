@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+*.log
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+exports
+*.md
+postman
+dev.js
+nodemon.json
