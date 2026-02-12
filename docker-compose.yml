@@ -1,0 +1,67 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: hssabaty-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: hssabaty
+    networks:
+      - hssabaty-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: hssabaty-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hssabaty-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: hssabaty-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGODB_URI: mongodb://mongodb:27017/hssabaty
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRE: ${JWT_EXPIRE:-7d}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      IA_PROVIDER: ${IA_PROVIDER:-gemini}
+      IA_MODEL: ${IA_MODEL:-gemini-flash-latest}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./backend/exports:/app/backend/exports
+    networks:
+      - hssabaty-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  hssabaty-network:
+    driver: bridge
