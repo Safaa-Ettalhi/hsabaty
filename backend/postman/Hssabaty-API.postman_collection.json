@@ -1,0 +1,397 @@
+{
+  "info": {
+    "name": "Hssabaty API",
+    "description": "Collection pour l'API backend Hssabaty - Gestion financière avec Agent IA",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "adminToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Santé",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Inscription",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"motDePasse\": \"MotDePasse123!\",\n  \"nom\": \"Dupont\",\n  \"prenom\": \"Jean\",\n  \"devise\": \"MAD\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/inscrire"
+          }
+        },
+        {
+          "name": "Connexion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["var json = pm.response.json();", "if (json.donnees && json.donnees.token) {", "  pm.collectionVariables.set('token', json.donnees.token);", "}"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"motDePasse\": \"MotDePasse123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/connecter"
+          }
+        },
+        {
+          "name": "Utilisateur actuel",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/auth/moi"
+          }
+        },
+        {
+          "name": "Déconnexion",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/auth/deconnecter"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Liste des transactions",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/transactions?page=1&limite=20"
+          }
+        },
+        {
+          "name": "Créer une transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"montant\": 500,\n  \"type\": \"depense\",\n  \"categorie\": \"Alimentation\",\n  \"description\": \"Courses\",\n  \"date\": \"2025-02-10\",\n  \"tags\": [\"supermarche\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/transactions"
+          }
+        },
+        {
+          "name": "Statistiques",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/transactions/statistiques?periode=mois"
+          }
+        },
+        {
+          "name": "Export CSV",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/transactions/export/csv"
+          }
+        },
+        {
+          "name": "Export Excel",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/transactions/export/excel"
+          }
+        },
+        {
+          "name": "Détail transaction",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/transactions/:id"
+          }
+        },
+        {
+          "name": "Modifier transaction",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"montant\": 600,\n  \"description\": \"Courses modifié\"\n}"},
+            "url": "{{baseUrl}}/api/transactions/:id"
+          }
+        },
+        {
+          "name": "Supprimer transaction",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/transactions/:id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agent IA",
+      "item": [
+        {
+          "name": "Envoyer message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Quel est mon solde ce mois ?\"\n}"
+            },
+            "url": "{{baseUrl}}/api/agent-ia/message"
+          }
+        },
+        {
+          "name": "Message vocal",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "audio", "type": "file", "src": ""}]},
+            "url": "{{baseUrl}}/api/agent-ia/voice"
+          }
+        },
+        {
+          "name": "Historique conversations",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/agent-ia/historique"
+          }
+        },
+        {
+          "name": "Catégoriser",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"description\": \"Achat Uber\"\n}"},
+            "url": "{{baseUrl}}/api/agent-ia/categoriser"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Métriques",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "url": "{{baseUrl}}/api/dashboard/metriques?periode=mois"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Budgets",
+      "item": [
+        {"name": "Liste", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/budgets"}},
+        {
+          "name": "Créer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"nom\": \"Alimentation\",\n  \"categorie\": \"Alimentation\",\n  \"montant\": 2000,\n  \"periode\": \"mensuel\",\n  \"dateDebut\": \"2025-02-01\",\n  \"dateFin\": \"2025-02-28\"\n}"},
+            "url": "{{baseUrl}}/api/budgets"
+          }
+        },
+        {"name": "Détail", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/budgets/:id"}},
+        {"name": "Modifier", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"montant\": 2500}"}, "url": "{{baseUrl}}/api/budgets/:id"}},
+        {"name": "Supprimer", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/budgets/:id"}}
+      ]
+    },
+    {
+      "name": "Objectifs",
+      "item": [
+        {"name": "Liste", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/objectifs"}},
+        {
+          "name": "Créer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"nom\": \"Vacances\",\n  \"montantCible\": 10000,\n  \"dateLimite\": \"2025-12-31\",\n  \"type\": \"epargne\"\n}"},
+            "url": "{{baseUrl}}/api/objectifs"
+          }
+        },
+        {"name": "Détail", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/objectifs/:id"}},
+        {"name": "Ajouter contribution", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"montant\": 500}"}, "url": "{{baseUrl}}/api/objectifs/:id/contribution"}},
+        {"name": "Supprimer", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/objectifs/:id"}}
+      ]
+    },
+    {
+      "name": "Rapports",
+      "item": [
+        {"name": "Dépenses", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/rapports/depenses"}},
+        {"name": "Revenus", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/rapports/revenus"}},
+        {"name": "Épargne", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/rapports/epargne"}},
+        {"name": "Mensuel", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/rapports/mensuel"}},
+        {"name": "Flux trésorerie", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/rapports/flux-tresorerie"}},
+        {"name": "Export PDF", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/rapports/export/pdf"}},
+        {
+          "name": "Partager par email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"type\": \"mensuel\",\n  \"emailDestinataire\": \"destinataire@example.com\"\n}"},
+            "url": "{{baseUrl}}/api/rapports/partager-email"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions récurrentes",
+      "item": [
+        {"name": "Liste", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/transactions-recurrentes"}},
+        {
+          "name": "Créer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"montant\": 800,\n  \"type\": \"depense\",\n  \"categorie\": \"Logement\",\n  \"description\": \"Loyer\",\n  \"frequence\": \"mensuel\",\n  \"jourDuMois\": 5,\n  \"prochaineDate\": \"2025-03-05\"\n}"},
+            "url": "{{baseUrl}}/api/transactions-recurrentes"
+          }
+        },
+        {"name": "Générer dues", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/transactions-recurrentes/generer"}},
+        {"name": "Détail", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/transactions-recurrentes/:id"}},
+        {"name": "Supprimer", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/transactions-recurrentes/:id"}}
+      ]
+    },
+    {
+      "name": "Conseils",
+      "item": [
+        {"name": "Insights", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/conseils/insights"}},
+        {"name": "Réduction dépenses", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/conseils/recommandations/reduction-depenses"}},
+        {"name": "Optimisation épargne", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/conseils/recommandations/optimisation-epargne"}},
+        {"name": "Dépenses inhabituelles", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/conseils/depenses-inhabituelles"}},
+        {"name": "Planification", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/conseils/planification"}}
+      ]
+    },
+    {
+      "name": "Investissements",
+      "item": [
+        {"name": "Liste", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/investissements"}},
+        {
+          "name": "Créer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {"mode": "raw", "raw": "{\n  \"nom\": \"Portefeuille actions\",\n  \"type\": \"actions\",\n  \"montantInvesti\": 5000,\n  \"valeurActuelle\": 5200,\n  \"dateAchat\": \"2024-01-15\"\n}"},
+            "url": "{{baseUrl}}/api/investissements"
+          }
+        },
+        {"name": "Détail", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/investissements/:id"}},
+        {"name": "Modifier", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"valeurActuelle\": 5400}"}, "url": "{{baseUrl}}/api/investissements/:id"}},
+        {"name": "Supprimer", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/api/investissements/:id"}}
+      ]
+    },
+    {
+      "name": "GraphQL",
+      "item": [
+        {
+          "name": "Query Dashboard + Transactions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query { dashboard(periode: \\\"mois\\\") { metriques { solde revenus depenses tauxEpargne } } transactions(limite: 5) { id description montant type date } }\"\n}"
+            },
+            "url": "{{baseUrl}}/api/graphql"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Auth",
+      "item": [
+        {
+          "name": "Connexion Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["var json = pm.response.json();", "if (json.donnees && json.donnees.token) {", "  pm.collectionVariables.set('adminToken', json.donnees.token);", "}"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"email\": \"admin@hssabaty.com\",\n  \"motDePasse\": \"VotreMotDePasse\"\n}"},
+            "url": "{{baseUrl}}/api/admin/auth/connecter"
+          }
+        },
+        {"name": "Admin actuel", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/auth/moi"}},
+        {"name": "Déconnexion Admin", "request": {"method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/auth/deconnecter"}}
+      ]
+    },
+    {
+      "name": "Admin - Gestion",
+      "item": [
+        {"name": "Statistiques globales", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/statistiques"}},
+        {"name": "Liste utilisateurs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/utilisateurs"}},
+        {"name": "Détail utilisateur", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/utilisateurs/:id"}},
+        {"name": "Liste transactions", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/transactions"}},
+        {"name": "Liste budgets", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/budgets"}},
+        {"name": "Liste objectifs", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/objectifs"}},
+        {"name": "Liste admins", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}], "url": "{{baseUrl}}/api/admin/admins"}}
+      ]
+    }
+  ]
+}
