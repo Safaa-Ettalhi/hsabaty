@@ -181,11 +181,14 @@ CONTEXTE ACTUEL DE L'UTILISATEUR:
 
 CAPACITÉS:
 1. Ajouter des transactions via langage naturel
-2. Consulter les transactions et statistiques
-3. Créer et gérer des budgets
-4. Créer et suivre des objectifs financiers
-5. Donner des conseils personnalisés
-6. Analyser les habitudes de dépenses
+2. Modifier des transactions existantes (montant, description, catégorie, date)
+3. Supprimer des transactions existantes
+4. Rechercher des transactions par description, montant, date ou catégorie
+5. Consulter les transactions et statistiques
+6. Créer et gérer des budgets
+7. Créer et suivre des objectifs financiers
+8. Donner des conseils personnalisés
+9. Analyser les habitudes de dépenses
 
 STYLE DE COMMUNICATION:
 - Sois amical, professionnel et encourageant
@@ -251,6 +254,23 @@ Réponds toujours en français et sois naturel dans tes réponses.`;
   private obtenirFonctionsIA(): any[] {
     return [
       {
+        name: 'rechercher_transactions',
+        description: 'Recherche des transactions existantes par description, montant, date ou catégorie. Utilise cette fonction avant de modifier ou supprimer une transaction pour obtenir son ID.',
+        parameters: {
+          type: 'object',
+          properties: {
+            description: { type: 'string', description: 'Recherche par mots-clés dans la description' },
+            montant: { type: 'number', description: 'Montant exact à rechercher' },
+            categorie: { type: 'string', description: 'Catégorie de la transaction' },
+            type: { type: 'string', enum: ['revenu', 'depense'], description: 'Type de transaction' },
+            dateDebut: { type: 'string', description: 'Date de début au format ISO (YYYY-MM-DD)' },
+            dateFin: { type: 'string', description: 'Date de fin au format ISO (YYYY-MM-DD)' },
+            limite: { type: 'number', description: 'Nombre maximum de résultats (défaut: 10)' }
+          },
+          required: []
+        }
+      },
+      {
         name: 'ajouter_transaction',
         description: 'Ajoute une nouvelle transaction financière',
         parameters: {
@@ -263,6 +283,33 @@ Réponds toujours en français et sois naturel dans tes réponses.`;
             date: { type: 'string', description: 'Date au format ISO' }
           },
           required: ['montant', 'type', 'categorie', 'description']
+        }
+      },
+      {
+        name: 'modifier_transaction',
+        description: 'Modifie une transaction existante. Tu dois d\'abord utiliser rechercher_transactions pour obtenir l\'ID de la transaction à modifier.',
+        parameters: {
+          type: 'object',
+          properties: {
+            transactionId: { type: 'string', description: 'ID de la transaction à modifier (obtenu via rechercher_transactions)' },
+            montant: { type: 'number', description: 'Nouveau montant (optionnel)' },
+            type: { type: 'string', enum: ['revenu', 'depense'], description: 'Nouveau type (optionnel)' },
+            categorie: { type: 'string', description: 'Nouvelle catégorie (optionnel)' },
+            description: { type: 'string', description: 'Nouvelle description (optionnel)' },
+            date: { type: 'string', description: 'Nouvelle date au format ISO (optionnel)' }
+          },
+          required: ['transactionId']
+        }
+      },
+      {
+        name: 'supprimer_transaction',
+        description: 'Supprime une transaction existante. Tu dois d\'abord utiliser rechercher_transactions pour obtenir l\'ID de la transaction à supprimer.',
+        parameters: {
+          type: 'object',
+          properties: {
+            transactionId: { type: 'string', description: 'ID de la transaction à supprimer (obtenu via rechercher_transactions)' }
+          },
+          required: ['transactionId']
         }
       },
       {
@@ -299,6 +346,52 @@ Réponds toujours en français et sois naturel dans tes réponses.`;
 //exécuter une action demandée par l'IA
   private async executerAction(utilisateurId: string, nomAction: string, parametres: any): Promise<any> {
     switch (nomAction) {
+      case 'rechercher_transactions':
+        const filtreRecherche: any = {
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
+        };
+
+        if (parametres.description) {
+          filtreRecherche.description = { $regex: parametres.description, $options: 'i' };
+        }
+        if (parametres.montant !== undefined) {
+          filtreRecherche.montant = parametres.montant;
+        }
+        if (parametres.categorie) {
+          filtreRecherche.categorie = parametres.categorie;
+        }
+        if (parametres.type) {
+          filtreRecherche.type = parametres.type;
+        }
+        if (parametres.dateDebut || parametres.dateFin) {
+          filtreRecherche.date = {};
+          if (parametres.dateDebut) {
+            filtreRecherche.date.$gte = new Date(parametres.dateDebut);
+          }
+          if (parametres.dateFin) {
+            filtreRecherche.date.$lte = new Date(parametres.dateFin);
+          }
+        }
+
+        const limite = parametres.limite || 10;
+        const transactionsTrouvees = await Transaction.find(filtreRecherche)
+          .sort({ date: -1 })
+          .limit(limite)
+          .select('_id montant type categorie description date');
+
+        return {
+          type: 'transactions_trouvees',
+          nombre: transactionsTrouvees.length,
+          transactions: transactionsTrouvees.map(t => ({
+            id: t._id.toString(),
+            montant: t.montant,
+            type: t.type,
+            categorie: t.categorie,
+            description: t.description,
+            date: t.date
+          }))
+        };
+
       case 'ajouter_transaction':
         const transaction = new Transaction({
           utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
@@ -311,6 +404,95 @@ Réponds toujours en français et sois naturel dans tes réponses.`;
         });
         await transaction.save();
         return { type: 'transaction_ajoutee', details: transaction };
+
+      case 'modifier_transaction':
+        if (!parametres.transactionId) {
+          throw new Error('ID de transaction requis. Utilise d\'abord rechercher_transactions pour obtenir l\'ID.');
+        }
+
+        const transactionAModifier = await Transaction.findOne({
+          _id: parametres.transactionId,
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
+        });
+
+        if (!transactionAModifier) {
+          throw new Error(`Transaction avec l'ID "${parametres.transactionId}" non trouvée. Vérifie l'ID ou utilise rechercher_transactions pour trouver la bonne transaction.`);
+        }
+
+        const modifications: string[] = [];
+        if (parametres.montant !== undefined) {
+          transactionAModifier.montant = parametres.montant;
+          modifications.push(`montant: ${parametres.montant}`);
+        }
+        if (parametres.type) {
+          transactionAModifier.type = parametres.type;
+          modifications.push(`type: ${parametres.type}`);
+        }
+        if (parametres.categorie) {
+          transactionAModifier.categorie = parametres.categorie;
+          modifications.push(`catégorie: ${parametres.categorie}`);
+        }
+        if (parametres.description) {
+          transactionAModifier.description = parametres.description;
+          modifications.push(`description: ${parametres.description}`);
+        }
+        if (parametres.date) {
+          transactionAModifier.date = new Date(parametres.date);
+          modifications.push(`date: ${parametres.date}`);
+        }
+
+        if (modifications.length === 0) {
+          throw new Error('Aucune modification spécifiée. Indique au moins un champ à modifier (montant, type, categorie, description ou date).');
+        }
+
+        transactionAModifier.dateModification = new Date();
+        await transactionAModifier.save();
+
+        return {
+          type: 'transaction_modifiee',
+          details: transactionAModifier,
+          modifications: modifications,
+          message: `Transaction modifiée avec succès: ${modifications.join(', ')}`
+        };
+
+      case 'supprimer_transaction':
+        if (!parametres.transactionId) {
+          throw new Error('ID de transaction requis. Utilise d\'abord rechercher_transactions pour obtenir l\'ID.');
+        }
+
+        const transactionASupprimer = await Transaction.findOne({
+          _id: parametres.transactionId,
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
+        });
+
+        if (!transactionASupprimer) {
+          throw new Error(`Transaction avec l'ID "${parametres.transactionId}" non trouvée. Vérifie l'ID ou utilise rechercher_transactions pour trouver la bonne transaction.`);
+        }
+
+        const detailsAvantSuppression = {
+          id: transactionASupprimer._id.toString(),
+          description: transactionASupprimer.description,
+          montant: transactionASupprimer.montant,
+          type: transactionASupprimer.type,
+          categorie: transactionASupprimer.categorie,
+          date: transactionASupprimer.date
+        };
+
+        await Transaction.findOneAndDelete({
+          _id: parametres.transactionId,
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
+        });
+
+        // Obtenir la devise de l'utilisateur
+        const { Utilisateur } = await import('../models/Utilisateur');
+        const utilisateur = await Utilisateur.findById(utilisateurId);
+        const devise = utilisateur?.devise || 'MAD';
+
+        return {
+          type: 'transaction_supprimee',
+          details: detailsAvantSuppression,
+          message: `Transaction supprimée avec succès: "${detailsAvantSuppression.description}" (${detailsAvantSuppression.montant} ${devise})`
+        };
 
       case 'creer_budget':
         const dateDebut = new Date();
