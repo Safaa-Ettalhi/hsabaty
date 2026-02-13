@@ -16,24 +16,29 @@ export class ServiceAgentIA {
   private model: string;
 
   constructor() {
-    this.provider = process.env.IA_PROVIDER || 'openai';
-    this.model = process.env.IA_MODEL || 'gpt-4o-mini';
-
+    this.provider = process.env.IA_PROVIDER || 'gemini';
+    this.model = process.env.IA_MODEL || 'gemini-flash-latest';
     if (this.provider === 'gemini') {
-      console.log(`[ServiceAgentIA] Provider: ${this.provider}, Model: ${this.model}, API Key: ${process.env.GEMINI_API_KEY ? 'présente' : 'absente'}`);
-    }
-
-    if (this.provider === 'openai' && process.env.OPENAI_API_KEY) {
+      if (process.env.GEMINI_API_KEY) {
+        this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        console.log(`[ServiceAgentIA] ✅ Gemini configuré - Model: ${this.model}, API Key: présente`);
+      } else {
+        console.error('[ServiceAgentIA] ❌ GEMINI_API_KEY manquante dans les variables d\'environnement');
+        throw new Error('GEMINI_API_KEY est requise pour utiliser Gemini');
+      }
+    } else if (this.provider === 'openai' && process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
       });
+      console.log(`[ServiceAgentIA] OpenAI configuré - Model: ${this.model}`);
     } else if (this.provider === 'claude' && process.env.ANTHROPIC_API_KEY) {
       this.anthropic = new Anthropic({
         apiKey: process.env.ANTHROPIC_API_KEY
       });
-    } else if (this.provider === 'gemini' && process.env.GEMINI_API_KEY) {
-      this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      if (!process.env.IA_MODEL) this.model = 'gemini-flash-latest';
+      console.log(`[ServiceAgentIA] Claude configuré - Model: ${this.model}`);
+    } else {
+      console.error(`[ServiceAgentIA] ❌ Aucun provider IA valide configuré. Provider demandé: ${this.provider}`);
+      throw new Error(`Aucun fournisseur IA configuré pour: ${this.provider}. Vérifiez IA_PROVIDER et les clés API correspondantes.`);
     }
   }
 
