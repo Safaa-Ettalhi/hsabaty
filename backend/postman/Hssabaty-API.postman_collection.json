@@ -161,48 +161,298 @@
       "name": "Agent IA",
       "item": [
         {
-          "name": "Envoyer message",
-          "request": {
-            "method": "POST",
-            "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type", "value": "application/json"}
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"message\": \"Quel est mon solde ce mois ?\"\n}"
+          "name": "Transactions",
+          "item": [
+            {
+              "name": "Ajouter transaction - Dépense",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"J'ai dépensé 250 MAD au restaurant hier\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
             },
-            "url": "{{baseUrl}}/api/agent-ia/message"
-          }
+            {
+              "name": "Ajouter transaction - Salaire",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Ajoute mon salaire de 10000 MAD reçu aujourd'hui\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            },
+            {
+              "name": "Rechercher transactions",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Montre-moi mes dépenses ce mois\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            },
+            {
+              "name": "Modifier transaction",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Modifie la transaction de 250 MAD au restaurant, mets 300 MAD\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            },
+            {
+              "name": "Supprimer transaction",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Supprime ma dépense d'hier au restaurant\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            }
+          ]
         },
         {
-          "name": "Message vocal",
-          "request": {
-            "method": "POST",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "formdata", "formdata": [{"key": "audio", "type": "file", "src": ""}]},
-            "url": "{{baseUrl}}/api/agent-ia/voice"
-          }
+          "name": "Statistiques",
+          "item": [
+            {
+              "name": "Solde actuel",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Quel est mon solde actuel?\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            },
+            {
+              "name": "Statistiques complètes",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Montre-moi mes statistiques financières\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            },
+            {
+              "name": "Analyser habitudes dépenses",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Où est-ce que je dépense le plus?\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            }
+          ]
         },
         {
-          "name": "Historique conversations",
-          "request": {
-            "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "url": "{{baseUrl}}/api/agent-ia/historique"
-          }
+          "name": "Budgets",
+          "item": [
+            {
+              "name": "Créer budget",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Fixe un budget de 2000 MAD pour l'alimentation\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            },
+            {
+              "name": "Consulter budgets",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Montre-moi mes budgets\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            }
+          ]
         },
         {
-          "name": "Catégoriser",
-          "request": {
-            "method": "POST",
-            "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type", "value": "application/json"}
-            ],
-            "body": {"mode": "raw", "raw": "{\n  \"description\": \"Achat Uber\"\n}"},
-            "url": "{{baseUrl}}/api/agent-ia/categoriser"
-          }
+          "name": "Objectifs",
+          "item": [
+            {
+              "name": "Créer objectif",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Je veux économiser 50000 MAD pour une voiture en 12 mois\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            },
+            {
+              "name": "Consulter objectifs",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Montre-moi mes objectifs\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conseils",
+          "item": [
+            {
+              "name": "Conseils personnalisés",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Donne-moi des conseils pour réduire mes dépenses\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Investissements",
+          "item": [
+            {
+              "name": "Créer investissement",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"J'ai investi 5000 MAD dans Bitcoin\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transactions récurrentes",
+          "item": [
+            {
+              "name": "Créer transaction récurrente",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Abonnement Netflix de 99 MAD par mois\"\n}"
+                },
+                "url": "{{baseUrl}}/api/agent-ia/message"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Autres",
+          "item": [
+            {
+              "name": "Message vocal",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+                "body": {"mode": "formdata", "formdata": [{"key": "audio", "type": "file", "src": ""}]},
+                "url": "{{baseUrl}}/api/agent-ia/voice"
+              }
+            },
+            {
+              "name": "Historique conversations",
+              "request": {
+                "method": "GET",
+                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+                "url": "{{baseUrl}}/api/agent-ia/historique"
+              }
+            },
+            {
+              "name": "Catégoriser",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {"key": "Authorization", "value": "Bearer {{token}}"},
+                  {"key": "Content-Type", "value": "application/json"}
+                ],
+                "body": {"mode": "raw", "raw": "{\n  \"description\": \"Achat Uber\"\n}"},
+                "url": "{{baseUrl}}/api/agent-ia/categoriser"
+              }
+            }
+          ]
         }
       ]
     },
