@@ -159,15 +159,53 @@ export class ServiceAgentIA {
             }
           }
         } catch (geminiError: any) {
-          console.warn('Erreur Gemini, utilisation de la détection d\'intention:', geminiError.message);
-          const intention = this.detecterIntention(messageUtilisateur);
-          if (intention) {
-            action = await this.executerActionDetectee(utilisateurId, intention);
-            reponseIA = action 
-              ? this.genererReponseDepuisAction(action, contexte)
-              : 'Je traite votre demande. Veuillez patienter...';
+          const errorMessage = geminiError?.message || '';
+          const errorStatus = geminiError?.status || geminiError?.response?.status;
+          
+          // Détecter les erreurs de quota/credit épuisé (429, 403, 401)
+          const isQuotaError = errorStatus === 429 || 
+                              errorStatus === 403 || 
+                              errorStatus === 401 ||
+                              errorMessage.includes('quota') ||
+                              errorMessage.includes('Quota') ||
+                              errorMessage.includes('billing') ||
+                              errorMessage.includes('credit');
+          
+          if (isQuotaError && process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_FALLBACK === 'true') {
+            console.warn(`[ServiceAgentIA] ⚠️ Crédit Gemini épuisé (${errorStatus}), basculement vers Nemotron 3 Nano 30B A3B`);
+            try {
+              reponseIA = await this.appelerNemotronViaOpenRouter(messagesHistorique, messageUtilisateur, promptSystem);
+              const intention = this.detecterIntention(messageUtilisateur);
+              if (intention) {
+                const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
+                if (actionDetectee) {
+                  action = actionDetectee;
+                  reponseIA = this.genererReponseDepuisAction(action, contexte);
+                }
+              }
+            } catch (nemotronError: any) {
+              console.error('[ServiceAgentIA] ❌ Erreur Nemotron, utilisation de la détection d\'intention:', nemotronError.message);
+              const intention = this.detecterIntention(messageUtilisateur);
+              if (intention) {
+                action = await this.executerActionDetectee(utilisateurId, intention);
+                reponseIA = action 
+                  ? this.genererReponseDepuisAction(action, contexte)
+                  : 'Je traite votre demande. Veuillez patienter...';
+              } else {
+                reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+              }
+            }
           } else {
-            reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+            console.warn('[ServiceAgentIA] Erreur Gemini, utilisation de la détection d\'intention:', errorMessage);
+            const intention = this.detecterIntention(messageUtilisateur);
+            if (intention) {
+              action = await this.executerActionDetectee(utilisateurId, intention);
+              reponseIA = action 
+                ? this.genererReponseDepuisAction(action, contexte)
+                : 'Je traite votre demande. Veuillez patienter...';
+            } else {
+              reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+            }
           }
         }
       } else {
@@ -187,8 +225,50 @@ export class ServiceAgentIA {
       console.error('Erreur lors du traitement du message:', error);
       const msg = error?.message || '';
       
-      if ((error?.status === 503 || msg.includes('503') || msg.includes('Service Unavailable')) && this.provider === 'gemini') {
-        console.warn('Gemini indisponible, utilisation de la détection d\'intention comme fallback');
+      // Gestion des erreurs de quota Gemini avec fallback Nemotron
+      const isQuotaError = error?.status === 429 || 
+                          error?.status === 403 || 
+                          error?.status === 401 ||
+                          msg.includes('quota') ||
+                          msg.includes('Quota') ||
+                          msg.includes('billing') ||
+                          msg.includes('credit');
+      
+      if ((isQuotaError || error?.status === 503 || msg.includes('503') || msg.includes('Service Unavailable')) && this.provider === 'gemini') {
+        if (isQuotaError && process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_FALLBACK === 'true') {
+          console.warn('[ServiceAgentIA] ⚠️ Crédit Gemini épuisé, basculement vers Nemotron 3 Nano 30B A3B');
+          try {
+            const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
+            const promptSystem = this.construirePromptSystem(contexte);
+            const conversation = await Conversation.findOne({ utilisateurId })
+              .sort({ dateModification: -1 })
+              .limit(1);
+            
+            const messagesHistorique = conversation?.messages.slice(-10).map((msg: any) => ({
+              role: msg.role,
+              contenu: msg.contenu
+            })) || [];
+            
+            let reponseIA = await this.appelerNemotronViaOpenRouter(messagesHistorique, messageUtilisateur, promptSystem);
+            
+            const intention = this.detecterIntention(messageUtilisateur);
+            let action: any = null;
+            
+            if (intention) {
+              action = await this.executerActionDetectee(utilisateurId, intention);
+              if (action) {
+                reponseIA = this.genererReponseDepuisAction(action, contexte);
+              }
+            }
+            
+            await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action);
+            return { reponse: reponseIA, action };
+          } catch (nemotronError: any) {
+            console.error('[ServiceAgentIA] ❌ Erreur Nemotron, utilisation de la détection d\'intention:', nemotronError.message);
+          }
+        }
+        
+        console.warn('[ServiceAgentIA] Gemini indisponible, utilisation de la détection d\'intention comme fallback');
         try {
           const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
           const intention = this.detecterIntention(messageUtilisateur);
@@ -1677,6 +1757,54 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
 
       default:
         return 'Action effectuée avec succès.';
+    }
+  }
+
+  private async appelerNemotronViaOpenRouter(
+    messagesHistorique: any[],
+    messageUtilisateur: string,
+    promptSystem: string
+  ): Promise<string> {
+    if (!process.env.OPENROUTER_API_KEY) {
+      throw new Error('OPENROUTER_API_KEY non configurée');
+    }
+
+    const messages = [
+      { role: 'system', content: promptSystem },
+      ...messagesHistorique.map(msg => ({
+        role: msg.role === 'utilisateur' ? 'user' : 'assistant',
+        content: msg.contenu
+      })),
+      { role: 'user', content: messageUtilisateur }
+    ];
+
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.OPENROUTER_HTTP_REFERER || 'https://hssabaty.ma',
+          'X-Title': 'Hssabaty Agent IA'
+        },
+        body: JSON.stringify({
+          model: 'nvidia/nemotron-3-nano-30b-a3b',
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 1024
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+      }
+
+      const data: any = await response.json();
+      return data.choices?.[0]?.message?.content || 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+    } catch (error: any) {
+      console.error('[ServiceAgentIA] Erreur lors de l\'appel à Nemotron via OpenRouter:', error.message);
+      throw error;
     }
   }
 }
