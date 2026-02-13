@@ -6,7 +6,7 @@ import { Budget } from '../models/Budget';
 import { Objectif } from '../models/Objectif';
 import { Conversation } from '../models/Conversation';
 import mongoose from 'mongoose';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 export class ServiceAgentIA {
   private openai?: OpenAI;
@@ -83,6 +83,20 @@ export class ServiceAgentIA {
             choix.message.function_call.name,
             JSON.parse(choix.message.function_call.arguments || '{}')
           );
+          // Si une action a été exécutée, générer une réponse depuis l'action
+          if (action) {
+            reponseIA = this.genererReponseDepuisAction(action, contexte);
+          }
+        } else {
+          // Même sans function call, vérifier si on peut détecter une intention
+          const intention = this.detecterIntention(messageUtilisateur);
+          if (intention && (intention.type === 'gerer_objectif' || intention.type === 'gerer_budget' || intention.type === 'statistiques' || intention.type === 'analyser_habitudes')) {
+            const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
+            if (actionDetectee) {
+              action = actionDetectee;
+              reponseIA = this.genererReponseDepuisAction(action, contexte);
+            }
+          }
         }
       } else if (this.provider === 'claude' && this.anthropic) {
         const message = await this.anthropic.messages.create({
@@ -94,21 +108,71 @@ export class ServiceAgentIA {
         reponseIA = message.content[0].type === 'text' 
           ? message.content[0].text 
           : '';
+
+        const intention = this.detecterIntention(messageUtilisateur);
+        if (intention) {
+          action = await this.executerActionDetectee(utilisateurId, intention);
+          if (action) {
+            reponseIA = this.genererReponseDepuisAction(action, contexte);
+          }
+        }
       } else if (this.provider === 'gemini' && this.gemini) {
-        const history = messagesHistorique.map(msg => ({
-          role: msg.role === 'utilisateur' ? 'user' as const : 'model' as const,
-          parts: [{ text: msg.contenu }]
-        }));
-        const model = this.gemini.getGenerativeModel({
-          model: this.model,
-          systemInstruction: promptSystem
-        });
-        const chat = model.startChat({ history });
-        const result = await chat.sendMessage(messageUtilisateur);
-        const response = result.response;
-        reponseIA = response.text() || '';
+        try {
+          const history = messagesHistorique.map(msg => ({
+            role: msg.role === 'utilisateur' ? 'user' as const : 'model' as const,
+            parts: [{ text: msg.contenu }]
+          }));
+          const model = this.gemini.getGenerativeModel({
+            model: this.model,
+            systemInstruction: promptSystem
+          });
+          const chat = model.startChat({ history });
+          const result = await chat.sendMessage(messageUtilisateur);
+          const response = result.response;
+          reponseIA = response.text() || '';
+
+          if (!reponseIA || reponseIA.trim().length === 0) {
+            const intention = this.detecterIntention(messageUtilisateur);
+            if (intention) {
+              action = await this.executerActionDetectee(utilisateurId, intention);
+              if (action) {
+                reponseIA = this.genererReponseDepuisAction(action, contexte);
+              } else {
+                reponseIA = 'Je traite votre demande...';
+              }
+            } else {
+              reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+            }
+          }
+          // Priorité aux actions détectées plutôt qu'à la réponse textuelle de Gemini
+          const intention = this.detecterIntention(messageUtilisateur);
+          if (intention) {
+            const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
+            if (actionDetectee) {
+              action = actionDetectee;
+              reponseIA = this.genererReponseDepuisAction(action, contexte);
+            }
+          }
+        } catch (geminiError: any) {
+          console.warn('Erreur Gemini, utilisation de la détection d\'intention:', geminiError.message);
+          const intention = this.detecterIntention(messageUtilisateur);
+          if (intention) {
+            action = await this.executerActionDetectee(utilisateurId, intention);
+            reponseIA = action 
+              ? this.genererReponseDepuisAction(action, contexte)
+              : 'Je traite votre demande. Veuillez patienter...';
+          } else {
+            reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+          }
+        }
       } else {
         throw new Error('Aucun fournisseur IA configuré (OPENAI_API_KEY, ANTHROPIC_API_KEY ou GEMINI_API_KEY selon IA_PROVIDER)');
+      }
+
+      if (!reponseIA || reponseIA.trim().length === 0) {
+        reponseIA = action 
+          ? this.genererReponseDepuisAction(action, contexte)
+          : 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
       }
 
       await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action);
@@ -117,6 +181,34 @@ export class ServiceAgentIA {
     } catch (error: any) {
       console.error('Erreur lors du traitement du message:', error);
       const msg = error?.message || '';
+      
+      if ((error?.status === 503 || msg.includes('503') || msg.includes('Service Unavailable')) && this.provider === 'gemini') {
+        console.warn('Gemini indisponible, utilisation de la détection d\'intention comme fallback');
+        try {
+          const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
+          const intention = this.detecterIntention(messageUtilisateur);
+          let reponseIA = 'Je traite votre demande...';
+          let action: any = null;
+
+          if (intention) {
+            action = await this.executerActionDetectee(utilisateurId, intention);
+            reponseIA = action 
+              ? this.genererReponseDepuisAction(action, contexte)
+              : 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+          } else {
+            reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+          }
+
+          await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action);
+          return { reponse: reponseIA, action };
+        } catch (fallbackError: any) {
+          console.error('Erreur lors du fallback:', fallbackError);
+          const reponseParDefaut = 'Je comprends votre message. Le service IA est temporairement indisponible, mais votre demande a été enregistrée.';
+          await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseParDefaut);
+          return { reponse: reponseParDefaut };
+        }
+      }
+
       if (error?.status === 429 || msg.includes('429') || msg.toLowerCase().includes('quota')) {
         throw new Error(
           "Quota de l'API IA dépassé. Vérifiez votre forfait et la facturation sur le portail du fournisseur (OpenAI, Anthropic ou Google AI Studio pour Gemini), ou réessayez plus tard."
@@ -172,6 +264,9 @@ export class ServiceAgentIA {
 
 Ton rôle est d'aider les utilisateurs à gérer leurs finances de manière simple et conversationnelle.
 
+⚠️ IMPORTANT - UTILISATION AUTOMATIQUE DES FONCTIONS:
+Tu DOIS automatiquement utiliser les fonctions disponibles lorsque l'utilisateur demande une action. Ne demande JAMAIS à l'utilisateur de confirmer, exécute directement l'action.
+
 CONTEXTE ACTUEL DE L'UTILISATEUR:
 - Solde actuel: ${contexte.solde || 0} ${contexte.devise || 'MAD'}
 - Revenus ce mois: ${contexte.revenusMois || 0} ${contexte.devise || 'MAD'}
@@ -179,28 +274,145 @@ CONTEXTE ACTUEL DE L'UTILISATEUR:
 - Budgets actifs: ${contexte.budgetsActifs || 0}
 - Objectifs actifs: ${contexte.objectifsActifs || 0}
 
-CAPACITÉS:
-1. Ajouter des transactions via langage naturel
-2. Modifier des transactions existantes (montant, description, catégorie, date)
-3. Supprimer des transactions existantes
-4. Rechercher des transactions par description, montant, date ou catégorie
-5. Consulter les transactions et statistiques
-6. Créer et gérer des budgets
-7. Créer et suivre des objectifs financiers
-8. Donner des conseils personnalisés
-9. Analyser les habitudes de dépenses
+RÈGLES D'UTILISATION DES FONCTIONS:
+
+1. AJOUTER UNE TRANSACTION:
+   Quand l'utilisateur dit: "J'ai dépensé X", "Ajoute X", "J'ai payé X", "Reçu X", "Gagné X"
+   → Utilise IMMÉDIATEMENT la fonction "ajouter_transaction"
+   Exemples:
+   - "J'ai dépensé 150 MAD au restaurant hier" → ajouter_transaction(type="depense", montant=150, categorie="Alimentation", description="Restaurant", date="hier")
+   - "Ajoute mon salaire de 10000 MAD reçu aujourd'hui" → ajouter_transaction(type="revenu", montant=10000, categorie="Salaire", description="Salaire", date="aujourd'hui")
+   - "J'ai payé 500 MAD pour l'électricité" → ajouter_transaction(type="depense", montant=500, categorie="Logement", description="Électricité")
+
+2. MODIFIER UNE TRANSACTION:
+   Quand l'utilisateur dit: "Modifie", "Change", "Corrige", "Mets à jour"
+   → Utilise d'abord "rechercher_transactions" pour trouver la transaction, puis "modifier_transaction"
+   Exemples:
+   - "Modifie la transaction de 150 MAD au restaurant, mets 200 MAD" → rechercher_transactions puis modifier_transaction
+   - "Change la catégorie de ma dernière dépense" → rechercher_transactions puis modifier_transaction
+
+3. SUPPRIMER UNE TRANSACTION:
+   Quand l'utilisateur dit: "Supprime", "Efface", "Retire", "Enlève"
+   → Utilise d'abord "rechercher_transactions" pour trouver la transaction, puis "supprimer_transaction"
+   Exemples:
+   - "Supprime ma dépense d'hier au restaurant" → rechercher_transactions puis supprimer_transaction
+   - "Efface la transaction de 500 MAD" → rechercher_transactions puis supprimer_transaction
+
+4. CRÉER UN BUDGET:
+   Quand l'utilisateur dit: "Fixe un budget", "Crée un budget", "Budget de X pour Y"
+   → Utilise IMMÉDIATEMENT la fonction "creer_budget"
+   Exemples:
+   - "Fixe un budget de 2000 MAD pour l'alimentation" → creer_budget(nom="Budget Alimentation", montant=2000, categorie="Alimentation", periode="mensuel")
+   - "Je veux un budget mensuel de 5000 MAD" → creer_budget(nom="Budget mensuel", montant=5000, periode="mensuel")
+
+7. GÉRER DES BUDGETS (consulter, modifier, supprimer):
+   Quand l'utilisateur dit: "Mes budgets", "Montre mes budgets", "Consulte mes budgets", "Modifie le budget X"
+   → Utilise les informations disponibles ou réponds avec la liste des budgets actifs
+   Exemples:
+   - "Montre-moi mes budgets" → Liste les budgets avec leurs statistiques
+   - "Quels sont mes budgets actifs?" → Liste les budgets actifs
+
+8. CRÉER UN OBJECTIF:
+   Quand l'utilisateur dit: "Je veux économiser", "Objectif de X", "Épargner X pour Y"
+   → Utilise IMMÉDIATEMENT la fonction "creer_objectif"
+   Exemples:
+   - "Je veux économiser 50000 MAD pour une voiture en 12 mois" → creer_objectif(nom="Voiture", montantCible=50000, dateLimite="+12 mois", type="projet")
+   - "Objectif: 10000 MAD d'épargne d'urgence" → creer_objectif(nom="Fonds d'urgence", montantCible=10000, type="fonds_urgence")
+
+9. SUIVRE DES OBJECTIFS FINANCIERS:
+   Quand l'utilisateur dit: "Mes objectifs", "Progression", "Suivi", "Où en suis-je avec mes objectifs?"
+   → Utilise les informations disponibles ou réponds avec la liste des objectifs et leur progression
+   Exemples:
+   - "Montre-moi mes objectifs" → Liste les objectifs avec progression, montant restant, montant mensuel requis
+   - "Où en suis-je avec mon objectif voiture?" → Donne la progression détaillée de l'objectif
+
+10. DONNER DES CONSEILS PERSONNALISÉS:
+    Quand l'utilisateur demande: "Conseil", "Recommandation", "Que faire", "Comment améliorer", "Optimiser"
+    → Analyse le contexte financier et donne des conseils personnalisés basés sur:
+    - Le solde actuel
+    - Les revenus et dépenses du mois
+    - Les budgets actifs
+    - Les objectifs en cours
+    - Les habitudes de dépenses
+    Exemples:
+    - "Donne-moi des conseils" → Analyse et propose des recommandations personnalisées
+    - "Comment réduire mes dépenses?" → Analyse les dépenses et propose des réductions spécifiques
+    - "Comment optimiser mon épargne?" → Analyse la situation et propose des stratégies d'épargne
+
+11. ANALYSER LES HABITUDES DE DÉPENSES:
+    Quand l'utilisateur demande: "Où est-ce que je dépense le plus?", "Analyse mes dépenses", "Mes habitudes", "Tendances"
+    → Analyse les dépenses et donne des insights sur:
+    - Les catégories où l'utilisateur dépense le plus
+    - Les tendances mensuelles
+    - Les comparaisons avec les mois précédents
+    - Les opportunités d'économies
+    Exemples:
+    - "Où est-ce que je dépense le plus?" → Liste les catégories par ordre décroissant avec pourcentages
+    - "Analyse mes habitudes de dépenses" → Donne une analyse complète des habitudes
+    - "Quelles sont mes tendances?" → Compare avec les mois précédents
+
+12. CRÉER UN INVESTISSEMENT:
+    Quand l'utilisateur dit: "J'ai investi", "Investissement", "Acheté des actions", "Portefeuille"
+    → Utilise IMMÉDIATEMENT la fonction "creer_investissement"
+    Exemples:
+    - "J'ai investi 5000 MAD dans Bitcoin" → creer_investissement(nom="Bitcoin", type="crypto", montantInvesti=5000)
+    - "Acheté des actions Apple pour 10000 MAD" → creer_investissement(nom="Apple", type="actions", montantInvesti=10000)
+    - "Investissement immobilier de 200000 MAD" → creer_investissement(nom="Immobilier", type="immobilier", montantInvesti=200000)
+
+13. CRÉER UNE TRANSACTION RÉCURRENTE:
+    Quand l'utilisateur dit: "Abonnement", "Mensuel", "Récurrent", "Chaque mois", "Tous les mois"
+    → Utilise IMMÉDIATEMENT la fonction "creer_transaction_recurrente"
+    Exemples:
+    - "Abonnement Netflix de 99 MAD par mois" → creer_transaction_recurrente(montant=99, type="depense", categorie="Divertissement", description="Netflix", frequence="mensuel")
+    - "Mon loyer de 3000 MAD chaque mois" → creer_transaction_recurrente(montant=3000, type="depense", categorie="Logement", description="Loyer", frequence="mensuel")
+    - "Salaire mensuel de 10000 MAD" → creer_transaction_recurrente(montant=10000, type="revenu", categorie="Salaire", description="Salaire", frequence="mensuel")
+
+2. RECHERCHER/CONSULTER DES TRANSACTIONS:
+   Quand l'utilisateur dit: "Montre-moi", "Liste", "Affiche", "Trouve", "Combien j'ai dépensé", "Mes transactions"
+   → Utilise IMMÉDIATEMENT la fonction "rechercher_transactions"
+   Exemples:
+   - "Montre-moi mes dépenses ce mois" → rechercher_transactions(type="depense", dateDebut="début mois", dateFin="fin mois")
+   - "Combien j'ai dépensé en alimentation?" → rechercher_transactions(categorie="Alimentation")
+   - "Mes transactions d'hier" → rechercher_transactions(dateDebut="hier", dateFin="hier")
+   - "Trouve la transaction de 500 MAD" → rechercher_transactions(montant=500)
+
+3. STATISTIQUES ET CONSULTATION:
+   Quand l'utilisateur demande: "Quel est mon solde?", "Mes revenus", "Mes dépenses", "Statistiques", "Résumé"
+   → Utilise les informations du contexte fourni ou réponds directement avec les métriques disponibles
+   Exemples:
+   - "Quel est mon solde?" → Réponds avec le solde du contexte
+   - "Combien j'ai dépensé ce mois?" → Réponds avec depensesMois du contexte
+   - "Statistiques de ce mois" → Donne un résumé complet avec solde, revenus, dépenses, taux d'épargne
+
+4. MODIFIER UNE TRANSACTION:
+
+CATÉGORISATION AUTOMATIQUE:
+- Restaurant, manger, food, café → "Alimentation"
+- Taxi, transport, carburant, essence → "Transport"
+- Loyer, électricité, eau, gaz, logement → "Logement"
+- Salaire, revenu, paie → "Salaire"
+- Médecin, pharmacie, santé → "Santé"
+- École, cours, formation → "Éducation"
+- Cinéma, loisir, divertissement → "Divertissement"
+- Achat, shopping, magasin → "Shopping"
+
+DÉTECTION DE DATES:
+- "hier" → date d'hier
+- "aujourd'hui" → date d'aujourd'hui
+- "il y a X jours" → date il y a X jours
+- Dates explicites → convertir en format ISO
 
 STYLE DE COMMUNICATION:
 - Sois amical, professionnel et encourageant
+- Après avoir exécuté une action, confirme brièvement ce qui a été fait
 - Utilise un langage simple et accessible
 - Sois concis mais complet
-- Pose des questions de clarification si nécessaire
-- Donne des conseils pratiques et actionnables
+- Pose des questions de clarification UNIQUEMENT si des informations essentielles manquent
 
 CATÉGORIES DISPONIBLES:
 Alimentation, Transport, Logement, Santé, Éducation, Divertissement, Shopping, Autres, Salaire, Investissement, Autres revenus
 
-Réponds toujours en français et sois naturel dans tes réponses.`;
+Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de confirmation, exécute directement les actions demandées.`;
   }
 
 //obtenir le contexte financier de l'utilisateur
@@ -338,6 +550,62 @@ Réponds toujours en français et sois naturel dans tes réponses.`;
             type: { type: 'string', enum: ['epargne', 'remboursement', 'fonds_urgence', 'projet'] }
           },
           required: ['nom', 'montantCible', 'dateLimite']
+        }
+      },
+      {
+        name: 'creer_investissement',
+        description: 'Crée un nouvel investissement (actions, obligations, crypto, immobilier, etc.)',
+        parameters: {
+          type: 'object',
+          properties: {
+            nom: { type: 'string', description: 'Nom de l\'investissement (ex: "Bitcoin", "Actions Apple")' },
+            type: { type: 'string', enum: ['actions', 'obligations', 'fonds', 'crypto', 'immobilier', 'autre'] },
+            montantInvesti: { type: 'number', description: 'Montant investi' },
+            valeurActuelle: { type: 'number', description: 'Valeur actuelle (optionnel, par défaut = montantInvesti)' },
+            rendementPourcentage: { type: 'number', description: 'Rendement en pourcentage (optionnel)' },
+            dateAchat: { type: 'string', description: 'Date d\'achat au format ISO (optionnel)' },
+            description: { type: 'string', description: 'Description de l\'investissement (optionnel)' }
+          },
+          required: ['nom', 'montantInvesti']
+        }
+      },
+      {
+        name: 'creer_transaction_recurrente',
+        description: 'Crée une transaction récurrente (abonnement, salaire mensuel, loyer, etc.)',
+        parameters: {
+          type: 'object',
+          properties: {
+            montant: { type: 'number', description: 'Montant de la transaction' },
+            type: { type: 'string', enum: ['revenu', 'depense'] },
+            categorie: { type: 'string', description: 'Catégorie de la transaction' },
+            description: { type: 'string', description: 'Description (ex: "Netflix", "Salaire", "Loyer")' },
+            frequence: { type: 'string', enum: ['hebdomadaire', 'mensuel', 'trimestriel', 'annuel'] },
+            jourDuMois: { type: 'number', description: 'Jour du mois (1-31) pour mensuel/trimestriel/annuel (optionnel)' },
+            jourDeLaSemaine: { type: 'number', description: 'Jour de la semaine (0=dimanche, 6=samedi) pour hebdomadaire (optionnel)' }
+          },
+          required: ['montant', 'type', 'categorie', 'description', 'frequence']
+        }
+      },
+      {
+        name: 'consulter_objectifs',
+        description: 'Consulte la liste des objectifs financiers avec leur progression. Utilise cette fonction quand l\'utilisateur demande "mes objectifs", "montre-moi mes objectifs", "progression de mes objectifs", etc.',
+        parameters: {
+          type: 'object',
+          properties: {
+            actif: { type: 'boolean', description: 'Filtrer par objectifs actifs (optionnel)' }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'consulter_budgets',
+        description: 'Consulte la liste des budgets avec leurs statistiques. Utilise cette fonction quand l\'utilisateur demande "mes budgets", "montre-moi mes budgets", "consulte mes budgets", etc.',
+        parameters: {
+          type: 'object',
+          properties: {
+            actif: { type: 'boolean', description: 'Filtrer par budgets actifs (optionnel)' }
+          },
+          required: []
         }
       }
     ];
@@ -528,6 +796,120 @@ Réponds toujours en français et sois naturel dans tes réponses.`;
         await objectif.save();
         return { type: 'objectif_cree', details: objectif };
 
+      case 'creer_investissement':
+        const { Investissement } = await import('../models/Investissement');
+        const investissement = new Investissement({
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          nom: parametres.nom,
+          type: parametres.type || 'autre',
+          montantInvesti: parametres.montantInvesti,
+          valeurActuelle: parametres.valeurActuelle ?? parametres.montantInvesti,
+          rendementPourcentage: parametres.rendementPourcentage,
+          dateAchat: parametres.dateAchat ? new Date(parametres.dateAchat) : new Date(),
+          dateValeur: parametres.valeurActuelle != null ? new Date() : undefined,
+          description: parametres.description
+        });
+        await investissement.save();
+        return { type: 'investissement_cree', details: investissement };
+
+      case 'creer_transaction_recurrente':
+        const { TransactionRecurrente } = await import('../models/TransactionRecurrente');
+        const { addDays, addMonths, addYears, addWeeks } = await import('date-fns');
+        
+        let prochaineDate = new Date();
+        if (parametres.frequence === 'hebdomadaire') {
+          prochaineDate = addWeeks(prochaineDate, 1);
+          if (parametres.jourDeLaSemaine !== undefined) {
+            const joursJusquAuJour = (parametres.jourDeLaSemaine - prochaineDate.getDay() + 7) % 7;
+            prochaineDate = addDays(prochaineDate, joursJusquAuJour);
+          }
+        } else if (parametres.frequence === 'mensuel') {
+          prochaineDate = addMonths(prochaineDate, 1);
+          if (parametres.jourDuMois !== undefined) {
+            prochaineDate.setDate(parametres.jourDuMois);
+          }
+        } else if (parametres.frequence === 'trimestriel') {
+          prochaineDate = addMonths(prochaineDate, 3);
+          if (parametres.jourDuMois !== undefined) {
+            prochaineDate.setDate(parametres.jourDuMois);
+          }
+        } else if (parametres.frequence === 'annuel') {
+          prochaineDate = addYears(prochaineDate, 1);
+        }
+
+        const transactionRecurrente = new TransactionRecurrente({
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          montant: parametres.montant,
+          type: parametres.type,
+          categorie: parametres.categorie,
+          description: parametres.description,
+          frequence: parametres.frequence,
+          jourDuMois: parametres.jourDuMois,
+          jourDeLaSemaine: parametres.jourDeLaSemaine,
+          prochaineDate
+        });
+        await transactionRecurrente.save();
+        return { type: 'transaction_recurrente_creee', details: transactionRecurrente };
+
+      case 'consulter_objectifs':
+        const objectifs = await Objectif.find({
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          ...(parametres.actif !== undefined && { actif: parametres.actif })
+        }).sort({ dateCreation: -1 });
+
+        const { ServiceCalculsFinanciers } = await import('./calculsFinanciers');
+        const serviceCalculs = new ServiceCalculsFinanciers();
+
+        const objectifsAvecProgression = await Promise.all(
+          objectifs.map(async (obj) => {
+            const progression = await serviceCalculs.calculerProgressionObjectif(obj._id.toString());
+            return {
+              id: obj._id.toString(),
+              nom: obj.nom,
+              montantCible: obj.montantCible,
+              montantActuel: obj.montantActuel,
+              dateLimite: obj.dateLimite,
+              type: obj.type,
+              progression
+            };
+          })
+        );
+
+        return {
+          type: 'objectifs_trouves',
+          nombre: objectifsAvecProgression.length,
+          objectifs: objectifsAvecProgression
+        };
+
+      case 'consulter_budgets':
+        const budgets = await Budget.find({
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          ...(parametres.actif !== undefined && { actif: parametres.actif })
+        }).sort({ dateCreation: -1 }).limit(20);
+
+        const moduleCalculsBudgets = await import('./calculsFinanciers');
+        const serviceCalculsBudgets = new moduleCalculsBudgets.ServiceCalculsFinanciers();
+        const budgetsAvecStats = await Promise.all(
+          budgets.map(async (budget) => {
+            const stats = await serviceCalculsBudgets.calculerStatistiquesBudget(budget._id.toString());
+            return {
+              id: budget._id.toString(),
+              nom: budget.nom,
+              montant: budget.montant,
+              categorie: budget.categorie,
+              periode: budget.periode,
+              actif: budget.actif,
+              statistiques: stats
+            };
+          })
+        );
+
+        return {
+          type: 'budgets_trouves',
+          nombre: budgetsAvecStats.length,
+          budgets: budgetsAvecStats
+        };
+
       default:
         return null;
     }
@@ -550,15 +932,23 @@ Réponds toujours en français et sois naturel dans tes réponses.`;
       });
     }
 
+    if (!messageUtilisateur || messageUtilisateur.trim().length === 0) {
+      throw new Error('Le message utilisateur ne peut pas être vide');
+    }
+
+    if (!reponseIA || reponseIA.trim().length === 0) {
+      reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+    }
+
     conversation.messages.push({
       role: 'utilisateur',
-      contenu: messageUtilisateur,
+      contenu: messageUtilisateur.trim(),
       timestamp: new Date()
     });
 
     conversation.messages.push({
       role: 'assistant',
-      contenu: reponseIA,
+      contenu: reponseIA.trim(),
       timestamp: new Date(),
       actionEffectuee: action
     });
@@ -571,19 +961,717 @@ Réponds toujours en français et sois naturel dans tes réponses.`;
   async categoriserTransaction(description: string): Promise<string> {
     const descriptionLower = description.toLowerCase();
     
-    if (descriptionLower.includes('restaurant') || descriptionLower.includes('manger') || descriptionLower.includes('food')) {
+    if (descriptionLower.includes('restaurant') || descriptionLower.includes('manger') || descriptionLower.includes('food') || descriptionLower.includes('café')) {
       return 'Alimentation';
     }
-    if (descriptionLower.includes('taxi') || descriptionLower.includes('transport') || descriptionLower.includes('carburant')) {
+    if (descriptionLower.includes('taxi') || descriptionLower.includes('transport') || descriptionLower.includes('carburant') || descriptionLower.includes('essence')) {
       return 'Transport';
     }
-    if (descriptionLower.includes('loyer') || descriptionLower.includes('électricité') || descriptionLower.includes('eau')) {
+    if (descriptionLower.includes('loyer') || descriptionLower.includes('électricité') || descriptionLower.includes('eau') || descriptionLower.includes('gaz') || descriptionLower.includes('logement')) {
       return 'Logement';
     }
-    if (descriptionLower.includes('salaire') || descriptionLower.includes('revenu')) {
+    if (descriptionLower.includes('salaire') || descriptionLower.includes('revenu') || descriptionLower.includes('paie')) {
       return 'Salaire';
+    }
+    if (descriptionLower.includes('médecin') || descriptionLower.includes('pharmacie') || descriptionLower.includes('santé')) {
+      return 'Santé';
+    }
+    if (descriptionLower.includes('école') || descriptionLower.includes('cours') || descriptionLower.includes('formation') || descriptionLower.includes('éducation')) {
+      return 'Éducation';
+    }
+    if (descriptionLower.includes('cinéma') || descriptionLower.includes('loisir') || descriptionLower.includes('divertissement')) {
+      return 'Divertissement';
+    }
+    if (descriptionLower.includes('achat') || descriptionLower.includes('shopping') || descriptionLower.includes('magasin')) {
+      return 'Shopping';
     }
 
     return 'Autres';
+  }
+
+  private detecterIntention(messageUtilisateur: string): any {
+    const messageLower = messageUtilisateur.toLowerCase();
+    
+    if (messageLower.match(/(j'ai dépensé|j'ai payé|j'ai reçu|ajoute|ajouter|gagné|reçu|payé|dépensé)/i)) {
+      return this.extraireInfosTransaction(messageUtilisateur);
+    }
+
+    if (messageLower.match(/(mes objectifs|montre.*mes objectifs|affiche.*mes objectifs|liste.*mes objectifs|voir.*mes objectifs|consulter.*mes objectifs|montre-moi.*objectifs|affiche-moi.*objectifs|liste-moi.*objectifs|voir.*objectifs|objectifs|progression.*objectif|suivre.*objectif|suivi.*objectif|où en suis-je.*objectif)/i)) {
+      return { type: 'gerer_objectif', message: messageUtilisateur };
+    }
+    if (messageLower.match(/(mes budgets|montre.*budgets|affiche.*budgets|liste.*budgets|voir.*budgets|consulter.*budgets|budgets|budget)/i)) {
+      return { type: 'gerer_budget', message: messageUtilisateur };
+    }
+    if (messageLower.match(/(fixe un budget|crée un budget|créer un budget|budget de|budget pour|nouveau budget)/i)) {
+      return this.extraireInfosBudget(messageUtilisateur);
+    }
+
+    if (messageLower.match(/(je veux économiser|objectif|épargner|économiser|pour une|pour un|en \d+ mois|en \d+ an|nouvel objectif)/i)) {
+      return this.extraireInfosObjectif(messageUtilisateur);
+    }
+
+    if (messageLower.match(/(modifie|change|corrige|mets à jour|met à jour|édite)/i) && messageLower.match(/(transaction|dépense|revenu)/i)) {
+      return { type: 'modifier_transaction', message: messageUtilisateur };
+    }
+
+    if (messageLower.match(/(supprime|efface|retire|enlève|supprimer|effacer|supprime|retire)/i) && messageLower.match(/(transaction|dépense|revenu)/i)) {
+      return { type: 'supprimer_transaction', message: messageUtilisateur };
+    }
+
+    if (messageLower.match(/(statistiques|stats|résumé|bilan|solde|revenus|dépenses|épargne|taux|pourcentage|répartition)/i)) {
+      return { type: 'statistiques', message: messageUtilisateur };
+    }
+
+    if (!messageLower.match(/(objectif|objectifs|budget|budgets)/i) && 
+        messageLower.match(/(montre|affiche|liste|voir|consulter|recherche|trouve|combien j'ai dépensé|mes dépenses|mes transactions|mes revenus)/i)) {
+      return this.extraireInfosRecherche(messageUtilisateur);
+    }
+
+    if (messageLower.match(/(conseil|recommandation|suggestion|aide|comment|que faire|optimiser|améliorer|réduire)/i)) {
+      return { type: 'conseils', message: messageUtilisateur };
+    }
+
+    if (messageLower.match(/(analyse|habitudes|tendances|comportement|où|où est-ce|dépense le plus|catégorie|répartition)/i)) {
+      return { type: 'analyser_habitudes', message: messageUtilisateur };
+    }
+
+    if (messageLower.match(/(j'ai investi|investissement|investi|acheté|portefeuille|actions|obligations|crypto|bitcoin|immobilier)/i)) {
+      return this.extraireInfosInvestissement(messageUtilisateur);
+    }
+
+    if (messageLower.match(/(abonnement|mensuel|récurrent|récurrente|chaque mois|chaque semaine|tous les mois|tous les ans|netflix|spotify|loyer|salaire mensuel)/i)) {
+      return this.extraireInfosTransactionRecurrente(messageUtilisateur);
+    }
+
+    return null;
+  }
+
+  private extraireInfosTransaction(message: string): any {
+    const messageLower = message.toLowerCase();
+    
+    // Extraire le montant
+    const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
+                         message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
+    const montant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
+
+    // Déterminer le type (revenu ou dépense)
+    const type = messageLower.match(/(salaire|revenu|reçu|gagné)/i) ? 'revenu' : 'depense';
+
+    // Extraire la catégorie
+    let categorie = 'Autres';
+    if (messageLower.match(/(restaurant|manger|food|café|repas)/i)) categorie = 'Alimentation';
+    else if (messageLower.match(/(taxi|transport|carburant|essence|bus|métro)/i)) categorie = 'Transport';
+    else if (messageLower.match(/(loyer|électricité|eau|gaz|logement)/i)) categorie = 'Logement';
+    else if (messageLower.match(/(salaire|revenu|paie)/i)) categorie = 'Salaire';
+    else if (messageLower.match(/(médecin|pharmacie|santé)/i)) categorie = 'Santé';
+    else if (messageLower.match(/(école|cours|formation|éducation)/i)) categorie = 'Éducation';
+    else if (messageLower.match(/(cinéma|loisir|divertissement)/i)) categorie = 'Divertissement';
+    else if (messageLower.match(/(achat|shopping|magasin)/i)) categorie = 'Shopping';
+
+    // Extraire la description
+    let description = '';
+
+    const motsCles = message.match(/(restaurant|boulangerie|pharmacie|supermarché|magasin|cinéma|théâtre|hôpital|médecin|dentiste|école|université|gare|aéroport|station|essence|carburant|électricité|eau|gaz|loyer|salaire|paie|revenu|transport|taxi|bus|métro)/i);
+    if (motsCles && motsCles[0]) {
+      description = motsCles[0];
+    }
+
+    if (!description || description.length < 2) {
+      const pattern1Match = message.match(/(?:pour|au|à|chez)\s+([^\d\s]+(?:\s+[^\d\s]+)*?)(?=\s+(?:hier|aujourd'hui|demain|le\s+\d+|ce\s+matin|ce\s+soir|MAD|mad|dh|dirham)|$)/i);
+      if (pattern1Match && pattern1Match[1]) {
+        const captured = pattern1Match[1].trim();
+        if (captured.length > 1) {
+          description = captured;
+        }
+      }
+      
+      if (!description || description.length < 2) {
+        const pattern1Greedy = message.match(/(?:pour|au|à|chez)\s+([^\d]+)/i);
+        if (pattern1Greedy && pattern1Greedy[1]) {
+          const captured = pattern1Greedy[1].trim();
+          const cleaned = captured.replace(/\s+(hier|aujourd'hui|demain|le\s+\d+|ce\s+matin|ce\s+soir|MAD|mad|dh|dirham).*$/i, '').trim();
+          if (cleaned.length > 1) {
+            description = cleaned;
+          }
+        }
+      }
+    }
+    
+    if (!description || description.length < 2) {
+      const apresMAD = message.split(/(?:MAD|mad|dh|dirham)\s+/i);
+      if (apresMAD.length > 1) {
+        const texteApresMAD = apresMAD[1]
+          ?.replace(/\s+(hier|aujourd'hui|demain|le\s+\d+|ce\s+matin|ce\s+soir).*$/i, '')
+          .replace(/^(?:pour|au|à|chez)\s+/i, '')
+          .trim();
+        if (texteApresMAD && texteApresMAD.length > 1) {
+          description = texteApresMAD;
+        }
+      }
+      
+      if (!description || description.length < 2) {
+        const apresMontant = message.split(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*/i);
+        if (apresMontant.length > 1 && apresMontant[1]) {
+          const texteApresMontant = apresMontant[1]
+            .replace(/\s*(?:MAD|mad|dh|dirham)\s*/i, '')
+            .replace(/\s+(hier|aujourd'hui|demain|le\s+\d+|ce\s+matin|ce\s+soir).*$/i, '')
+            .replace(/^(?:pour|au|à|chez)\s+/i, '')
+            .trim();
+          if (texteApresMontant && texteApresMontant.length > 1) {
+            description = texteApresMontant;
+          }
+        }
+      }
+    }
+    
+    if (!description || description.length < 2) {
+      const parts = message.split(/\d+/);
+      if (parts.length > 1) {
+        description = parts[1]
+          ?.replace(/\s*(?:MAD|mad|dh|dirham)\s*/i, '')
+          .replace(/\s+(hier|aujourd'hui|demain|le\s+\d+|ce\s+matin|ce\s+soir).*$/i, '')
+          .replace(/^(?:pour|au|à|chez)\s+/i, '')
+          .trim() || '';
+      }
+      
+      if (!description || description.length < 2) {
+        description = message.substring(0, 100).trim();
+      }
+    }
+    
+    description = description.trim();
+
+    let date = new Date();
+    if (messageLower.includes('hier')) {
+      date.setDate(date.getDate() - 1);
+    } else if (messageLower.includes('aujourd\'hui') || messageLower.includes('aujourd hui')) {
+      date = new Date();
+    } else {
+      const dateMatch = message.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+      if (dateMatch) {
+        const jour = parseInt(dateMatch[1]);
+        const mois = parseInt(dateMatch[2]) - 1;
+        const annee = dateMatch[3] ? parseInt(dateMatch[3]) : date.getFullYear();
+        date = new Date(annee, mois, jour);
+      }
+    }
+
+    if (!montant) return null;
+
+    return {
+      type: 'ajouter_transaction',
+      parametres: {
+        montant,
+        type,
+        categorie,
+        description: description || 'Transaction',
+        date: date.toISOString()
+      }
+    };
+  }
+
+//extraire les informations d'un budget depuis le message
+  private extraireInfosBudget(message: string): any {
+    const messageLower = message.toLowerCase();
+    
+    // Extraire le montant
+    const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
+                         message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
+    const montant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
+
+    // Extraire la catégorie
+    let categorie = undefined;
+    if (messageLower.match(/(alimentation|restaurant|manger|food)/i)) categorie = 'Alimentation';
+    else if (messageLower.match(/(transport|carburant)/i)) categorie = 'Transport';
+    else if (messageLower.match(/(logement|loyer)/i)) categorie = 'Logement';
+
+    // Déterminer la période
+    let periode = 'mensuel';
+    if (messageLower.match(/(trimestriel|trimestre)/i)) periode = 'trimestriel';
+    else if (messageLower.match(/(annuel|année|an)/i)) periode = 'annuel';
+
+    // Extraire le nom
+    const nomMatch = message.match(/(?:budget|pour)\s+([^0-9]+?)(?:\s+de|\s+pour)/i);
+    const nom = nomMatch ? nomMatch[1].trim() : `Budget ${categorie || 'mensuel'}`;
+
+    if (!montant) return null;
+
+    return {
+      type: 'creer_budget',
+      parametres: {
+        nom,
+        montant,
+        categorie,
+        periode
+      }
+    };
+  }
+
+//extraire les informations d'un objectif depuis le message
+  private extraireInfosObjectif(message: string): any {
+    const messageLower = message.toLowerCase();
+    
+    // Extraire le montant
+    const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
+                         message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
+    const montantCible = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
+
+    // Extraire la durée
+    const dureeMatch = message.match(/(\d+)\s*(mois|an|année|ans)/i);
+    let dateLimite = new Date();
+    if (dureeMatch) {
+      const nombre = parseInt(dureeMatch[1]);
+      const unite = dureeMatch[2].toLowerCase();
+      if (unite.includes('mois')) {
+        dateLimite.setMonth(dateLimite.getMonth() + nombre);
+      } else {
+        dateLimite.setFullYear(dateLimite.getFullYear() + nombre);
+      }
+    } else {
+      dateLimite.setFullYear(dateLimite.getFullYear() + 1); 
+    }
+
+    // Extraire le nom de l'objectif
+    const nomMatch = message.match(/(?:pour|d'|de)\s+([^0-9]+?)(?:\s+en|\s+pour)/i) ||
+                     message.match(/(voiture|maison|appartement|voyage|urgence|projet)/i);
+    const nom = nomMatch ? nomMatch[1].trim() : 'Objectif d\'épargne';
+
+    // Déterminer le type
+    let type = 'epargne';
+    if (messageLower.match(/(urgence|fonds d'urgence)/i)) type = 'fonds_urgence';
+    else if (messageLower.match(/(remboursement|dette)/i)) type = 'remboursement';
+    else if (messageLower.match(/(voiture|maison|voyage|projet)/i)) type = 'projet';
+
+    if (!montantCible) return null;
+
+    return {
+      type: 'creer_objectif',
+      parametres: {
+        nom,
+        montantCible,
+        dateLimite: dateLimite.toISOString(),
+        type
+      }
+    };
+  }
+
+//extraire les informations de recherche depuis le message
+  private extraireInfosRecherche(message: string): any {
+    const messageLower = message.toLowerCase();
+    const parametres: any = {};
+
+    // Extraire le montant si mentionné
+    const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
+                         message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
+    if (montantMatch) {
+      parametres.montant = parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.'));
+    }
+
+    // Extraire la catégorie
+    if (messageLower.match(/(alimentation|restaurant|manger|food)/i)) parametres.categorie = 'Alimentation';
+    else if (messageLower.match(/(transport|carburant|taxi)/i)) parametres.categorie = 'Transport';
+    else if (messageLower.match(/(logement|loyer|électricité)/i)) parametres.categorie = 'Logement';
+    else if (messageLower.match(/(santé|médecin|pharmacie)/i)) parametres.categorie = 'Santé';
+
+    // Extraire le type
+    if (messageLower.match(/(revenus|revenu|salaire)/i)) parametres.type = 'revenu';
+    else if (messageLower.match(/(dépenses|dépense)/i)) parametres.type = 'depense';
+
+    // Extraire la description
+    const descMatch = message.match(/(?:pour|au|à|chez)\s+([^0-9]+?)(?:\s+(?:hier|aujourd'hui|ce mois|ce mois-ci))?/i);
+    if (descMatch) parametres.description = descMatch[1].trim();
+
+    // Extraire la période
+    let dateDebut: Date | undefined;
+    let dateFin: Date | undefined;
+    const maintenant = new Date();
+    
+    if (messageLower.match(/(aujourd'hui|aujourd hui)/i)) {
+      dateDebut = new Date(maintenant.setHours(0, 0, 0, 0));
+      dateFin = new Date(maintenant.setHours(23, 59, 59, 999));
+    } else if (messageLower.match(/(hier)/i)) {
+      const hier = new Date(maintenant);
+      hier.setDate(hier.getDate() - 1);
+      dateDebut = new Date(hier.setHours(0, 0, 0, 0));
+      dateFin = new Date(hier.setHours(23, 59, 59, 999));
+    } else if (messageLower.match(/(ce mois|ce mois-ci|mois en cours)/i)) {
+      dateDebut = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
+      dateFin = new Date(maintenant.getFullYear(), maintenant.getMonth() + 1, 0, 23, 59, 59);
+    } else if (messageLower.match(/(semaine|7 jours)/i)) {
+      dateDebut = new Date(maintenant);
+      dateDebut.setDate(dateDebut.getDate() - 7);
+    }
+
+    if (dateDebut) parametres.dateDebut = dateDebut.toISOString().split('T')[0];
+    if (dateFin) parametres.dateFin = dateFin.toISOString().split('T')[0];
+
+    parametres.limite = 20; 
+
+    return {
+      type: 'rechercher_transactions',
+      parametres
+    };
+  }
+
+//extraire les informations d'un investissement depuis le message
+  private extraireInfosInvestissement(message: string): any {
+    const messageLower = message.toLowerCase();
+    
+    // Extraire le montant investi
+    const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
+                         message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
+    const montantInvesti = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
+
+    // Déterminer le type d'investissement
+    let type = 'autre';
+    if (messageLower.match(/(actions|action|stock|share)/i)) type = 'actions';
+    else if (messageLower.match(/(obligations|obligation|bond)/i)) type = 'obligations';
+    else if (messageLower.match(/(fonds|fonds mutuel|mutual fund)/i)) type = 'fonds';
+    else if (messageLower.match(/(crypto|bitcoin|btc|ethereum|eth|blockchain)/i)) type = 'crypto';
+    else if (messageLower.match(/(immobilier|immobilier|real estate|propriété)/i)) type = 'immobilier';
+
+    // Extraire le nom
+    const nomMatch = message.match(/(?:investi|acheté|dans)\s+([^0-9]+?)(?:\s+pour|\s+de|\s+à|\s+au)/i) ||
+                     message.match(/(bitcoin|btc|ethereum|eth|apple|microsoft|tesla|netflix|spotify)/i);
+    const nom = nomMatch ? nomMatch[1]?.trim() || nomMatch[0] : 'Investissement';
+
+    // Extraire la valeur actuelle si mentionnée
+    const valeurMatch = message.match(/(valeur|vaut|actuellement)\s+(\d+(?:\s*\d+)*(?:[.,]\d+)?)/i);
+    const valeurActuelle = valeurMatch ? parseFloat(valeurMatch[2].replace(/\s/g, '').replace(',', '.')) : undefined;
+
+    // Extraire le rendement si mentionné
+    const rendementMatch = message.match(/(rendement|profit|gain|perte)\s+[de\s]*(\d+(?:[.,]\d+)?)\s*%/i);
+    const rendementPourcentage = rendementMatch ? parseFloat(rendementMatch[2].replace(',', '.')) : undefined;
+
+    if (!montantInvesti) return null;
+
+    return {
+      type: 'creer_investissement',
+      parametres: {
+        nom,
+        type,
+        montantInvesti,
+        valeurActuelle,
+        rendementPourcentage,
+        description: message.substring(0, 200)
+      }
+    };
+  }
+
+//extraire les informations d'une transaction récurrente depuis le message
+  private extraireInfosTransactionRecurrente(message: string): any {
+    const messageLower = message.toLowerCase();
+    
+    // Extraire le montant
+    const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
+                         message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
+    const montant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
+
+    // Déterminer le type (revenu ou dépense)
+    const type = messageLower.match(/(salaire|revenu|reçu|gagné)/i) ? 'revenu' : 'depense';
+
+    // Déterminer la fréquence
+    let frequence = 'mensuel';
+    if (messageLower.match(/(hebdomadaire|chaque semaine|toutes les semaines|semaine)/i)) frequence = 'hebdomadaire';
+    else if (messageLower.match(/(trimestriel|trimestre|tous les 3 mois)/i)) frequence = 'trimestriel';
+    else if (messageLower.match(/(annuel|année|chaque année|tous les ans)/i)) frequence = 'annuel';
+
+    // Extraire la catégorie
+    let categorie = 'Autres';
+    if (messageLower.match(/(netflix|spotify|disney|abonnement|streaming)/i)) categorie = 'Divertissement';
+    else if (messageLower.match(/(loyer|logement)/i)) categorie = 'Logement';
+    else if (messageLower.match(/(salaire|revenu|paie)/i)) categorie = 'Salaire';
+    else if (messageLower.match(/(électricité|eau|gaz|internet|téléphone)/i)) categorie = 'Logement';
+    else if (messageLower.match(/(gym|salle de sport|fitness)/i)) categorie = 'Santé';
+
+    // Extraire la description
+    const descMatch = message.match(/(netflix|spotify|disney|loyer|salaire|électricité|eau|gaz|internet|téléphone|gym|salle de sport)/i) ||
+                      message.match(/(?:abonnement|paiement)\s+([^0-9]+?)(?:\s+de|\s+pour)/i);
+    const description = descMatch ? descMatch[1] || descMatch[0] : 'Transaction récurrente';
+
+    // Extraire le jour du mois si mentionné
+    const jourMatch = message.match(/(?:le|jour)\s+(\d{1,2})(?:er)?\s+(?:de chaque mois|du mois)/i);
+    const jourDuMois = jourMatch ? parseInt(jourMatch[1]) : undefined;
+
+    if (!montant) return null;
+
+    return {
+      type: 'creer_transaction_recurrente',
+      parametres: {
+        montant,
+        type,
+        categorie,
+        description,
+        frequence,
+        jourDuMois
+      }
+    };
+  }
+
+//exécuter une action détectée (pour Claude et Gemini)
+  private async executerActionDetectee(utilisateurId: string, intention: any): Promise<any> {
+    if (!intention || !intention.type) return null;
+
+    try {
+      if (intention.type === 'ajouter_transaction' && intention.parametres) {
+        return await this.executerAction(utilisateurId, 'ajouter_transaction', intention.parametres);
+      }
+
+      if (intention.type === 'rechercher_transactions' && intention.parametres) {
+        return await this.executerAction(utilisateurId, 'rechercher_transactions', intention.parametres);
+      }
+
+      if (intention.type === 'statistiques') {
+        const { ServiceCalculsFinanciers } = await import('./calculsFinanciers');
+        const serviceCalculs = new ServiceCalculsFinanciers();
+        const maintenant = new Date();
+        const debutMois = new Date(maintenant.getFullYear(), maintenant.getMonth(), 1);
+        const finMois = new Date(maintenant.getFullYear(), maintenant.getMonth() + 1, 0);
+
+        const revenus = await serviceCalculs.calculerRevenus(utilisateurId, debutMois, finMois);
+        const depenses = await serviceCalculs.calculerDepenses(utilisateurId, debutMois, finMois);
+        const solde = await serviceCalculs.calculerSolde(utilisateurId);
+        const tauxEpargne = await serviceCalculs.calculerTauxEpargne(utilisateurId, debutMois, finMois);
+        const repartition = await serviceCalculs.obtenirRepartitionDepenses(utilisateurId, debutMois, finMois);
+
+        return {
+          type: 'statistiques',
+          donnees: {
+            solde,
+            revenus,
+            depenses,
+            epargne: revenus - depenses,
+            tauxEpargne,
+            repartitionDepenses: repartition
+          }
+        };
+      }
+
+      if (intention.type === 'creer_budget' && intention.parametres) {
+        return await this.executerAction(utilisateurId, 'creer_budget', intention.parametres);
+      }
+
+      if (intention.type === 'gerer_budget') {
+        const budgets = await Budget.find({
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
+        }).sort({ dateCreation: -1 }).limit(10);
+
+        return {
+          type: 'budgets_trouves',
+          nombre: budgets.length,
+          budgets: budgets.map(b => ({
+            id: b._id.toString(),
+            nom: b.nom,
+            montant: b.montant,
+            categorie: b.categorie,
+            periode: b.periode,
+            actif: b.actif
+          }))
+        };
+      }
+
+      if (intention.type === 'creer_objectif' && intention.parametres) {
+        return await this.executerAction(utilisateurId, 'creer_objectif', intention.parametres);
+      }
+
+      if (intention.type === 'gerer_objectif') {
+        const objectifs = await Objectif.find({
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
+        }).sort({ dateCreation: -1 });
+
+        const { ServiceCalculsFinanciers } = await import('./calculsFinanciers');
+        const serviceCalculs = new ServiceCalculsFinanciers();
+
+        const objectifsAvecProgression = await Promise.all(
+          objectifs.map(async (obj) => {
+            const progression = await serviceCalculs.calculerProgressionObjectif(obj._id.toString());
+            return {
+              id: obj._id.toString(),
+              nom: obj.nom,
+              montantCible: obj.montantCible,
+              montantActuel: obj.montantActuel,
+              dateLimite: obj.dateLimite,
+              type: obj.type,
+              progression
+            };
+          })
+        );
+
+        return {
+          type: 'objectifs_trouves',
+          nombre: objectifsAvecProgression.length,
+          objectifs: objectifsAvecProgression
+        };
+      }
+
+      if (intention.type === 'modifier_transaction' || intention.type === 'supprimer_transaction') {
+        // Rechercher d'abord la transaction
+        const recherche = this.extraireInfosRecherche(intention.message);
+        const transactions = await Transaction.find({
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          ...(recherche.parametres.montant && { montant: recherche.parametres.montant }),
+          ...(recherche.parametres.categorie && { categorie: recherche.parametres.categorie }),
+          ...(recherche.parametres.type && { type: recherche.parametres.type })
+        }).sort({ date: -1 }).limit(5);
+
+        if (transactions.length > 0) {
+          const transaction = transactions[0];
+          if (intention.type === 'supprimer_transaction') {
+            return await this.executerAction(utilisateurId, 'supprimer_transaction', {
+              transactionId: transaction._id.toString()
+            });
+          } else {
+            const messageLower = intention.message.toLowerCase();
+            const montantMatch = messageLower.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
+            const nouveauMontant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : undefined;
+            
+            return await this.executerAction(utilisateurId, 'modifier_transaction', {
+              transactionId: transaction._id.toString(),
+              ...(nouveauMontant && { montant: nouveauMontant })
+            });
+          }
+        }
+      }
+
+      if (intention.type === 'analyser_habitudes') {
+        const { ServiceCalculsFinanciers } = await import('./calculsFinanciers');
+        const serviceCalculs = new ServiceCalculsFinanciers();
+        const maintenant = new Date();
+        const debutMois = startOfMonth(maintenant);
+        const finMois = endOfMonth(maintenant);
+        
+        const repartition = await serviceCalculs.obtenirRepartitionDepenses(
+          utilisateurId,
+          debutMois,
+          finMois
+        );
+        
+        let repartitionFinale = repartition;
+        let periode = 'mois';
+        if (repartition.length === 0) {
+          const debut3Mois = subMonths(maintenant, 3);
+          repartitionFinale = await serviceCalculs.obtenirRepartitionDepenses(
+            utilisateurId,
+            debut3Mois,
+            finMois
+          );
+          if (repartitionFinale.length > 0) {
+            periode = '3_mois';
+          }
+        }
+        
+        return {
+          type: 'habitudes_analysees',
+          periode: periode,
+          categories: repartitionFinale.slice(0, 10), 
+          totalCategories: repartitionFinale.length
+        };
+      }
+
+      if (intention.type === 'conseils') {
+        return null; 
+      }
+
+      if (intention.type === 'creer_investissement' && intention.parametres) {
+        return await this.executerAction(utilisateurId, 'creer_investissement', intention.parametres);
+      }
+
+      if (intention.type === 'creer_transaction_recurrente' && intention.parametres) {
+        return await this.executerAction(utilisateurId, 'creer_transaction_recurrente', intention.parametres);
+      }
+
+    } catch (error: any) {
+      console.error('Erreur lors de l\'exécution de l\'action détectée:', error);
+      return null;
+    }
+
+    return null;
+  }
+
+//générer une réponse depuis une action exécutée
+  private genererReponseDepuisAction(action: any, contexte: any): string {
+    if (!action) return 'Action effectuée avec succès.';
+
+    const devise = contexte.devise || 'MAD';
+
+    switch (action.type) {
+      case 'transaction_ajoutee':
+        const trans = action.details;
+        return `✅ Transaction ajoutée avec succès : ${trans.description} - ${trans.montant} ${devise} (${trans.categorie})`;
+
+      case 'transaction_modifiee':
+        return `✅ Transaction modifiée avec succès. ${action.message || ''}`;
+
+      case 'transaction_supprimee':
+        return `✅ Transaction supprimée avec succès. ${action.message || ''}`;
+
+      case 'transactions_trouvees':
+        if (action.nombre === 0) {
+          return 'Aucune transaction trouvée correspondant à vos critères.';
+        }
+        return `J'ai trouvé ${action.nombre} transaction(s). ${action.transactions.slice(0, 3).map((t: any) => `${t.description}: ${t.montant} ${devise}`).join(', ')}`;
+
+      case 'budget_cree':
+        const budget = action.details;
+        return `✅ Budget créé avec succès : ${budget.nom} - ${budget.montant} ${devise}/${budget.periode}`;
+
+      case 'budgets_trouves':
+        if (action.nombre === 0) {
+          return 'Vous n\'avez pas encore de budgets. Créez-en un pour commencer à suivre vos dépenses !';
+        }
+        const budgetsDetails = action.budgets.map((b: any) => {
+          const pourcentageUtilise = b.statistiques?.pourcentageUtilise || 0;
+          const montantRestant = b.montant - (b.statistiques?.montantUtilise || 0);
+          return `\n• ${b.nom}: ${b.statistiques?.montantUtilise || 0} ${devise} / ${b.montant} ${devise} (${pourcentageUtilise.toFixed(1)}%)\n  Reste: ${montantRestant.toFixed(2)} ${devise} | Période: ${b.periode}`;
+        }).join('');
+        return `📊 Vous avez ${action.nombre} budget(s) actif(s):${budgetsDetails}`;
+
+      case 'objectif_cree':
+        const obj = action.details;
+        return `✅ Objectif créé avec succès : ${obj.nom} - ${obj.montantCible} ${devise} d'ici ${new Date(obj.dateLimite).toLocaleDateString('fr-FR')}`;
+
+      case 'investissement_cree':
+        const inv = action.details;
+        return `✅ Investissement créé avec succès : ${inv.nom} - ${inv.montantInvesti} ${devise} (${inv.type})`;
+
+      case 'transaction_recurrente_creee':
+        const tr = action.details;
+        return `✅ Transaction récurrente créée avec succès : ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`;
+
+      case 'statistiques':
+        const stats = action.donnees;
+        return `📊 Votre solde actuel est de ${stats.solde} ${devise}. Ce mois : ${stats.revenus} ${devise} de revenus, ${stats.depenses} ${devise} de dépenses. Taux d'épargne : ${stats.tauxEpargne.toFixed(1)}%`;
+
+      case 'budgets_trouves':
+        if (action.nombre === 0) {
+          return 'Vous n\'avez pas encore de budgets actifs.';
+        }
+        return `Vous avez ${action.nombre} budget(s) actif(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant} ${devise}`).join(', ')}`;
+
+      case 'objectifs_trouves':
+        if (action.nombre === 0) {
+          return 'Vous n\'avez pas encore d\'objectifs financiers. Créez-en un pour commencer à épargner !';
+        }
+        const objectifsDetails = action.objectifs.map((o: any) => {
+          const montantRestant = o.montantCible - o.montantActuel;
+          return `\n• ${o.nom}: ${o.montantActuel} ${devise} / ${o.montantCible} ${devise} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Reste: ${montantRestant} ${devise} | Mensuel requis: ${o.progression.montantMensuelRequis.toFixed(0)} ${devise}`;
+        }).join('');
+        return `📊 Vous avez ${action.nombre} objectif(s) actif(s):${objectifsDetails}`;
+
+      case 'habitudes_analysees':
+        if (!action.categories || action.categories.length === 0) {
+          return 'Vous n\'avez pas encore de dépenses enregistrées pour analyser vos habitudes.';
+        }
+        const periodeText = action.periode === '3_mois' ? 'les 3 derniers mois' : 'ce mois';
+        const categoriesList = action.categories
+          .map((cat: any, index: number) => 
+            `${index + 1}. ${cat.categorie}: ${cat.montant.toFixed(2)} ${devise} (${cat.pourcentage.toFixed(1)}%)`
+          )
+          .join('\n');
+        return `📊 Voici où vous dépensez le plus ${periodeText}:\n\n${categoriesList}\n\nTotal: ${action.categories.length} catégorie(s) analysée(s)`;
+
+      default:
+        return 'Action effectuée avec succès.';
+    }
   }
 }
