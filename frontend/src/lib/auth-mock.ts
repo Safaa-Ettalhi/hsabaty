@@ -10,7 +10,7 @@ export type MockUser = {
 
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null
-  return localStorage.getItem(AUTH_TOKEN_KEY)
+  return sessionStorage.getItem(AUTH_TOKEN_KEY) ?? localStorage.getItem(AUTH_TOKEN_KEY)
 }
 
 export function getRememberMe(): boolean {
