@@ -10,95 +10,98 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-export function SectionCards() {
+type Metriques = {
+  solde: number
+  revenus: number
+  depenses: number
+  revenusNets: number
+  tauxEpargne: number
+}
+
+function formatMontant(value: number, devise: string) {
+  return new Intl.NumberFormat("fr-MA", { maximumFractionDigits: 0 }).format(value) + " " + devise
+}
+
+export function SectionCards({
+  metriques,
+  devise = "MAD",
+}: {
+  metriques?: Metriques | null
+  devise?: string
+}) {
+  const solde = metriques?.solde ?? 0
+  const revenus = metriques?.revenus ?? 0
+  const depenses = metriques?.depenses ?? 0
+  const tauxEpargne = metriques?.tauxEpargne ?? 0
+
   return (
     <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Solde total</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            24 500 MAD
+            {formatMontant(solde, devise)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +5,2 %
+              Solde
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            En hausse ce mois <IconTrendingUp className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Par rapport au mois dernier
-          </div>
+          <div className="text-muted-foreground">Toutes vos transactions</div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Revenus</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            18 200 MAD
+            {formatMontant(revenus, devise)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +8 %
+              Période
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Période en cours <IconTrendingUp className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Revenus du mois
-          </div>
+          <div className="text-muted-foreground">Revenus de la période</div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Dépenses</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            9 400 MAD
+            {formatMontant(depenses, devise)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingDown />
-              -3 %
+              Période
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            En baisse ce mois <IconTrendingDown className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Dépenses du mois
-          </div>
+          <div className="text-muted-foreground">Dépenses de la période</div>
         </CardFooter>
       </Card>
       <Card className="@container/card">
         <CardHeader>
           <CardDescription>Taux d&apos;épargne</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            32 %
+            {tauxEpargne.toFixed(1)} %
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
               <IconTrendingUp />
-              +2 %
+              Ce mois
             </Badge>
           </CardAction>
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
-            Objectif mensuel atteint <IconTrendingUp className="size-4" />
-          </div>
-          <div className="text-muted-foreground">
-            Ce mois
-          </div>
+          <div className="text-muted-foreground">Sur la période</div>
         </CardFooter>
       </Card>
     </div>

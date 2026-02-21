@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { loginSchema, type LoginInput } from "@/lib/validations/auth"
-import { mockLogin, DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/auth-mock"
+import { loginApi } from "@/lib/auth"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -38,15 +38,15 @@ export function LoginForm({
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: DEMO_EMAIL,
-      password: DEMO_PASSWORD,
+      email: "",
+      password: "",
       rememberMe: false,
     },
   })
 
-  function onSubmit(data: LoginInput) {
+  async function onSubmit(data: LoginInput) {
     setSubmitError(null)
-    const result = mockLogin(data.email, data.password, data.rememberMe ?? false)
+    const result = await loginApi(data.email, data.password, data.rememberMe ?? false)
     if (result.success) {
       toast.success("Connexion réussie")
       router.push("/chat")
@@ -65,9 +65,6 @@ export function LoginForm({
           <CardDescription>
             Connectez-vous à votre compte Hssabaty
           </CardDescription>
-          <p className="text-muted-foreground hidden text-center text-xs mt-2">
-            Compte démo : <span className="font-mono">{DEMO_EMAIL}</span> / <span className="font-mono">{DEMO_PASSWORD}</span>
-          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)}>

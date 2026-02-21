@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { signupSchema, type SignupInput } from "@/lib/validations/auth"
-import { mockSignup } from "@/lib/auth-mock"
+import { signupApi } from "@/lib/auth"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -43,12 +43,12 @@ export function SignupForm({
     },
   })
 
-  function onSubmit(data: SignupInput) {
+  async function onSubmit(data: SignupInput) {
     setSubmitError(null)
-    const result = mockSignup(data.name, data.email, data.password)
+    const result = await signupApi(data.name, data.email, data.password)
     if (result.success) {
-      toast.success("Compte créé. Connectez-vous pour continuer.")
-      router.push("/login")
+      toast.success("Compte créé. Bienvenue !")
+      router.push("/chat")
       router.refresh()
     } else {
       setSubmitError(result.error)

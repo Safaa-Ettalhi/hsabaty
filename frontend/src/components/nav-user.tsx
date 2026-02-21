@@ -30,7 +30,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { clearSession } from "@/lib/auth-mock"
+import { logoutApi } from "@/lib/auth"
 
 export function NavUser({
   user,
@@ -44,8 +44,8 @@ export function NavUser({
   const router = useRouter()
   const { isMobile } = useSidebar()
 
-  function handleLogout() {
-    clearSession()
+  async function handleLogout() {
+    await logoutApi().catch(() => {})
     router.push("/login")
     router.refresh()
   }

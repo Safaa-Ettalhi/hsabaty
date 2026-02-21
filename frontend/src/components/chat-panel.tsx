@@ -20,6 +20,7 @@ import {
   IconFileText,
 } from "@tabler/icons-react"
 import { getStoredUser } from "@/lib/auth-mock"
+import { api } from "@/lib/api"
 import { toast } from "sonner"
 
 type Message = { role: "user" | "assistant"; content: string }
@@ -52,26 +53,40 @@ export function ChatPanel() {
   }, [])
 
   useEffect(() => {
+    api.get<{ messages: Array<{ role: string; contenu: string }> }>("/api/agent-ia/historique").then((res) => {
+      if (res.succes && res.donnees?.messages?.length) {
+        setMessages(
+          res.donnees.messages.map((m) => ({
+            role: m.role === "utilisateur" ? "user" : "assistant",
+            content: m.contenu,
+          }))
+        )
+      }
+    })
+  }, [])
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages])
 
-  function sendMessage(text: string) {
+  async function sendMessage(text: string) {
     const trimmed = text.trim()
     if (!trimmed || isLoading) return
     setInput("")
     setAttachments([])
     setMessages((prev) => [...prev, { role: "user", content: trimmed }])
     setIsLoading(true)
-    setTimeout(() => {
+    const res = await api.post<{ reponse: string; action?: unknown }>("/api/agent-ia/message", { message: trimmed })
+    setIsLoading(false)
+    if (res.succes && res.donnees) {
+      setMessages((prev) => [...prev, { role: "assistant", content: res.donnees.reponse }])
+    } else {
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content: "Votre assistant financier est en cours de configuration. Cette fonctionnalité sera bientôt disponible pour analyser vos données et vous accompagner.",
-        },
+        { role: "assistant", content: res.message || "Une erreur s’est produite. Réessayez." },
       ])
-      setIsLoading(false)
-    }, 800)
+      toast.error(res.message)
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
