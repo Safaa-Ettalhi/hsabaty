@@ -1,11 +1,13 @@
 import express from 'express';
 import { DashboardController } from '../controllers/dashboardController';
 import { authentifier } from '../middleware/authentification';
+import { validerQuery } from '../validators/middleware';
+import { dashboardMetriquesQuerySchema } from '../validators/schemas';
 
 const router = express.Router();
 
 router.use(authentifier);
 
-router.get('/metriques', DashboardController.obtenirMetriques);
+router.get('/metriques', validerQuery(dashboardMetriquesQuerySchema), DashboardController.obtenirMetriques);
 
 export default router;

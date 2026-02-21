@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
+import { ZodError } from 'zod';
 
 export class ErreurApp extends Error {
   statusCode: number;
@@ -52,6 +53,12 @@ export const gestionnaireErreurs = (
   if (err.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Token expiré';
+  }
+
+  // Erreur de validation Zod
+  if (err instanceof ZodError) {
+    statusCode = 400;
+    message = err.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(' ; ');
   }
 
   res.status(statusCode).json({

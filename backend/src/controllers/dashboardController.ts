@@ -9,29 +9,44 @@ const serviceCalculs = new ServiceCalculsFinanciers();
 export class DashboardController {
 //metriques du tableau de bord
   static obtenirMetriques = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const { periode = 'mois' } = req.query;
+    const { periode, dateDebut: dateDebutStr, dateFin: dateFinStr } = req.query as {
+      periode?: string;
+      dateDebut?: string;
+      dateFin?: string;
+    };
 
     let dateDebut: Date;
     let dateFin: Date = new Date();
 
-    switch (periode) {
-      case 'mois':
+    if (dateDebutStr && dateFinStr) {
+      dateDebut = new Date(dateDebutStr);
+      dateFin = new Date(dateFinStr);
+      if (isNaN(dateDebut.getTime()) || isNaN(dateFin.getTime())) {
         dateDebut = startOfMonth(dateFin);
         dateFin = endOfMonth(dateFin);
-        break;
-      case 'trimestre':
-        dateDebut = subMonths(dateFin, 3);
-        break;
-      case 'semestre':
-        dateDebut = subMonths(dateFin, 6);
-        break;
-      case 'annee':
-        dateDebut = startOfYear(dateFin);
-        dateFin = endOfYear(dateFin);
-        break;
-      default:
-        dateDebut = startOfMonth(dateFin);
-        dateFin = endOfMonth(dateFin);
+      } else if (dateDebut > dateFin) {
+        [dateDebut, dateFin] = [dateFin, dateDebut];
+      }
+    } else {
+      switch (periode) {
+        case 'mois':
+          dateDebut = startOfMonth(dateFin);
+          dateFin = endOfMonth(dateFin);
+          break;
+        case 'trimestre':
+          dateDebut = subMonths(dateFin, 3);
+          break;
+        case 'semestre':
+          dateDebut = subMonths(dateFin, 6);
+          break;
+        case 'annee':
+          dateDebut = startOfYear(dateFin);
+          dateFin = endOfYear(dateFin);
+          break;
+        default:
+          dateDebut = startOfMonth(dateFin);
+          dateFin = endOfMonth(dateFin);
+      }
     }
 
     const solde = await serviceCalculs.calculerSolde(req.utilisateurId!);

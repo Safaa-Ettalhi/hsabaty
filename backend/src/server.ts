@@ -2,6 +2,9 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { validerEnv } from './config/validateEnv';
+validerEnv();
+
 import express from 'express';
 import cors from 'cors';
 import { connecterBaseDeDonnees } from './config/database';
@@ -41,6 +44,29 @@ app.use(express.urlencoded({ extended: true }));
 app.use(configurerSession());
 
 app.use('/api', limiterAPI);
+
+app.get('/api', (_req, res) => {
+  res.json({
+    succes: true,
+    message: 'API Hssabaty - Gestion financière avec Agent IA',
+    version: '1.0.0',
+    endpoints: {
+      health: 'GET /health',
+      auth: 'POST /api/auth/inscrire, POST /api/auth/connecter',
+      transactions: '/api/transactions',
+      dashboard: '/api/dashboard/metriques',
+      budgets: '/api/budgets',
+      objectifs: '/api/objectifs',
+      rapports: '/api/rapports',
+      'agent-ia': '/api/agent-ia/message',
+      'transactions-recurrentes': '/api/transactions-recurrentes',
+      conseils: '/api/conseils',
+      investissements: '/api/investissements',
+      graphql: '/api/graphql'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
 
 app.get('/health', (_req, res) => {
   res.json({

@@ -47,26 +47,19 @@ export class TransactionController {
       );
     }
 
-    const { page = 1, limite = 50, type, categorie, dateDebut, dateFin, recherche } = req.query;
+    const { page, limite, type, categorie, dateDebut, dateFin, recherche, sort, order } = req.query as any;
 
     const filtre: any = {
       utilisateurId: new mongoose.Types.ObjectId(req.utilisateurId)
     };
 
-    if (type) {
-      filtre.type = type;
-    }
-
-    if (categorie) {
-      filtre.categorie = categorie;
-    }
-
+    if (type) filtre.type = type;
+    if (categorie) filtre.categorie = categorie;
     if (dateDebut || dateFin) {
       filtre.date = {};
-      if (dateDebut) filtre.date.$gte = new Date(dateDebut as string);
-      if (dateFin) filtre.date.$lte = new Date(dateFin as string);
+      if (dateDebut) filtre.date.$gte = new Date(dateDebut);
+      if (dateFin) filtre.date.$lte = new Date(dateFin);
     }
-
     if (recherche) {
       filtre.$or = [
         { description: { $regex: recherche, $options: 'i' } },
@@ -74,12 +67,15 @@ export class TransactionController {
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limite);
+    const skip = (page - 1) * limite;
+    const sortField = (sort || 'date') as 'date' | 'montant' | 'categorie' | 'description';
+    const sortOrder = order === 'asc' ? 1 : -1;
+    const sortObj: { [key: string]: 1 | -1 } = { [sortField]: sortOrder };
 
     const transactions = await Transaction.find(filtre)
-      .sort({ date: -1 })
+      .sort(sortObj)
       .skip(skip)
-      .limit(Number(limite));
+      .limit(limite);
 
     const total = await Transaction.countDocuments(filtre);
 
@@ -88,10 +84,10 @@ export class TransactionController {
       donnees: {
         transactions,
         pagination: {
-          page: Number(page),
-          limite: Number(limite),
+          page,
+          limite,
           total,
-          pages: Math.ceil(total / Number(limite))
+          pages: Math.ceil(total / limite)
         }
       }
     });
