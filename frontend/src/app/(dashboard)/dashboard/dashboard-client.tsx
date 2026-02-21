@@ -93,7 +93,7 @@ export function DashboardClient() {
           />
         )}
         <div className="px-4 space-y-6 lg:px-6">
-          <ChartAreaInteractive evolutionSolde={dataApi?.evolutionSolde} />
+          <ChartAreaInteractive evolutionSolde={dataApi?.evolutionSolde} isLoading={loading} />
           <Card>
             <CardHeader>
               <CardTitle>Répartition des dépenses</CardTitle>

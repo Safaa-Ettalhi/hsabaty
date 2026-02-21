@@ -49,8 +49,10 @@ const chartConfig = {
 
 export function ChartAreaInteractive({
   evolutionSolde,
+  isLoading = false,
 }: {
   evolutionSolde?: Array<{ date: string; solde: number }>
+  isLoading?: boolean
 } = {}) {
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState("90d")
@@ -184,7 +186,7 @@ export function ChartAreaInteractive({
           </ChartContainer>
         ) : (
           <div className="bg-muted/50 flex h-[250px] items-center justify-center rounded-lg text-muted-foreground text-sm">
-            {apiData === null ? "Chargement..." : "Aucune donnée d’évolution sur la période"}
+            {isLoading ? "Chargement..." : "Aucune donnée d’évolution sur la période"}
           </div>
         )}
       </CardContent>

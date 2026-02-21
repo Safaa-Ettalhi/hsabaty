@@ -48,20 +48,20 @@ export function SiteHeader() {
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbs.length > 0 ? (
-              breadcrumbs.map((b) => (
+              breadcrumbs.flatMap((b, i) => [
                 <BreadcrumbItem key={b.href}>
                   {b.isLast ? (
                     <BreadcrumbPage>{b.label}</BreadcrumbPage>
                   ) : (
-                    <>
-                      <BreadcrumbLink asChild>
-                        <Link href={b.href}>{b.label}</Link>
-                      </BreadcrumbLink>
-                      <BreadcrumbSeparator />
-                    </>
+                    <BreadcrumbLink asChild>
+                      <Link href={b.href}>{b.label}</Link>
+                    </BreadcrumbLink>
                   )}
-                </BreadcrumbItem>
-              ))
+                </BreadcrumbItem>,
+                ...(i < breadcrumbs.length - 1
+                  ? [<BreadcrumbSeparator key={`sep-${b.href}`} />]
+                  : []),
+              ])
             ) : (
               <BreadcrumbItem>
                 <BreadcrumbPage>Chat</BreadcrumbPage>
