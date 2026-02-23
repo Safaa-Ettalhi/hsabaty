@@ -23,6 +23,32 @@ export const authConnexionSchema = z.object({
   })
 });
 
+export const authMotDePasseOublieSchema = z.object({
+  body: z.object({
+    email: z.string().email('Email invalide').max(255)
+  })
+});
+
+export const authReinitialiserMotDePasseSchema = z.object({
+  body: z.object({
+    token: z.string().min(1, 'Le token est requis').max(500),
+    nouveauMotDePasse: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères').max(128)
+  })
+});
+
+export const authProfilModifierSchema = z.object({
+  body: z.object({
+    nom: z.string().min(1, 'Le nom est requis').max(100).trim().optional(),
+    prenom: z.string().max(100).trim().optional().nullable(),
+    devise: deviseEnum.optional(),
+    preferences: z.object({
+      notificationsEmail: z.boolean().optional(),
+      notificationsPush: z.boolean().optional(),
+      langue: z.enum(['fr', 'ar', 'en']).optional()
+    }).optional()
+  }).refine(data => Object.keys(data).length > 0, { message: 'Au moins un champ à modifier est requis' })
+});
+
 export const transactionCreerSchema = z.object({
   body: z.object({
     montant: z.number().positive('Le montant doit être positif').finite(),
