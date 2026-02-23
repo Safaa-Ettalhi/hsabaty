@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { ServiceCalculsFinanciers } from '../services/calculsFinanciers';
 import { asyncHandler } from '../middleware/gestionErreurs';
 import { AuthentifieRequest } from '../middleware/authentification';
-import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, format } from 'date-fns';
 
 const serviceCalculs = new ServiceCalculsFinanciers();
 
@@ -72,6 +72,32 @@ export class DashboardController {
         topDepenses,
         evolutionSolde: evolution
       }
+    });
+  });
+
+  // tendances mensuelles (revenus vs dépenses par mois) pour les N derniers mois
+  static tendancesMensuelles = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
+    const nbMois = Math.min(12, Math.max(3, parseInt((req.query.nbMois as string) || '6', 10) || 6));
+    const fin = new Date();
+    const tendances: Array<{ mois: string; label: string; revenus: number; depenses: number }> = [];
+
+    for (let i = nbMois - 1; i >= 0; i--) {
+      const dateRef = subMonths(fin, i);
+      const debut = startOfMonth(dateRef);
+      const finMois = endOfMonth(dateRef);
+      const revenus = await serviceCalculs.calculerRevenus(req.utilisateurId!, debut, finMois);
+      const depenses = await serviceCalculs.calculerDepenses(req.utilisateurId!, debut, finMois);
+      tendances.push({
+        mois: format(dateRef, 'yyyy-MM'),
+        label: format(dateRef, 'MMM yyyy'),
+        revenus,
+        depenses
+      });
+    }
+
+    res.json({
+      succes: true,
+      donnees: { tendances }
     });
   });
 }
