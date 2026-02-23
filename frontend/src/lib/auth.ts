@@ -86,3 +86,27 @@ export async function logoutApi(): Promise<void> {
   await api.post("/api/auth/deconnecter", {})
   clearSession()
 }
+
+export async function forgotPasswordApi(
+  email: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const res = await api.post<{ message: string }>("/api/auth/mot-de-passe-oublie", { email })
+  if (!res.succes) {
+    return { success: false, error: res.message ?? "Erreur lors de l’envoi" }
+  }
+  return { success: true }
+}
+
+export async function resetPasswordApi(
+  token: string,
+  nouveauMotDePasse: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const res = await api.post<{ message: string }>("/api/auth/reinitialiser-mot-de-passe", {
+    token,
+    nouveauMotDePasse,
+  })
+  if (!res.succes) {
+    return { success: false, error: res.message ?? "Erreur lors de la réinitialisation" }
+  }
+  return { success: true }
+}
