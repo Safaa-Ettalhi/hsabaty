@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
@@ -21,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validations/auth"
-import { mockResetPassword } from "@/lib/auth-mock"
+import { resetPasswordApi } from "@/lib/auth"
 import { toast } from "sonner"
 import { Logo } from "@/components/logo"
 
@@ -29,17 +30,28 @@ export function ResetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token") ?? ""
+  const [submitting, setSubmitting] = useState(false)
 
   const form = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: { password: "", confirmPassword: "" },
   })
 
-  function onSubmit(data: ResetPasswordInput) {
-    mockResetPassword(token, data.password)
-    toast.success("Mot de passe réinitialisé. Connectez-vous avec votre nouveau mot de passe.")
-    router.push("/login?reset=success")
-    router.refresh()
+  async function onSubmit(data: ResetPasswordInput) {
+    if (!token) {
+      toast.error("Lien invalide. Utilisez le lien reçu par e-mail.")
+      return
+    }
+    setSubmitting(true)
+    const result = await resetPasswordApi(token, data.password)
+    setSubmitting(false)
+    if (result.success) {
+      toast.success("Mot de passe réinitialisé. Connectez-vous avec votre nouveau mot de passe.")
+      router.push("/login?reset=success")
+      router.refresh()
+    } else {
+      toast.error(result.error)
+    }
   }
 
   return (
@@ -87,8 +99,8 @@ export function ResetPasswordForm() {
                 )}
               </Field>
               <Field>
-                <Button type="submit" className="w-full">
-                  Réinitialiser
+                <Button type="submit" className="w-full" disabled={submitting || !token.trim()}>
+                  {submitting ? "Enregistrement…" : "Réinitialiser"}
                 </Button>
                 <FieldDescription className="text-center">
                   <Link href="/login" className="text-primary underline-offset-4 hover:underline">
