@@ -41,6 +41,22 @@ async function request<T>(
   return data as ApiResponse<T>
 }
 
+
+export async function downloadFile(path: string, filename: string): Promise<void> {
+  const base = getBaseUrl()
+  const token = typeof window !== "undefined" ? getStoredToken() : null
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+  const res = await fetch(`${base}${path}`, { credentials: "include", headers })
+  if (!res.ok) throw new Error(`Erreur ${res.status}`)
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: "GET" }),
   post: <T>(path: string, body: unknown) =>
