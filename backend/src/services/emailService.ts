@@ -112,7 +112,25 @@ export class EmailService {
     await this.envoyerEmail(email, sujet, contenu);
   }
 
-//envoyer une notification de transaction récurrente
+  /**  lien de réinitialisation */
+  static async envoyerLienReinitialisation(
+    email: string,
+    nomUtilisateur: string,
+    lienReset: string
+  ): Promise<void> {
+    const sujet = 'Réinitialisation de votre mot de passe - Hssabaty';
+    const contenu = `
+      <h2>Bonjour ${nomUtilisateur},</h2>
+      <p>Vous avez demandé la réinitialisation de votre mot de passe.</p>
+      <p>Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe (lien valable 1 heure) :</p>
+      <p><a href="${lienReset}" style="color: #2563eb;">${lienReset}</a></p>
+      <p>Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.</p>
+      <p>Cordialement,<br>L’équipe Hssabaty</p>
+    `;
+    await this.envoyerEmail(email, sujet, contenu);
+  }
+
+  /** Envoie une notification de transaction récurrente */
   static async envoyerRappelTransactionRecurrente(
     email: string,
     nomUtilisateur: string,
