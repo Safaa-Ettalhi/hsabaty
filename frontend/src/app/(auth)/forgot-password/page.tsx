@@ -21,21 +21,28 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { forgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validations/auth"
-import { mockForgotPassword } from "@/lib/auth-mock"
+import { forgotPasswordApi } from "@/lib/auth"
 import { toast } from "sonner"
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
 
   const form = useForm<ForgotPasswordInput>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: "" },
   })
 
-  function onSubmit(data: ForgotPasswordInput) {
-    mockForgotPassword(data.email)
-    setSent(true)
-    toast.success("Si un compte existe pour cette adresse, vous recevrez un e-mail.")
+  async function onSubmit(data: ForgotPasswordInput) {
+    setSending(true)
+    const result = await forgotPasswordApi(data.email)
+    setSending(false)
+    if (result.success) {
+      setSent(true)
+      toast.success("Si un compte existe pour cette adresse, vous recevrez un e-mail.")
+    } else {
+      toast.error(result.error)
+    }
   }
 
   return (
@@ -81,8 +88,8 @@ export default function ForgotPasswordPage() {
                   )}
                 </Field>
                 <Field>
-                  <Button type="submit" className="w-full">
-                    Envoyer le lien
+                  <Button type="submit" className="w-full" disabled={sending}>
+                    {sending ? "Envoi en cours…" : "Envoyer le lien"}
                   </Button>
                   <FieldDescription className="text-center">
                     <Link href="/login" className="text-primary underline-offset-4 hover:underline">
