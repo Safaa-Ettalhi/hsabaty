@@ -9,5 +9,6 @@ const router = express.Router();
 router.use(authentifier);
 
 router.get('/metriques', validerQuery(dashboardMetriquesQuerySchema), DashboardController.obtenirMetriques);
+router.get('/tendances-mensuelles', DashboardController.tendancesMensuelles);
 
 export default router;
