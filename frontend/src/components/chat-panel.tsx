@@ -19,8 +19,8 @@ import {
   IconCoin,
   IconFileText,
 } from "@tabler/icons-react"
-import { getStoredUser } from "@/lib/auth-mock"
-import { api } from "@/lib/api"
+import { getStoredUser, getStoredToken } from "@/lib/auth-mock"
+import { api, getApiUrl } from "@/lib/api"
 import { toast } from "sonner"
 
 type Message = { role: "user" | "assistant"; content: string }
@@ -43,7 +43,7 @@ export function ChatPanel() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [userName, setUserName] = useState("")
-  const [attachments, setAttachments] = useState<{ name: string; type: string }[]>([])
+  const [attachments, setAttachments] = useState<{ name: string; type: string; file?: File }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -71,7 +71,40 @@ export function ChatPanel() {
 
   async function sendMessage(text: string) {
     const trimmed = text.trim()
-    if (!trimmed || isLoading) return
+    const audioFile = attachments.find((a) => a.type.startsWith("audio/"))?.file
+    const hasAudioOnly = attachments.length === 1 && audioFile && !trimmed
+    if ((!trimmed && !hasAudioOnly) || isLoading) return
+
+    if (hasAudioOnly && audioFile) {
+      setAttachments([])
+      setMessages((prev) => [...prev, { role: "user", content: "Message vocal" }])
+      setIsLoading(true)
+      const formData = new FormData()
+      formData.append("audio", audioFile)
+      const token = getStoredToken()
+      try {
+        const res = await fetch(`${getApiUrl()}/api/agent-ia/voice`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
+          body: formData,
+        })
+        const data = await res.json()
+        setIsLoading(false)
+        if (data.succes && data.donnees?.reponse) {
+          setMessages((prev) => [...prev, { role: "assistant", content: data.donnees.reponse }])
+        } else {
+          setMessages((prev) => [...prev, { role: "assistant", content: data.message || "Erreur message vocal." }])
+          toast.error(data.message)
+        }
+      } catch {
+        setIsLoading(false)
+        setMessages((prev) => [...prev, { role: "assistant", content: "Erreur de connexion." }])
+        toast.error("Erreur de connexion")
+      }
+      return
+    }
+
     setInput("")
     setAttachments([])
     setMessages((prev) => [...prev, { role: "user", content: trimmed }])
@@ -91,7 +124,8 @@ export function ChatPanel() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    sendMessage(input)
+    if (input.trim()) sendMessage(input)
+    else if (attachments.length === 1 && attachments[0].type.startsWith("audio/")) sendMessage("")
   }
 
   function handleSuggestion(label: string) {
@@ -119,7 +153,7 @@ export function ChatPanel() {
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files
     if (!files?.length) return
-    const next = Array.from(files).map((f) => ({ name: f.name, type: f.type }))
+    const next = Array.from(files).map((f) => ({ name: f.name, type: f.type, file: f }))
     setAttachments((prev) => [...prev, ...next])
     toast.success(`${next.length} fichier(s) ajouté(s)`)
     e.target.value = ""
@@ -207,7 +241,7 @@ export function ChatPanel() {
             type="submit"
             size="icon"
             className="h-8 w-8 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-            disabled={(!input.trim() && attachments.length === 0) || isLoading}
+            disabled={(!input.trim() && !attachments.some((a) => a.type.startsWith("audio/"))) || isLoading}
           >
             <IconSend className="size-4" />
           </Button>
@@ -279,10 +313,10 @@ export function ChatPanel() {
                   )}
                   <div
                     className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-3 text-sm",
+                      "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
                       m.role === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
+                        : "bg-muted text-foreground whitespace-pre-wrap"
                     )}
                   >
                     {m.content}
