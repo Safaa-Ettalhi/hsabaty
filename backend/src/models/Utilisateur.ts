@@ -6,9 +6,11 @@ export interface IUtilisateur extends Document {
   motDePasse: string;
   nom: string;
   prenom?: string;
-  devise: string; 
+  devise: string;
   dateCreation: Date;
   derniereConnexion?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   preferences: {
     notificationsEmail: boolean;
     notificationsPush: boolean;
@@ -52,6 +54,14 @@ const utilisateurSchema = new Schema<IUtilisateur>({
   },
   derniereConnexion: {
     type: Date
+  },
+  resetPasswordToken: {
+    type: String,
+    select: false
+  },
+  resetPasswordExpires: {
+    type: Date,
+    select: false
   },
   preferences: {
     notificationsEmail: {
