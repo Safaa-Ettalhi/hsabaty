@@ -42,12 +42,35 @@ export class ServiceAgentIA {
     }
   }
 
+  private detecterLangue(message: string): 'fr' | 'en' | 'ar' {
+    if (!message) return 'fr';
+    const hasArabic = /[\u0600-\u06FF]/.test(message);
+    if (hasArabic) return 'ar';
+    const lower = message.toLowerCase();
+    const englishKeywords = ['how', 'much', 'spent', 'spend', 'salary', 'rent', 'income', 'expense', 'savings'];
+    if (englishKeywords.some((k) => lower.includes(k))) return 'en';
+    const hasFrenchAccents = /[éèêàçùôîï]/i.test(message);
+    if (hasFrenchAccents) return 'fr';
+    return 'fr';
+  }
+
 // traiter un message utilisateur et générer une réponse avec actions
   async traiterMessage(
     utilisateurId: string,
     messageUtilisateur: string
   ): Promise<{ reponse: string; action?: any }> {
+    const langue = this.detecterLangue(messageUtilisateur);
     const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
+    (contexte as any).langue = langue;
+    const intentionInitiale = this.detecterIntention(messageUtilisateur);
+    if (intentionInitiale && (intentionInitiale.type === 'creer_budget' || intentionInitiale.type === 'creer_objectif' || intentionInitiale.type === 'creer_transaction_recurrente' || intentionInitiale.type === 'creer_investissement' || intentionInitiale.type === 'ajouter_transaction')) {
+      const actionDirecte = await this.executerActionDetectee(utilisateurId, intentionInitiale);
+      if (actionDirecte) {
+        const reponseDirecte = this.genererReponseDepuisAction(actionDirecte, contexte);
+        await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseDirecte, actionDirecte);
+        return { reponse: reponseDirecte, action: actionDirecte };
+      }
+    }
 
     const conversation = await Conversation.findOne({ utilisateurId })
       .sort({ dateModification: -1 })
@@ -88,12 +111,10 @@ export class ServiceAgentIA {
             choix.message.function_call.name,
             JSON.parse(choix.message.function_call.arguments || '{}')
           );
-          // Si une action a été exécutée, générer une réponse depuis l'action
           if (action) {
             reponseIA = this.genererReponseDepuisAction(action, contexte);
           }
         } else {
-          // Même sans function call, vérifier si on peut détecter une intention
           const intention = this.detecterIntention(messageUtilisateur);
           if (intention && (intention.type === 'gerer_objectif' || intention.type === 'gerer_budget' || intention.type === 'statistiques' || intention.type === 'analyser_habitudes')) {
             const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
@@ -149,7 +170,6 @@ export class ServiceAgentIA {
               reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
             }
           }
-          // Priorité aux actions détectées plutôt qu'à la réponse textuelle de Gemini
           const intention = this.detecterIntention(messageUtilisateur);
           if (intention) {
             const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
@@ -162,7 +182,6 @@ export class ServiceAgentIA {
           const errorMessage = geminiError?.message || '';
           const errorStatus = geminiError?.status || geminiError?.response?.status;
           
-          // Détecter les erreurs de quota/credit épuisé (429, 403, 401)
           const isQuotaError = errorStatus === 429 || 
                               errorStatus === 403 || 
                               errorStatus === 401 ||
@@ -212,8 +231,18 @@ export class ServiceAgentIA {
         throw new Error('Aucun fournisseur IA configuré (OPENAI_API_KEY, ANTHROPIC_API_KEY ou GEMINI_API_KEY selon IA_PROVIDER)');
       }
 
+      if (action && action.type === 'budgets_trouves' && action.nombre === 0) {
+        const intentionCreation = this.extraireInfosBudget(messageUtilisateur);
+        if (intentionCreation && intentionCreation.parametres) {
+          const actionBudget = await this.executerAction(utilisateurId, 'creer_budget', intentionCreation.parametres);
+          const reponseBudget = this.genererReponseDepuisAction(actionBudget, contexte);
+          await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseBudget, actionBudget);
+          return { reponse: reponseBudget, action: actionBudget };
+        }
+      }
+
       if (!reponseIA || reponseIA.trim().length === 0) {
-        reponseIA = action 
+        reponseIA = action
           ? this.genererReponseDepuisAction(action, contexte)
           : 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
       }
@@ -225,7 +254,6 @@ export class ServiceAgentIA {
       console.error('Erreur lors du traitement du message:', error);
       const msg = error?.message || '';
       
-      // Gestion des erreurs de quota Gemini avec fallback Nemotron
       const isQuotaError = error?.status === 429 || 
                           error?.status === 403 || 
                           error?.status === 401 ||
@@ -324,8 +352,7 @@ export class ServiceAgentIA {
       const stream = fs.createReadStream(tmpPath) as any;
       const transcription = await this.openai.audio.transcriptions.create({
         file: stream,
-        model: 'whisper-1',
-        language: 'fr'
+        model: 'whisper-1'
       });
       return transcription.text || '';
     } finally {
@@ -345,9 +372,24 @@ export class ServiceAgentIA {
 
 //construire le prompt système pour l'agent IA
   private construirePromptSystem(contexte: any): string {
+    const langue = (contexte && (contexte as any).langue) || 'fr';
+    const descriptionLangue = langue === 'en'
+      ? 'anglais'
+      : langue === 'ar'
+        ? 'arabe (dialecte marocain simple)'
+        : 'français';
+
     return `Tu es Hssabaty, un assistant IA intelligent et bienveillant pour la gestion financière personnelle.
 
 Ton rôle est d'aider les utilisateurs à gérer leurs finances de manière simple et conversationnelle.
+
+LANGUE DE RÉPONSE:
+- L'utilisateur peut parler français, anglais ou arabe (dialecte marocain).
+- Le dernier message est en: ${descriptionLangue}.
+- Tu dois TOUJOURS répondre dans la même langue que le DERNIER message de l'utilisateur. 
+- Si le message est en français, réponds en français.
+- S'il est en anglais, réponds en anglais.
+- S'il est en arabe/darija, réponds en arabe clair et simple.
 
 ⚠️ IMPORTANT - UTILISATION AUTOMATIQUE DES FONCTIONS:
 Tu DOIS automatiquement utiliser les fonctions disponibles lorsque l'utilisateur demande une action. Ne demande JAMAIS à l'utilisateur de confirmer, exécute directement l'action.
@@ -1080,18 +1122,24 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
     if (messageLower.match(/(j'ai dépensé|j'ai payé|j'ai reçu|ajoute|ajouter|gagné|reçu|payé|dépensé)/i)) {
       return this.extraireInfosTransaction(messageUtilisateur);
     }
+    if (messageLower.match(/(i\s+spent|i\s+paid|i\s+received|add\s+\d+|add\s+.*transaction)/i)) {
+      return this.extraireInfosTransaction(messageUtilisateur);
+    }
+    if (messageUtilisateur.match(/(صرف|صرفت|صرفـت|خلصت|دفعت)/)) {
+      return this.extraireInfosTransaction(messageUtilisateur);
+    }
 
     if (messageLower.match(/(mes objectifs|montre.*mes objectifs|affiche.*mes objectifs|liste.*mes objectifs|voir.*mes objectifs|consulter.*mes objectifs|montre-moi.*objectifs|affiche-moi.*objectifs|liste-moi.*objectifs|voir.*objectifs|objectifs|progression.*objectif|suivre.*objectif|suivi.*objectif|où en suis-je.*objectif)/i)) {
       return { type: 'gerer_objectif', message: messageUtilisateur };
     }
-    if (messageLower.match(/(mes budgets|montre.*budgets|affiche.*budgets|liste.*budgets|voir.*budgets|consulter.*budgets|budgets|budget)/i)) {
-      return { type: 'gerer_budget', message: messageUtilisateur };
-    }
-    if (messageLower.match(/(fixe un budget|crée un budget|créer un budget|budget de|budget pour|nouveau budget)/i)) {
+    if (messageLower.match(/(fixe un budget|fixer un budget|crée un budget|créer un budget|budget de|budget pour|nouveau budget|set a budget|set .*budget|create a budget|budget of|budget for|monthly budget)/i)) {
       return this.extraireInfosBudget(messageUtilisateur);
     }
+    if (messageLower.match(/(mes budgets|montre.*mes budgets|affiche.*mes budgets|liste.*mes budgets|voir.*mes budgets|consulter.*mes budgets|my budgets|show my budgets|list my budgets|see my budgets)/i)) {
+      return { type: 'gerer_budget', message: messageUtilisateur };
+    }
 
-    if (messageLower.match(/(je veux économiser|objectif|épargner|économiser|pour une|pour un|en \d+ mois|en \d+ an|nouvel objectif)/i)) {
+    if (messageLower.match(/(je veux économiser|objectif|épargner|économiser|pour une|pour un|en \d+ mois|en \d+ an|nouvel objectif|i want to save|saving goal|save \d+)/i)) {
       return this.extraireInfosObjectif(messageUtilisateur);
     }
 
@@ -1124,7 +1172,7 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
       return this.extraireInfosInvestissement(messageUtilisateur);
     }
 
-    if (messageLower.match(/(abonnement|mensuel|récurrent|récurrente|chaque mois|chaque semaine|tous les mois|tous les ans|netflix|spotify|loyer|salaire mensuel)/i)) {
+    if (messageLower.match(/(abonnement|mensuel|récurrent|رَسوم|كل شهر|كل أسبوع|chaque mois|chaque semaine|tous les mois|tous les ans|netflix|spotify|loyer|salaire mensuel|subscription|every month|each month|every week)/i)) {
       return this.extraireInfosTransactionRecurrente(messageUtilisateur);
     }
 
@@ -1139,26 +1187,45 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
 
-    // Déterminer le type (revenu ou dépense)
-    const type = messageLower.match(/(salaire|revenu|reçu|gagné)/i) ? 'revenu' : 'depense';
+    const type = messageLower.match(/(salaire|revenu|reçu|gagné|salary|income|paycheck|i\s+received)/i)
+      ? 'revenu'
+      : 'depense';
 
     // Extraire la catégorie
     let categorie = 'Autres';
     if (messageLower.match(/(restaurant|manger|food|café|repas)/i)) categorie = 'Alimentation';
     else if (messageLower.match(/(taxi|transport|carburant|essence|bus|métro)/i)) categorie = 'Transport';
     else if (messageLower.match(/(loyer|électricité|eau|gaz|logement)/i)) categorie = 'Logement';
-    else if (messageLower.match(/(salaire|revenu|paie)/i)) categorie = 'Salaire';
+    else if (messageLower.match(/(salaire|revenu|paie|salary|income|paycheck)/i)) categorie = 'Salaire';
     else if (messageLower.match(/(médecin|pharmacie|santé)/i)) categorie = 'Santé';
     else if (messageLower.match(/(école|cours|formation|éducation)/i)) categorie = 'Éducation';
     else if (messageLower.match(/(cinéma|loisir|divertissement)/i)) categorie = 'Divertissement';
     else if (messageLower.match(/(achat|shopping|magasin)/i)) categorie = 'Shopping';
+    if (messageLower.includes('grocery') || messageLower.includes('groceries')) {
+      categorie = 'Alimentation';
+    }
+    if (/(مطعم|مطعمة|أكل|اكل|طعام|ماكلة|ماكل|فطور|غداء|عشاء)/i.test(message)) {
+      categorie = 'Alimentation';
+    }
+    if (/(طاكسي|تاكسي|التاكسي|فالطاكسي|النقل|موصل)/i.test(message)) {
+      categorie = 'Transport';
+    }
 
     // Extraire la description
     let description = '';
 
-    const motsCles = message.match(/(restaurant|boulangerie|pharmacie|supermarché|magasin|cinéma|théâtre|hôpital|médecin|dentiste|école|université|gare|aéroport|station|essence|carburant|électricité|eau|gaz|loyer|salaire|paie|revenu|transport|taxi|bus|métro)/i);
+    const motsCles = message.match(/(restaurant|boulangerie|pharmacie|supermarché|magasin|cinéma|théâtre|hôpital|médecin|dentiste|école|université|gare|aéroport|station|essence|carburant|électricité|eau|gaz|loyer|salaire|paie|revenu|transport|taxi|bus|métرو|مطعم|مطعمة|أكل|اكل|طعام|ماكلة|ماكل|طاكسي|تاكسي|التاكسي)/i);
     if (motsCles && motsCles[0]) {
       description = motsCles[0];
+    }
+
+    if (!description || description.length < 2) {
+      if (messageLower.includes('groceries') || messageLower.includes('grocery')) {
+        description = 'groceries';
+      }
+      else if (messageLower.includes('salary') || messageLower.includes('income') || messageLower.includes('paycheck')) {
+        description = 'salary';
+      }
     }
 
     if (!description || description.length < 2) {
@@ -1264,19 +1331,21 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
 
-    // Extraire la catégorie
     let categorie = undefined;
-    if (messageLower.match(/(alimentation|restaurant|manger|food)/i)) categorie = 'Alimentation';
-    else if (messageLower.match(/(transport|carburant)/i)) categorie = 'Transport';
-    else if (messageLower.match(/(logement|loyer)/i)) categorie = 'Logement';
+    if (messageLower.match(/(alimentation|restaurant|manger|food|groceries|courses|ماكل|أكل|مطعم)/i)) categorie = 'Alimentation';
+    else if (messageLower.match(/(transport|carburant|taxi|bus|tram|نقل|طاكسي|ترانسبورت)/i)) categorie = 'Transport';
+    else if (messageLower.match(/(logement|loyer|rent|maison|appartement|كراء|السكن)/i)) categorie = 'Logement';
 
     // Déterminer la période
     let periode = 'mensuel';
-    if (messageLower.match(/(trimestriel|trimestre)/i)) periode = 'trimestriel';
-    else if (messageLower.match(/(annuel|année|an)/i)) periode = 'annuel';
+    if (messageLower.match(/(trimestriel|trimestre|quarter)/i)) periode = 'trimestriel';
+    else if (messageLower.match(/(annuel|année|an|year)/i)) periode = 'annuel';
 
     // Extraire le nom
-    const nomMatch = message.match(/(?:budget|pour)\s+([^0-9]+?)(?:\s+de|\s+pour)/i);
+    const nomMatch =
+      message.match(/(?:budget|pour)\s+([^0-9]+?)(?:\s+de|\s+pour)/i) ||
+      message.match(/(?:budget|for)\s+([^0-9]+?)(?:\s+of|\s+for)/i) ||
+      message.match(/ميزانية\s+([^0-9]+?)(?:\s+ديال|\s+ل|$)/i);
     const nom = nomMatch ? nomMatch[1].trim() : `Budget ${categorie || 'mensuel'}`;
 
     if (!montant) return null;
@@ -1301,8 +1370,8 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montantCible = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
 
-    // Extraire la durée
-    const dureeMatch = message.match(/(\d+)\s*(mois|an|année|ans)/i);
+    // Extraire la durée (FR / EN / AR simple)
+    const dureeMatch = message.match(/(\d+)\s*(mois|an|année|ans|months?|years?)/i);
     let dateLimite = new Date();
     if (dureeMatch) {
       const nombre = parseInt(dureeMatch[1]);
@@ -1316,16 +1385,17 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
       dateLimite.setFullYear(dateLimite.getFullYear() + 1); 
     }
 
-    // Extraire le nom de l'objectif
-    const nomMatch = message.match(/(?:pour|d'|de)\s+([^0-9]+?)(?:\s+en|\s+pour)/i) ||
-                     message.match(/(voiture|maison|appartement|voyage|urgence|projet)/i);
+    const nomMatch =
+      message.match(/(?:pour|d'|de)\s+([^0-9]+?)(?:\s+en|\s+pour)/i) ||
+      message.match(/for\s+([^0-9]+?)(?:\s+in|\s+for)/i) ||
+      message.match(/(voiture|car|maison|house|appartement|apartment|voyage|trip|urgence|emergency|projet|مشروع|سيارة|دار|سفر)/i);
     const nom = nomMatch ? nomMatch[1].trim() : 'Objectif d\'épargne';
 
     // Déterminer le type
     let type = 'epargne';
-    if (messageLower.match(/(urgence|fonds d'urgence)/i)) type = 'fonds_urgence';
-    else if (messageLower.match(/(remboursement|dette)/i)) type = 'remboursement';
-    else if (messageLower.match(/(voiture|maison|voyage|projet)/i)) type = 'projet';
+    if (messageLower.match(/(urgence|fonds d'urgence|emergency)/i)) type = 'fonds_urgence';
+    else if (messageLower.match(/(remboursement|dette|debt|rembourse)/i)) type = 'remboursement';
+    else if (messageLower.match(/(voiture|car|maison|house|voyage|trip|projet|project|مشروع|سيارة|دار|سفر)/i)) type = 'projet';
 
     if (!montantCible) return null;
 
@@ -1678,85 +1748,169 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
     if (!action) return 'Action effectuée avec succès.';
 
     const devise = contexte.devise || 'MAD';
+    const langue: 'fr' | 'en' | 'ar' = (contexte && (contexte as any).langue) || 'fr';
+
+    const t = (fr: string, en: string, ar?: string) => {
+      if (langue === 'en') return en;
+      if (langue === 'ar' && ar) return ar;
+      return fr;
+    };
 
     switch (action.type) {
-      case 'transaction_ajoutee':
+      case 'transaction_ajoutee': {
         const trans = action.details;
-        return `✅ Transaction ajoutée avec succès : ${trans.description} - ${trans.montant} ${devise} (${trans.categorie})`;
+        return t(
+          `✅ Transaction ajoutée avec succès : ${trans.description} - ${trans.montant} ${devise} (${trans.categorie})`,
+          `✅ Transaction added successfully: ${trans.description} - ${trans.montant} ${devise} (${trans.categorie})`,
+          `✅ تم إضافة العملية بنجاح: ${trans.description} - ${trans.montant} ${devise} (${trans.categorie})`
+        );
+      }
 
       case 'transaction_modifiee':
-        return `✅ Transaction modifiée avec succès. ${action.message || ''}`;
+        return t(
+          `✅ Transaction modifiée avec succès. ${action.message || ''}`,
+          `✅ Transaction updated successfully. ${action.message || ''}`,
+          `✅ تم تعديل العملية بنجاح. ${action.message || ''}`
+        );
 
       case 'transaction_supprimee':
-        return `✅ Transaction supprimée avec succès. ${action.message || ''}`;
+        return t(
+          `✅ Transaction supprimée avec succès. ${action.message || ''}`,
+          `✅ Transaction deleted successfully. ${action.message || ''}`,
+          `✅ تم حذف العملية بنجاح. ${action.message || ''}`
+        );
 
       case 'transactions_trouvees':
         if (action.nombre === 0) {
-          return 'Aucune transaction trouvée correspondant à vos critères.';
+          return t(
+            'Aucune transaction trouvée correspondant à vos critères.',
+            'No transaction matched your criteria.',
+            'لا توجد أي عملية مطابقة للمعايير.'
+          );
         }
-        return `J'ai trouvé ${action.nombre} transaction(s). ${action.transactions.slice(0, 3).map((t: any) => `${t.description}: ${t.montant} ${devise}`).join(', ')}`;
+        const listeTrans = action.transactions
+          .slice(0, 3)
+          .map((tItem: any) => `${tItem.description}: ${tItem.montant} ${devise}`)
+          .join(', ');
+        return t(
+          `J'ai trouvé ${action.nombre} transaction(s). ${listeTrans}`,
+          `I found ${action.nombre} transaction(s). ${listeTrans}`,
+          `لقد وجدت ${action.nombre} عملية(عمليات). ${listeTrans}`
+        );
 
-      case 'budget_cree':
+      case 'budget_cree': {
         const budget = action.details;
-        return `✅ Budget créé avec succès : ${budget.nom} - ${budget.montant} ${devise}/${budget.periode}`;
+        return t(
+          `✅ Budget créé avec succès : ${budget.nom} - ${budget.montant} ${devise}/${budget.periode}`,
+          `✅ Budget created successfully: ${budget.nom} - ${budget.montant} ${devise}/${budget.periode}`,
+          `✅ تم إنشاء الميزانية بنجاح: ${budget.nom} - ${budget.montant} ${devise}/${budget.periode}`
+        );
+      }
 
       case 'budgets_trouves':
         if (action.nombre === 0) {
-          return 'Vous n\'avez pas encore de budgets. Créez-en un pour commencer à suivre vos dépenses !';
+          return t(
+            'Vous n\'avez pas encore de budgets. Créez-en un pour commencer à suivre vos dépenses !',
+            'You do not have any budgets yet. Create one to start tracking your spending!',
+            'ليس لديك أي ميزانية بعد. أنشئ ميزانية لتبدأ في تتبع مصاريفك!'
+          );
         }
-        const budgetsDetails = action.budgets.map((b: any) => {
-          const pourcentageUtilise = b.statistiques?.pourcentageUtilise || 0;
-          const montantRestant = b.montant - (b.statistiques?.montantUtilise || 0);
-          return `\n• ${b.nom}: ${b.statistiques?.montantUtilise || 0} ${devise} / ${b.montant} ${devise} (${pourcentageUtilise.toFixed(1)}%)\n  Reste: ${montantRestant.toFixed(2)} ${devise} | Période: ${b.periode}`;
-        }).join('');
-        return `📊 Vous avez ${action.nombre} budget(s) actif(s):${budgetsDetails}`;
+        return t(
+          `Vous avez ${action.nombre} budget(s) actif(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant} ${devise}`).join(', ')}`,
+          `You have ${action.nombre} active budget(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant} ${devise}`).join(', ')}`,
+          `لديك ${action.nombre} ميزانية نشِطة. ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant} ${devise}`).join(', ')}`
+        );
 
-      case 'objectif_cree':
+      case 'objectif_cree': {
         const obj = action.details;
-        return `✅ Objectif créé avec succès : ${obj.nom} - ${obj.montantCible} ${devise} d'ici ${new Date(obj.dateLimite).toLocaleDateString('fr-FR')}`;
+        const dateStr = new Date(obj.dateLimite).toLocaleDateString('fr-FR');
+        return t(
+          `✅ Objectif créé avec succès : ${obj.nom} - ${obj.montantCible} ${devise} d'ici ${dateStr}`,
+          `✅ Goal created successfully: ${obj.nom} - ${obj.montantCible} ${devise} by ${dateStr}`,
+          `✅ تم إنشاء الهدف بنجاح: ${obj.nom} - ${obj.montantCible} ${devise} قبل ${dateStr}`
+        );
+      }
 
-      case 'investissement_cree':
+      case 'investissement_cree': {
         const inv = action.details;
-        return `✅ Investissement créé avec succès : ${inv.nom} - ${inv.montantInvesti} ${devise} (${inv.type})`;
+        return t(
+          `✅ Investissement créé avec succès : ${inv.nom} - ${inv.montantInvesti} ${devise} (${inv.type})`,
+          `✅ Investment created successfully: ${inv.nom} - ${inv.montantInvesti} ${devise} (${inv.type})`,
+          `✅ تم إنشاء الاستثمار بنجاح: ${inv.nom} - ${inv.montantInvesti} ${devise} (${inv.type})`
+        );
+      }
 
-      case 'transaction_recurrente_creee':
+      case 'transaction_recurrente_creee': {
         const tr = action.details;
-        return `✅ Transaction récurrente créée avec succès : ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`;
+        return t(
+          `✅ Transaction récurrente créée avec succès : ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`,
+          `✅ Recurring transaction created successfully: ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`,
+          `✅ تم إنشاء عملية متكررة بنجاح: ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`
+        );
+      }
 
-      case 'statistiques':
+      case 'statistiques': {
         const stats = action.donnees;
-        return `📊 Votre solde actuel est de ${stats.solde} ${devise}. Ce mois : ${stats.revenus} ${devise} de revenus, ${stats.depenses} ${devise} de dépenses. Taux d'épargne : ${stats.tauxEpargne.toFixed(1)}%`;
-
-      case 'budgets_trouves':
-        if (action.nombre === 0) {
-          return 'Vous n\'avez pas encore de budgets actifs.';
-        }
-        return `Vous avez ${action.nombre} budget(s) actif(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant} ${devise}`).join(', ')}`;
+        return t(
+          `📊 Votre solde actuel est de ${stats.solde} ${devise}. Ce mois : ${stats.revenus} ${devise} de revenus, ${stats.depenses} ${devise} de dépenses. Taux d'épargne : ${stats.tauxEpargne.toFixed(1)}%`,
+          `📊 Your current balance is ${stats.solde} ${devise}. This month: ${stats.revenus} ${devise} income, ${stats.depenses} ${devise} expenses. Savings rate: ${stats.tauxEpargne.toFixed(1)}%`,
+          `📊 رصيدك الحالي هو ${stats.solde} ${devise}. هذا الشهر: ${stats.revenus} ${devise} دخل، ${stats.depenses} ${devise} مصاريف. نسبة الادخار: ${stats.tauxEpargne.toFixed(1)}%`
+        );
+      }
 
       case 'objectifs_trouves':
         if (action.nombre === 0) {
-          return 'Vous n\'avez pas encore d\'objectifs financiers. Créez-en un pour commencer à épargner !';
+          return t(
+            'Vous n\'avez pas encore d\'objectifs financiers. Créez-en un pour commencer à épargner !',
+            'You do not have any financial goals yet. Create one to start saving!',
+            'ليس لديك أي أهداف مالية بعد. أنشئ هدفاً لتبدأ في الادخار!'
+          );
         }
         const objectifsDetails = action.objectifs.map((o: any) => {
           const montantRestant = o.montantCible - o.montantActuel;
-          return `\n• ${o.nom}: ${o.montantActuel} ${devise} / ${o.montantCible} ${devise} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Reste: ${montantRestant} ${devise} | Mensuel requis: ${o.progression.montantMensuelRequis.toFixed(0)} ${devise}`;
-        }).join('');
-        return `📊 Vous avez ${action.nombre} objectif(s) actif(s):${objectifsDetails}`;
+          return {
+            fr: `\n• ${o.nom}: ${o.montantActuel} ${devise} / ${o.montantCible} ${devise} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Reste: ${montantRestant} ${devise} | Mensuel requis: ${o.progression.montantMensuelRequis.toFixed(0)} ${devise}`,
+            en: `\n• ${o.nom}: ${o.montantActuel} ${devise} / ${o.montantCible} ${devise} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Remaining: ${montantRestant} ${devise} | Required per month: ${o.progression.montantMensuelRequis.toFixed(0)} ${devise}`,
+            ar: `\n• ${o.nom}: ${o.montantActuel} ${devise} / ${o.montantCible} ${devise} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  المتبقي: ${montantRestant} ${devise} | المطلوب شهرياً: ${o.progression.montantMensuelRequis.toFixed(0)} ${devise}`
+          };
+        });
+        const objectifsTexte = objectifsDetails
+          .map((o: { en: any; ar: any; fr: any; }) => (langue === 'en' ? o.en : langue === 'ar' ? o.ar : o.fr))
+          .join('');
+        return t(
+          `📊 Vous avez ${action.nombre} objectif(s) actif(s):${objectifsTexte}`,
+          `📊 You have ${action.nombre} active goal(s):${objectifsTexte}`,
+          `📊 لديك ${action.nombre} هدف(أهداف) نشِط(ة):${objectifsTexte}`
+        );
 
       case 'habitudes_analysees':
         if (!action.categories || action.categories.length === 0) {
-          return 'Vous n\'avez pas encore de dépenses enregistrées pour analyser vos habitudes.';
+          return t(
+            'Vous n\'avez pas encore de dépenses enregistrées pour analyser vos habitudes.',
+            'You do not have enough expenses recorded yet to analyse your habits.',
+            'لا توجد مصاريف كافية لتحليل عاداتك.'
+          );
         }
-        const periodeText = action.periode === '3_mois' ? 'les 3 derniers mois' : 'ce mois';
+        const periodeText = action.periode === '3_mois'
+          ? t('les 3 derniers mois', 'the last 3 months', 'آخر 3 أشهر')
+          : t('ce mois', 'this month', 'هذا الشهر');
         const categoriesList = action.categories
-          .map((cat: any, index: number) => 
+          .map((cat: any, index: number) =>
             `${index + 1}. ${cat.categorie}: ${cat.montant.toFixed(2)} ${devise} (${cat.pourcentage.toFixed(1)}%)`
           )
           .join('\n');
-        return `📊 Voici où vous dépensez le plus ${periodeText}:\n\n${categoriesList}\n\nTotal: ${action.categories.length} catégorie(s) analysée(s)`;
+        return t(
+          `📊 Voici où vous dépensez le plus ${periodeText}:\n\n${categoriesList}\n\nTotal: ${action.categories.length} catégorie(s) analysée(s)`,
+          `📊 Here is where you spend the most over ${periodeText}:\n\n${categoriesList}\n\nTotal: ${action.categories.length} category(ies) analysed`,
+          `📊 هذه هي الأماكن التي تصرف فيها أكثر خلال ${periodeText}:\n\n${categoriesList}\n\nالمجموع: ${action.categories.length} فئة تم تحليلها`
+        );
 
       default:
-        return 'Action effectuée avec succès.';
+        return t(
+          'Action effectuée avec succès.',
+          'Action completed successfully.',
+          'تم تنفيذ العملية بنجاح.'
+        );
     }
   }
 
