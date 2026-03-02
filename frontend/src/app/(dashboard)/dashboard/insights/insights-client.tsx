@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState } from "react"
@@ -25,6 +26,9 @@ export function InsightsClient() {
   useEffect(() => {
     const tab = TABS.find((t) => t.value === activeTab)
     if (!tab) return
+    if (data[activeTab]) return
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading((l) => ({ ...l, [activeTab]: true }))
     api.get(tab.path).then((res) => {
       if (res.succes && res.donnees) {
@@ -53,7 +57,7 @@ export function InsightsClient() {
       <Card>
         <CardHeader>
           <CardTitle>Conseils & Insights</CardTitle>
-          <CardDescription>Recommandations personnalisées par l'IA</CardDescription>
+          <CardDescription>Recommandations personnalisées par l&apos;IA</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -66,7 +70,9 @@ export function InsightsClient() {
             </TabsList>
             <TabsContent value={activeTab} className="mt-4">
               {isLoading ? (
-                <Skeleton className="h-[200px] w-full rounded-lg" />
+                <div className="flex h-[160px] items-center justify-center rounded-lg border bg-muted/40 text-muted-foreground text-sm">
+                  <span>Génération des conseils en cours…</span>
+                </div>
               ) : tabConfig?.key === "depensesInhabituelles" && current?.list ? (
                 <div className="space-y-2">
                   {current.list.length ? (
@@ -87,7 +93,7 @@ export function InsightsClient() {
                 <div className="whitespace-pre-wrap text-sm">{current.text}</div>
               ) : (
                 <div className="bg-muted/50 flex h-[120px] items-center justify-center rounded-lg text-muted-foreground text-sm">
-                  Aucun contenu
+                  Aucun conseil disponible pour le moment.
                 </div>
               )}
             </TabsContent>
