@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState } from "react"
@@ -75,6 +76,7 @@ export function RecurringClient() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load()
   }, [])
 
@@ -322,7 +324,6 @@ export function RecurringClient() {
           ) : (
             <div className="flex h-[220px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-muted/10 text-center">
               <p className="text-muted-foreground text-sm">Aucune transaction récurrente.</p>
-              <Button variant="outline" size="sm" onClick={() => setOpen(true)}>Créer une récurrente</Button>
             </div>
           )}
         </CardContent>

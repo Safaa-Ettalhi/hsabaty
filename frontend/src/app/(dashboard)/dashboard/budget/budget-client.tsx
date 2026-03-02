@@ -366,7 +366,6 @@ export function BudgetClient() {
           ) : (
             <div className="flex h-[220px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-muted/10 text-center text-muted-foreground text-sm">
               <p>Aucun budget.</p>
-              <Button variant="outline" size="sm" onClick={() => setOpen(true)}>Créer un budget</Button>
             </div>
           )}
         </CardContent>

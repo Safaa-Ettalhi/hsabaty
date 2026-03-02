@@ -170,7 +170,7 @@ export function GoalsClient() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
             <CardTitle>Objectifs</CardTitle>
-            <CardDescription>Objectifs d'épargne et suivi de progression</CardDescription>
+            <CardDescription>Objectifs d&apos;épargne et suivi de progression</CardDescription>
           </div>
           <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ nom: "", montantCible: 0, dateLimite: "", type: "epargne", description: "" }) }}>
             <DialogTrigger asChild>
@@ -371,9 +371,6 @@ export function GoalsClient() {
           ) : (
             <div className="flex h-[220px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-muted/10 text-center text-muted-foreground text-sm">
               <p>Aucun objectif.</p>
-              <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-                Créer un objectif
-              </Button>
             </div>
           )}
         </CardContent>
