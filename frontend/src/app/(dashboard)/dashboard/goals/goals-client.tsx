@@ -179,11 +179,14 @@ export function GoalsClient() {
                 Créer un objectif
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-sm p-0 gap-0">
-              <DialogHeader className="p-4 pb-2">
-                <DialogTitle>Nouvel objectif</DialogTitle>
+            <DialogContent className="sm:max-w-[420px] p-5">
+              <DialogHeader className="pb-2">
+                <DialogTitle className="text-base">Nouvel objectif</DialogTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Fixez un montant, une échéance et un type d&apos;objectif.
+                </p>
               </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 px-4 pb-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-3">
                   <Field>
                     <FieldLabel className="text-xs">Nom</FieldLabel>
@@ -255,11 +258,14 @@ export function GoalsClient() {
             </DialogContent>
           </Dialog>
           <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-            <DialogContent className="max-w-sm p-0 gap-0">
-              <DialogHeader className="p-4 pb-2">
-                <DialogTitle>Modifier l&apos;objectif</DialogTitle>
+            <DialogContent className="sm:max-w-[420px] p-5">
+              <DialogHeader className="pb-2">
+                <DialogTitle className="text-base">Modifier l&apos;objectif</DialogTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Ajustez le montant cible, la date limite ou le type.
+                </p>
               </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 px-4 pb-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-3">
                   <Field>
                     <FieldLabel className="text-xs">Nom</FieldLabel>
@@ -406,17 +412,26 @@ export function GoalsClient() {
         </CardContent>
       </Card>
       <Dialog open={!!contributionObjectif} onOpenChange={(o) => !o && setContributionObjectif(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Ajouter une contribution</DialogTitle>
-            {contributionObjectif && (
-              <p className="text-muted-foreground text-sm">
-                {contributionObjectif.nom} · reste {((contributionObjectif.progression?.montantRestant) ?? (contributionObjectif.montantCible - contributionObjectif.montantActuel)).toFixed(0)} MAD
-              </p>
-            )}
-          </DialogHeader>
+        <DialogContent className="sm:max-w-[420px] p-5">
           {contributionObjectif && (
-            <>
+            <div className="flex flex-col gap-4">
+              <DialogHeader className="pb-1">
+                <DialogTitle className="text-base">Ajouter une contribution</DialogTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Alimentez progressivement votre objectif.
+                </p>
+              </DialogHeader>
+              <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                <p className="font-medium">{contributionObjectif.nom}</p>
+                <p className="mt-1 text-muted-foreground">
+                  Reste{" "}
+                  {(
+                    (contributionObjectif.progression?.montantRestant ??
+                      contributionObjectif.montantCible - contributionObjectif.montantActuel)
+                  ).toFixed(0)}{" "}
+                  MAD
+                </p>
+              </div>
               <Field>
                 <FieldLabel className="text-xs">Montant (MAD)</FieldLabel>
                 <Input
@@ -428,13 +443,26 @@ export function GoalsClient() {
                   onChange={(e) => setContributionMontant(e.target.value)}
                 />
               </Field>
-              <DialogFooter>
-                <Button variant="outline" size="sm" onClick={() => setContributionObjectif(null)}>Annuler</Button>
-                <Button size="sm" onClick={onContribution} disabled={contributing || !contributionMontant || Number(contributionMontant) <= 0}>
+              <DialogFooter className="mt-1 flex flex-row gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setContributionObjectif(null)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={onContribution}
+                  disabled={contributing || !contributionMontant || Number(contributionMontant) <= 0}
+                >
                   Ajouter
                 </Button>
               </DialogFooter>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
