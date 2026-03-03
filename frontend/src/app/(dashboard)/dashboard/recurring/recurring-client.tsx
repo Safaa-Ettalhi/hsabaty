@@ -163,11 +163,14 @@ export function RecurringClient() {
                   Créer
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-sm p-0 gap-0">
-                <DialogHeader className="p-4 pb-2">
-                  <DialogTitle>Nouvelle transaction récurrente</DialogTitle>
+              <DialogContent className="sm:max-w-[420px] p-5">
+                <DialogHeader className="pb-2">
+                  <DialogTitle className="text-base">Nouvelle transaction récurrente</DialogTitle>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Idéal pour vos abonnements ou dépenses répétitives.
+                  </p>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 px-4 pb-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-2">
                   <Field>
                     <FieldLabel className="text-xs">Description</FieldLabel>
                     <Input placeholder="Ex. Abonnement" className="h-8 text-sm" {...form.register("description")} />
@@ -218,11 +221,14 @@ export function RecurringClient() {
               </DialogContent>
             </Dialog>
             <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-              <DialogContent className="max-w-sm p-0 gap-0">
-                <DialogHeader className="p-4 pb-2">
-                  <DialogTitle>Modifier la récurrente</DialogTitle>
+              <DialogContent className="sm:max-w-[420px] p-5">
+                <DialogHeader className="pb-2">
+                  <DialogTitle className="text-base">Modifier la récurrente</DialogTitle>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Mettez à jour le montant, la fréquence ou la catégorie.
+                  </p>
                 </DialogHeader>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 px-4 pb-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-2">
                   <Field>
                     <FieldLabel className="text-xs">Description</FieldLabel>
                     <Input className="h-8 text-sm" {...form.register("description")} />
