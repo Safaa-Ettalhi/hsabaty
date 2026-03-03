@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
 
 import { useEffect, useState } from "react"
@@ -231,7 +233,7 @@ export function TransactionsClient() {
                 Ajouter
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[420px] p-5">
+            <DialogContent className="sm:max-w-105 p-5">
               <DialogHeader className="pb-2">
                 <DialogTitle className="text-base">
                   {editingId ? "Modifier la transaction" : "Nouvelle transaction"}
@@ -306,7 +308,7 @@ export function TransactionsClient() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Select value={type || "all"} onValueChange={(v) => setType(v === "all" ? "" : v)}>
-              <SelectTrigger className="h-8 w-[120px]"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectTrigger className="h-8 w-30"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous</SelectItem>
                 <SelectItem value="revenu">Revenu</SelectItem>
@@ -315,20 +317,20 @@ export function TransactionsClient() {
             </Select>
             <Input
               placeholder="Catégorie"
-              className="h-8 w-[120px] text-sm"
+              className="h-8 w-30 text-sm"
               value={categorie}
               onChange={(e) => setCategorie(e.target.value)}
             />
-            <Input type="date" className="h-8 w-[140px] text-sm" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} placeholder="Début" />
-            <Input type="date" className="h-8 w-[140px] text-sm" value={dateFin} onChange={(e) => setDateFin(e.target.value)} placeholder="Fin" />
+            <Input type="date" className="h-8 w-35 text-sm" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} placeholder="Début" />
+            <Input type="date" className="h-8 w-35 text-sm" value={dateFin} onChange={(e) => setDateFin(e.target.value)} placeholder="Fin" />
             <Input
               placeholder="Recherche"
-              className="h-8 w-[140px] text-sm"
+              className="h-8 w-35 text-sm"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
             />
             <Select value={sort} onValueChange={setSort}>
-              <SelectTrigger className="h-8 w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-32.5"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="date">Date</SelectItem>
                 <SelectItem value="montant">Montant</SelectItem>
@@ -357,7 +359,7 @@ export function TransactionsClient() {
             </Button>
           </div>
           {loading ? (
-            <Skeleton className="h-[300px] w-full rounded-lg" />
+            <Skeleton className="h-75 w-full rounded-lg" />
           ) : data?.transactions?.length ? (
             <>
               <Table>
@@ -369,7 +371,7 @@ export function TransactionsClient() {
                     <TableHead className="text-right">Montant</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead className="hidden md:table-cell">Tags</TableHead>
-                    <TableHead className="w-[90px]">Actions</TableHead>
+                    <TableHead className="w-22.5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -410,7 +412,7 @@ export function TransactionsClient() {
                 </div>
               </div>
               <Dialog open={!!transactionToDelete} onOpenChange={(o) => !o && setTransactionToDelete(null)}>
-                <DialogContent className="sm:max-w-[420px] p-5">
+                <DialogContent className="sm:max-w-105 p-5">
                   {transactionToDelete && (
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center gap-3">
@@ -458,7 +460,7 @@ export function TransactionsClient() {
               </Dialog>
             </>
           ) : (
-            <div className="bg-muted/50 flex h-[200px] items-center justify-center rounded-lg text-muted-foreground text-sm">
+            <div className="bg-muted/50 flex h-50 items-center justify-center rounded-lg text-muted-foreground text-sm">
               Aucune transaction
             </div>
           )}
