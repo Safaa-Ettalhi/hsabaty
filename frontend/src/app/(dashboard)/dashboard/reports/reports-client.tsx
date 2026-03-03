@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
 
 import { useEffect, useState } from "react"
@@ -65,6 +67,7 @@ export function ReportsClient() {
   const [loading, setLoading] = useState(true)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareEmail, setShareEmail] = useState("")
+  const [sharing, setSharing] = useState(false)
 
   const periodParams =
     reportType === "mensuel"
@@ -84,6 +87,7 @@ export function ReportsClient() {
     api
       .get(path)
       .then((res) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (res.succes && res.donnees) setData(res.donnees as any)
       })
       .finally(() => setLoading(false))
@@ -100,11 +104,23 @@ export function ReportsClient() {
   }
 
   async function handleShareEmail() {
+    const email = shareEmail.trim()
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      toast.error("Email invalide")
+      return
+    }
+    setSharing(true)
     const body: any =
       reportType === "mensuel"
-        ? { type: "mensuel", emailDestinataire: shareEmail, mois, annee }
-        : { type: "financier", emailDestinataire: shareEmail, dateDebut: dateDebut || new Date(annee, mois - 1, 1).toISOString().slice(0, 10), dateFin: dateFin || new Date(annee, mois, 0).toISOString().slice(0, 10) }
+        ? { type: "mensuel", emailDestinataire: email, mois, annee }
+        : {
+            type: "financier",
+            emailDestinataire: email,
+            dateDebut: dateDebut || new Date(annee, mois - 1, 1).toISOString().slice(0, 10),
+            dateFin: dateFin || new Date(annee, mois, 0).toISOString().slice(0, 10),
+          }
     const res = await api.post("/api/rapports/partager-email", body)
+    setSharing(false)
     if (res.succes) {
       toast.success("Rapport envoyé par email")
       setShareOpen(false)
@@ -112,7 +128,7 @@ export function ReportsClient() {
   }
 
   function renderContent() {
-    if (loading) return <Skeleton className="h-[200px] w-full rounded-lg" />
+    if (loading) return <Skeleton className="h-50 w-full rounded-lg" />
     if (!data) return <div className="text-muted-foreground text-sm">Aucune donnée</div>
     if (reportType === "mensuel" && "resume" in data) {
       const d = data as MensuelData
@@ -122,7 +138,7 @@ export function ReportsClient() {
             <p><span className="text-muted-foreground">Revenus</span> {d.resume.revenus.toFixed(0)} MAD</p>
             <p><span className="text-muted-foreground">Dépenses</span> {d.resume.depenses.toFixed(0)} MAD</p>
             <p><span className="text-muted-foreground">Épargne</span> {d.resume.epargne.toFixed(0)} MAD</p>
-            <p><span className="text-muted-foreground">Taux d'épargne</span> {d.resume.tauxEpargne.toFixed(1)} %</p>
+            <p><span className="text-muted-foreground">Taux d&apos;épargne</span> {d.resume.tauxEpargne.toFixed(1)} %</p>
           </div>
           {d.repartitionDepenses?.length ? (
             <ul className="space-y-1 text-sm">
@@ -179,7 +195,7 @@ export function ReportsClient() {
       return (
         <div className="space-y-2">
           <p><strong>Montant épargné</strong> {d.montantEpargne.toFixed(0)} MAD</p>
-          <p><strong>Taux d'épargne</strong> {d.tauxEpargne.toFixed(1)} %</p>
+          <p><strong>Taux d&apos;épargne</strong> {d.tauxEpargne.toFixed(1)} %</p>
         </div>
       )
     }
@@ -196,7 +212,7 @@ export function ReportsClient() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Select value={reportType} onValueChange={setReportType}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-45"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {REPORT_TYPES.map((t) => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -206,7 +222,7 @@ export function ReportsClient() {
             {reportType === "mensuel" ? (
               <>
                 <Select value={String(mois)} onValueChange={(v) => setMois(Number(v))}>
-                  <SelectTrigger className="w-[100px]"><SelectValue placeholder="Mois" /></SelectTrigger>
+                  <SelectTrigger className="w-25"><SelectValue placeholder="Mois" /></SelectTrigger>
                   <SelectContent>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
                       <SelectItem key={m} value={String(m)}>
@@ -215,12 +231,12 @@ export function ReportsClient() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Input type="number" className="w-[80px]" value={annee} onChange={(e) => setAnnee(Number(e.target.value))} min={2020} max={2100} />
+                <Input type="number" className="w-20" value={annee} onChange={(e) => setAnnee(Number(e.target.value))} min={2020} max={2100} />
               </>
             ) : (
               <>
-                <Input type="date" className="w-[140px]" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
-                <Input type="date" className="w-[140px]" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
+                <Input type="date" className="w-35" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
+                <Input type="date" className="w-35" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
               </>
             )}
             <Button variant="outline" size="sm" onClick={handleExportPdf}>Exporter PDF</Button>
@@ -230,18 +246,61 @@ export function ReportsClient() {
         <CardContent>{renderContent()}</CardContent>
       </Card>
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Partager le rapport par email</DialogTitle>
-          </DialogHeader>
-          <Field>
-            <FieldLabel>Email du destinataire</FieldLabel>
-            <Input type="email" placeholder="email@exemple.com" value={shareEmail} onChange={(e) => setShareEmail(e.target.value)} />
-          </Field>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setShareOpen(false)}>Annuler</Button>
-            <Button size="sm" onClick={handleShareEmail}>Envoyer</Button>
-          </DialogFooter>
+        <DialogContent className="sm:max-w-105 p-5">
+          <div className="flex flex-col gap-4">
+            <DialogHeader className="pb-1">
+              <DialogTitle className="text-base">Partager le rapport par email</DialogTitle>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Envoyez ce rapport à un collaborateur ou à vous-même.
+              </p>
+            </DialogHeader>
+            <div className="rounded-md border bg-muted/40 p-3 text-xs">
+              <p className="font-medium">
+                {REPORT_TYPES.find((t) => t.value === reportType)?.label ?? "Rapport"}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {reportType === "mensuel"
+                  ? new Date(annee, mois - 1, 1).toLocaleString("fr-FR", {
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : `${new Date(
+                      dateDebut || new Date(annee, mois - 1, 1).toISOString().slice(0, 10)
+                    ).toLocaleDateString("fr-FR")} → ${new Date(
+                      dateFin || new Date(annee, mois, 0).toISOString().slice(0, 10)
+                    ).toLocaleDateString("fr-FR")}`}
+              </p>
+            </div>
+            <Field>
+              <FieldLabel className="text-xs">Email du destinataire</FieldLabel>
+              <Input
+                type="email"
+                placeholder="email@exemple.com"
+                value={shareEmail}
+                onChange={(e) => setShareEmail(e.target.value)}
+              />
+            </Field>
+            <DialogFooter className="mt-1 flex flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => setShareOpen(false)}
+                disabled={sharing}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1"
+                onClick={handleShareEmail}
+                disabled={sharing || !shareEmail.trim()}
+              >
+                {sharing ? "Envoi en cours…" : "Envoyer"}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
