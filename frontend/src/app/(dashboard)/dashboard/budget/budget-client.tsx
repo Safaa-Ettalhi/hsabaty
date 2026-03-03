@@ -189,11 +189,14 @@ export function BudgetClient() {
                 Créer un budget
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-sm p-0 gap-0">
-              <DialogHeader className="p-4 pb-2">
-                <DialogTitle>Nouveau budget</DialogTitle>
+            <DialogContent className="sm:max-w-[420px] p-5">
+              <DialogHeader className="pb-2">
+                <DialogTitle className="text-base">Nouveau budget</DialogTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Définissez un montant, une période et une catégorie optionnelle.
+                </p>
               </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 px-4 pb-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-3">
                   <Field>
                     <FieldLabel className="text-xs">Nom</FieldLabel>
@@ -235,11 +238,14 @@ export function BudgetClient() {
             </DialogContent>
           </Dialog>
           <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-            <DialogContent className="max-w-sm p-0 gap-0">
-              <DialogHeader className="p-4 pb-2">
-                <DialogTitle>Modifier le budget</DialogTitle>
+            <DialogContent className="sm:max-w-[420px] p-5">
+              <DialogHeader className="pb-2">
+                <DialogTitle className="text-base">Modifier le budget</DialogTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Ajustez le nom, le montant ou la période si nécessaire.
+                </p>
               </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 px-4 pb-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-3">
                   <Field>
                     <FieldLabel className="text-xs">Nom</FieldLabel>
