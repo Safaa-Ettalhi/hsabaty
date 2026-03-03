@@ -113,49 +113,197 @@ export class ExportService {
       });
       doc.on('error', reject);
 
-      doc.fontSize(20).text(titre, { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(12).text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, { align: 'center' });
-      doc.moveDown(2);
+      const primary = '#533AFD';
+      const muted = '#6B7280';
+      const dark = '#111827';
+      const margin = 50;
 
-      doc.fontSize(14).text('Résumé', { underline: true });
-      doc.moveDown();
+      const headerY = margin;
 
-      if (donnees.resume) {
-        doc.fontSize(12);
-        doc.text(`Revenus: ${donnees.resume.revenus?.toFixed(2) || 0} MAD`);
-        doc.text(`Dépenses: ${donnees.resume.depenses?.toFixed(2) || 0} MAD`);
-        doc.text(`Épargne: ${donnees.resume.epargne?.toFixed(2) || 0} MAD`);
-        doc.text(`Taux d'épargne: ${donnees.resume.tauxEpargne?.toFixed(2) || 0}%`);
-        doc.moveDown();
-      }
+      doc
+        .fontSize(18)
+        .fillColor(dark)
+        .text(titre, margin, headerY);
+      doc
+        .fontSize(10)
+        .fillColor(muted)
+        .text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, margin, headerY + 22);
 
-      if (donnees.repartitionDepenses) {
-        doc.fontSize(14).text('Répartition des Dépenses', { underline: true });
-        doc.moveDown();
-        doc.fontSize(12);
-        donnees.repartitionDepenses.forEach((item: any) => {
-          doc.text(`${item.categorie}: ${item.montant.toFixed(2)} MAD (${item.pourcentage.toFixed(2)}%)`);
+      doc.fillColor(dark);
+
+      const sepY = headerY + 50;
+      doc
+        .moveTo(margin, sepY)
+        .lineTo(doc.page.width - margin, sepY)
+        .strokeColor('#E5E7EB')
+        .stroke();
+      doc.strokeColor(dark);
+      doc.y = sepY + 20;
+
+      // Tableau Résumé
+      doc.fontSize(13).fillColor(primary).text('Résumé', margin, doc.y);
+      doc.fillColor(dark);
+      doc.moveDown(0.5);
+
+      const tableTop = doc.y;
+      const col1Width = 160;
+      const col2Width = 140;
+      const rowHeight = 18;
+      const col1X = margin;
+      const col2X = margin + col1Width;
+
+      // En-têtes du tableau
+      doc
+        .rect(col1X, tableTop, col1Width, rowHeight)
+        .fill('#F3F4F6')
+        .rect(col2X, tableTop, col2Width, rowHeight)
+        .fill('#F3F4F6');
+      doc
+        .fillColor(dark)
+        .fontSize(10)
+        .text('Indicateur', col1X + 6, tableTop + 4)
+        .text('Valeur', col2X + 6, tableTop + 4);
+
+      let currentY = tableTop + rowHeight;
+      const resume = donnees.resume || {};
+      const lignes = [
+        ['Revenus', `${(resume.revenus ?? 0).toFixed(2)} MAD`],
+        ['Dépenses', `${(resume.depenses ?? 0).toFixed(2)} MAD`],
+        ['Épargne', `${(resume.epargne ?? 0).toFixed(2)} MAD`],
+        ["Taux d'épargne", `${(resume.tauxEpargne ?? 0).toFixed(2)} %`],
+      ];
+
+      lignes.forEach(([label, value]) => {
+        doc
+          .rect(col1X, currentY, col1Width + col2Width, rowHeight)
+          .strokeColor('#E5E7EB')
+          .stroke();
+        doc
+          .fillColor(dark)
+          .fontSize(10)
+          .text(label, col1X + 6, currentY + 4)
+          .text(value, col2X + 6, currentY + 4);
+        currentY += rowHeight;
+      });
+
+      doc.y = currentY + 16;
+
+      if (donnees.repartitionDepenses && donnees.repartitionDepenses.length) {
+        doc.fontSize(13).fillColor(primary).text('Répartition des dépenses', margin, doc.y);
+        doc.fillColor(dark);
+        doc.moveDown(0.5);
+
+        const reps = donnees.repartitionDepenses as Array<{
+          categorie: string;
+          montant: number;
+          pourcentage?: number;
+        }>;
+        const rows = reps.slice(0, 10);
+
+        const tableTop2 = doc.y;
+        const totalWidth2 = doc.page.width - margin * 2;
+        const colCatWidth = totalWidth2 * 0.5;
+        const colAmountWidth = totalWidth2 * 0.25;
+        const colPctWidth = totalWidth2 * 0.25;
+        const rowH2 = 18;
+
+        doc
+          .rect(margin, tableTop2, colCatWidth, rowH2)
+          .fill('#F3F4F6')
+          .rect(margin + colCatWidth, tableTop2, colAmountWidth, rowH2)
+          .fill('#F3F4F6')
+          .rect(margin + colCatWidth + colAmountWidth, tableTop2, colPctWidth, rowH2)
+          .fill('#F3F4F6');
+        doc
+          .fillColor(dark)
+          .fontSize(10)
+          .text('Catégorie', margin + 6, tableTop2 + 4)
+          .text('Montant', margin + colCatWidth + 6, tableTop2 + 4)
+          .text('Pourcentage', margin + colCatWidth + colAmountWidth + 6, tableTop2 + 4);
+
+        let y2 = tableTop2 + rowH2;
+        rows.forEach((item) => {
+          doc
+            .rect(margin, y2, totalWidth2, rowH2)
+            .strokeColor('#E5E7EB')
+            .stroke();
+          doc
+            .fillColor(dark)
+            .fontSize(10)
+            .text(item.categorie, margin + 6, y2 + 4, { width: colCatWidth - 12 })
+            .text(
+              `${item.montant.toFixed(0)} MAD`,
+              margin + colCatWidth + 6,
+              y2 + 4,
+              { width: colAmountWidth - 12 }
+            )
+            .text(
+              `${(item.pourcentage ?? 0).toFixed(1)} %`,
+              margin + colCatWidth + colAmountWidth + 6,
+              y2 + 4,
+              { width: colPctWidth - 12 }
+            );
+          y2 += rowH2;
         });
-        doc.moveDown();
+
+        doc.y = y2 + 16;
       }
 
-      if (donnees.topDepenses) {
-        doc.fontSize(14).text('Top Dépenses', { underline: true });
-        doc.moveDown();
-        doc.fontSize(12);
-        donnees.topDepenses.forEach((item: any, index: number) => {
-          doc.text(`${index + 1}. ${item.description}: ${item.montant.toFixed(2)} MAD`);
+      // Top dépenses 
+      if (donnees.topDepenses && donnees.topDepenses.length) {
+        doc.fontSize(13).fillColor(primary).text('Top dépenses', margin, doc.y);
+        doc.fillColor(dark);
+        doc.moveDown(0.5);
+
+        const topDep = (donnees.topDepenses as any[]).slice(0, 10);
+        const tableTop3 = doc.y;
+        const totalWidth3 = doc.page.width - margin * 2;
+        const colRankWidth = 30;
+        const colAmountWidth = 120;
+        const colDescWidth = totalWidth3 - colRankWidth - colAmountWidth;
+        const rowH3 = 18;
+
+        doc
+          .rect(margin, tableTop3, colRankWidth, rowH3)
+          .fill('#F3F4F6')
+          .rect(margin + colRankWidth, tableTop3, colDescWidth, rowH3)
+          .fill('#F3F4F6')
+          .rect(margin + colRankWidth + colDescWidth, tableTop3, colAmountWidth, rowH3)
+          .fill('#F3F4F6');
+        doc
+          .fillColor(dark)
+          .fontSize(10)
+          .text('#', margin + 6, tableTop3 + 4)
+          .text('Description', margin + colRankWidth + 6, tableTop3 + 4)
+          .text('Montant', margin + colRankWidth + colDescWidth + 6, tableTop3 + 4);
+
+        let y3 = tableTop3 + rowH3;
+        topDep.forEach((item, index) => {
+          doc
+            .rect(margin, y3, totalWidth3, rowH3)
+            .strokeColor('#E5E7EB')
+            .stroke();
+          doc
+            .fillColor(dark)
+            .fontSize(10)
+            .text(String(index + 1), margin + 6, y3 + 4, { width: colRankWidth - 12 })
+            .text(
+              item.description,
+              margin + colRankWidth + 6,
+              y3 + 4,
+              { width: colDescWidth - 12 }
+            )
+            .text(
+              `${item.montant.toFixed(2)} MAD`,
+              margin + colRankWidth + colDescWidth + 6,
+              y3 + 4,
+              { width: colAmountWidth - 12 }
+            );
+          y3 += rowH3;
         });
-      }
 
-      doc.fontSize(10);
-      doc.text(
-        `Hssabaty - Rapport financier`,
-        doc.page.width / 2,
-        doc.page.height - 50,
-        { align: 'center' }
-      );
+        doc.y = y3 + 16;
+      }
 
       doc.end();
     });
