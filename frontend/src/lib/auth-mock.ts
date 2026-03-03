@@ -2,6 +2,8 @@ const AUTH_TOKEN_KEY = "hssabaty_token"
 const REMEMBER_ME_KEY = "hssabaty_remember_me"
 const USER_KEY = "hssabaty_user"
 
+export const USER_UPDATED_EVENT = "hssabaty:user-updated" as const
+
 export type MockUser = {
   id: string
   name: string
@@ -49,6 +51,22 @@ export function getStoredUser(): MockUser | null {
   const fromLocal = localStorage.getItem(USER_KEY)
   if (fromLocal) return JSON.parse(fromLocal) as MockUser
   return null
+}
+
+export function updateStoredUser(patch: Partial<MockUser>): void {
+  if (typeof window === "undefined") return
+  const current = getStoredUser()
+  if (!current) return
+  const updated: MockUser = { ...current, ...patch }
+  sessionStorage.setItem(USER_KEY, JSON.stringify(updated))
+  if (localStorage.getItem(USER_KEY)) {
+    localStorage.setItem(USER_KEY, JSON.stringify(updated))
+  }
+  window.dispatchEvent(
+    new CustomEvent<MockUser>(USER_UPDATED_EVENT, {
+      detail: updated,
+    })
+  )
 }
 
 export function isAuthenticated(): boolean {
