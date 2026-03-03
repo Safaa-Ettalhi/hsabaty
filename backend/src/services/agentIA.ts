@@ -63,8 +63,25 @@ export class ServiceAgentIA {
     const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
     (contexte as any).langue = langue;
     const intentionInitiale = this.detecterIntention(messageUtilisateur);
-    if (intentionInitiale && (intentionInitiale.type === 'creer_budget' || intentionInitiale.type === 'creer_objectif' || intentionInitiale.type === 'creer_transaction_recurrente' || intentionInitiale.type === 'creer_investissement' || intentionInitiale.type === 'ajouter_transaction')) {
-      const actionDirecte = await this.executerActionDetectee(utilisateurId, intentionInitiale);
+    // Exécution directe pour les intentions de création (sans passer par le modèle)
+    if (intentionInitiale) {
+      let actionDirecte: any = null;
+      try {
+        if (intentionInitiale.type === 'creer_budget' && intentionInitiale.parametres) {
+          actionDirecte = await this.executerAction(utilisateurId, 'creer_budget', intentionInitiale.parametres);
+        } else if (intentionInitiale.type === 'creer_objectif' && intentionInitiale.parametres) {
+          actionDirecte = await this.executerAction(utilisateurId, 'creer_objectif', intentionInitiale.parametres);
+        } else if (intentionInitiale.type === 'creer_transaction_recurrente' && intentionInitiale.parametres) {
+          actionDirecte = await this.executerAction(utilisateurId, 'creer_transaction_recurrente', intentionInitiale.parametres);
+        } else if (intentionInitiale.type === 'creer_investissement' && intentionInitiale.parametres) {
+          actionDirecte = await this.executerAction(utilisateurId, 'creer_investissement', intentionInitiale.parametres);
+        } else if (intentionInitiale.type === 'ajouter_transaction' && intentionInitiale.parametres) {
+          actionDirecte = await this.executerAction(utilisateurId, 'ajouter_transaction', intentionInitiale.parametres);
+        }
+      } catch (e) {
+        console.error('[ServiceAgentIA] Erreur lors de l\'exécution directe de l\'intention:', e);
+      }
+
       if (actionDirecte) {
         const reponseDirecte = this.genererReponseDepuisAction(actionDirecte, contexte);
         await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseDirecte, actionDirecte);
@@ -1132,14 +1149,21 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
     if (messageLower.match(/(mes objectifs|montre.*mes objectifs|affiche.*mes objectifs|liste.*mes objectifs|voir.*mes objectifs|consulter.*mes objectifs|montre-moi.*objectifs|affiche-moi.*objectifs|liste-moi.*objectifs|voir.*objectifs|objectifs|progression.*objectif|suivre.*objectif|suivi.*objectif|où en suis-je.*objectif)/i)) {
       return { type: 'gerer_objectif', message: messageUtilisateur };
     }
-    if (messageLower.match(/(fixe un budget|fixer un budget|crée un budget|créer un budget|budget de|budget pour|nouveau budget|set a budget|set .*budget|create a budget|budget of|budget for|monthly budget)/i)) {
+    // Création de budget via langage naturel (FR + EN + AR simple)
+    if (
+      messageLower.match(/(fixe un budget|fixer un budget|crée un budget|créer un budget|budget de|budget pour|nouveau budget|set a budget|set .*budget|create a budget|budget of|budget for|monthly budget)/i) ||
+      /(ميزانية|بودجي|بوجي)/i.test(messageUtilisateur)
+    ) {
       return this.extraireInfosBudget(messageUtilisateur);
     }
     if (messageLower.match(/(mes budgets|montre.*mes budgets|affiche.*mes budgets|liste.*mes budgets|voir.*mes budgets|consulter.*mes budgets|my budgets|show my budgets|list my budgets|see my budgets)/i)) {
       return { type: 'gerer_budget', message: messageUtilisateur };
     }
 
-    if (messageLower.match(/(je veux économiser|objectif|épargner|économiser|pour une|pour un|en \d+ mois|en \d+ an|nouvel objectif|i want to save|saving goal|save \d+)/i)) {
+    if (
+      messageLower.match(/(je veux économiser|objectif|épargner|économiser|pour une|pour un|en \d+ mois|en \d+ an|nouvel objectif|i want to save|saving goal|save \d+)/i) ||
+      /(بغيت نوفّر|غيت نوفّر|بغيت نوفر|نوفّر|نوفر|بغيت ندخر|ادخر)/i.test(messageUtilisateur)
+    ) {
       return this.extraireInfosObjectif(messageUtilisateur);
     }
 
@@ -1151,7 +1175,7 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
       return { type: 'supprimer_transaction', message: messageUtilisateur };
     }
 
-    if (messageLower.match(/(statistiques|stats|résumé|bilan|solde|revenus|dépenses|épargne|taux|pourcentage|répartition)/i)) {
+    if (messageLower.match(/(statistiques|stats|résumé|bilan|solde|revenus|dépenses|épargne|taux|pourcentage|répartition|summary|overview|balance|how much did i spend)/i)) {
       return { type: 'statistiques', message: messageUtilisateur };
     }
 
@@ -1164,7 +1188,11 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
       return { type: 'conseils', message: messageUtilisateur };
     }
 
-    if (messageLower.match(/(analyse|habitudes|tendances|comportement|où|où est-ce|dépense le plus|catégorie|répartition)/i)) {
+    if (
+      messageLower.match(/(analyse|habitudes|tendances|comportement|où|où est-ce|dépense le plus|catégorie|répartition)/i) ||
+      messageLower.match(/(where do i spend|where.*spend.*most|spend the most|biggest expenses|top categories)/i) ||
+      /(فين كنتصرف|فين نصرف|فين كتصرف|أكثر.*مصاريف|أكثر مصاريف)/i.test(messageUtilisateur)
+    ) {
       return { type: 'analyser_habitudes', message: messageUtilisateur };
     }
 
@@ -1298,6 +1326,16 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
       date.setDate(date.getDate() - 1);
     } else if (messageLower.includes('aujourd\'hui') || messageLower.includes('aujourd hui')) {
       date = new Date();
+    }
+    else if (messageLower.includes('yesterday')) {
+      date.setDate(date.getDate() - 1);
+    } else if (messageLower.includes('today')) {
+      date = new Date();
+    }
+    else if (message.includes('البارح') || message.includes('امس') || message.includes('أمس')) {
+      date.setDate(date.getDate() - 1);
+    } else if (message.includes('اليوم')) {
+      date = new Date();
     } else {
       const dateMatch = message.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
       if (dateMatch) {
@@ -1336,10 +1374,12 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
     else if (messageLower.match(/(transport|carburant|taxi|bus|tram|نقل|طاكسي|ترانسبورت)/i)) categorie = 'Transport';
     else if (messageLower.match(/(logement|loyer|rent|maison|appartement|كراء|السكن)/i)) categorie = 'Logement';
 
-    // Déterminer la période
     let periode = 'mensuel';
-    if (messageLower.match(/(trimestriel|trimestre|quarter)/i)) periode = 'trimestriel';
-    else if (messageLower.match(/(annuel|année|an|year)/i)) periode = 'annuel';
+    if (messageLower.match(/(trimestriel|trimestre|quarter)/i)) {
+      periode = 'trimestriel';
+    } else if (messageLower.match(/(annuel|année|\ban\b|\byear\b)/i)) {
+      periode = 'annuel';
+    }
 
     // Extraire le nom
     const nomMatch =
@@ -1370,13 +1410,12 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montantCible = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
 
-    // Extraire la durée (FR / EN / AR simple)
-    const dureeMatch = message.match(/(\d+)\s*(mois|an|année|ans|months?|years?)/i);
+    const dureeMatch = message.match(/(\d+)\s*(mois|an|année|ans|months?|month|years?|year)/i);
     let dateLimite = new Date();
     if (dureeMatch) {
       const nombre = parseInt(dureeMatch[1]);
       const unite = dureeMatch[2].toLowerCase();
-      if (unite.includes('mois')) {
+      if (unite.startsWith('mois') || unite.startsWith('month')) {
         dateLimite.setMonth(dateLimite.getMonth() + nombre);
       } else {
         dateLimite.setFullYear(dateLimite.getFullYear() + nombre);
@@ -1472,7 +1511,6 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
   private extraireInfosInvestissement(message: string): any {
     const messageLower = message.toLowerCase();
     
-    // Extraire le montant investi
     const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montantInvesti = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
@@ -1534,14 +1572,18 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
     // Extraire la catégorie
     let categorie = 'Autres';
     if (messageLower.match(/(netflix|spotify|disney|abonnement|streaming)/i)) categorie = 'Divertissement';
-    else if (messageLower.match(/(loyer|logement)/i)) categorie = 'Logement';
-    else if (messageLower.match(/(salaire|revenu|paie)/i)) categorie = 'Salaire';
+    else if (messageLower.match(/(loyer|logement|rent)/i)) categorie = 'Logement';
+    else if (messageLower.match(/(salaire|revenu|paie|salary|income)/i)) categorie = 'Salaire';
     else if (messageLower.match(/(électricité|eau|gaz|internet|téléphone)/i)) categorie = 'Logement';
     else if (messageLower.match(/(gym|salle de sport|fitness)/i)) categorie = 'Santé';
+    if (/(الكراء|لكراء|الايجار|ايجار|الاجار|الاجر|كراء|إيجار)/i.test(message)) {
+      categorie = 'Logement';
+    }
 
     // Extraire la description
-    const descMatch = message.match(/(netflix|spotify|disney|loyer|salaire|électricité|eau|gaz|internet|téléphone|gym|salle de sport)/i) ||
-                      message.match(/(?:abonnement|paiement)\s+([^0-9]+?)(?:\s+de|\s+pour)/i);
+    const descMatch =
+      message.match(/(netflix|spotify|disney|loyer|salaire|électricité|eau|gaz|internet|téléphone|gym|salle de sport|rent|الكراء|كراء|إيجار)/i) ||
+      message.match(/(?:abonnement|paiement)\s+([^0-9]+?)(?:\s+de|\s+pour)/i);
     const description = descMatch ? descMatch[1] || descMatch[0] : 'Transaction récurrente';
 
     // Extraire le jour du mois si mentionné
