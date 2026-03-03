@@ -42,6 +42,7 @@ const transactionFormSchema = z.object({
   montant: z.number().positive("Montant > 0").finite(),
   type: z.enum(["revenu", "depense"]),
   categorie: z.string().min(1, "Requis").max(100).trim(),
+  sousCategorie: z.string().max(100).trim().optional(),
   description: z.string().min(1, "Requis").max(500).trim(),
   tagsStr: z.string().max(300).optional(),
 })
@@ -53,6 +54,7 @@ type Transaction = {
   date: string
   description: string
   categorie: string
+  sousCategorie?: string
   montant: number
   type: string
   tags?: string[]
@@ -106,6 +108,7 @@ export function TransactionsClient() {
       montant: 0,
       type: "depense",
       categorie: "",
+      sousCategorie: "",
       description: "",
       tagsStr: "",
     },
@@ -131,6 +134,7 @@ export function TransactionsClient() {
         montant: dataForm.montant,
         type: dataForm.type,
         categorie: dataForm.categorie,
+        sousCategorie: dataForm.sousCategorie ?? "",
         description: dataForm.description,
         ...(tags.length ? { tags } : {}),
       })
@@ -147,13 +151,22 @@ export function TransactionsClient() {
         montant: dataForm.montant,
         type: dataForm.type,
         categorie: dataForm.categorie,
+        ...(dataForm.sousCategorie ? { sousCategorie: dataForm.sousCategorie } : {}),
         description: dataForm.description,
         ...(tags.length ? { tags } : {}),
       })
       if (res.succes) {
         toast.success("Transaction créée")
         setOpenForm(false)
-        form.reset({ date: new Date().toISOString().slice(0, 10), montant: 0, type: "depense", categorie: "", description: "", tagsStr: "" })
+        form.reset({
+          date: new Date().toISOString().slice(0, 10),
+          montant: 0,
+          type: "depense",
+          categorie: "",
+          sousCategorie: "",
+          description: "",
+          tagsStr: "",
+        })
         refetch()
       } else toast.error(res.message ?? "Erreur")
     }
@@ -175,6 +188,7 @@ export function TransactionsClient() {
       montant: t.montant,
       type: t.type as "revenu" | "depense",
       categorie: t.categorie,
+      sousCategorie: (t as any).sousCategorie ?? "",
       description: t.description,
       tagsStr: t.tags?.length ? t.tags.join(", ") : "",
     })
@@ -188,6 +202,7 @@ export function TransactionsClient() {
       montant: 0,
       type: "depense",
       categorie: "",
+      sousCategorie: "",
       description: "",
     })
     setOpenForm(true)
@@ -256,8 +271,20 @@ export function TransactionsClient() {
                 </Field>
                 <Field>
                   <FieldLabel className="text-xs">Catégorie</FieldLabel>
-                  <Input placeholder="Ex. Alimentation" className="h-8 text-sm" {...form.register("categorie")} />
+                  <Input
+                    placeholder="Ex. Alimentation"
+                    className="h-8 text-sm"
+                    {...form.register("categorie")}
+                  />
                   <FieldError errors={[form.formState.errors.categorie]} />
+                </Field>
+                <Field>
+                  <FieldLabel className="text-xs">Sous-catégorie (optionnel)</FieldLabel>
+                  <Input
+                    placeholder="Ex. Restaurant, Supermarché"
+                    className="h-8 text-sm"
+                    {...form.register("sousCategorie")}
+                  />
                 </Field>
                 <Field>
                   <FieldLabel className="text-xs">Description</FieldLabel>
