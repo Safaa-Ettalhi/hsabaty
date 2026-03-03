@@ -8,6 +8,7 @@ import { z } from "zod"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { logoutApi } from "@/lib/auth"
+import { updateStoredUser } from "@/lib/auth-mock"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
@@ -116,7 +117,13 @@ export function SettingsClient() {
     setSaving(false)
     if (res.succes) {
       toast.success("Paramètres enregistrés")
-      if (res.donnees?.utilisateur) setUser(res.donnees.utilisateur)
+      if (res.donnees?.utilisateur) {
+        const u = res.donnees.utilisateur
+        setUser(u)
+        const fullName = [u.nom, u.prenom].filter(Boolean).join(" ")
+        updateStoredUser({ name: fullName || u.email })
+        router.refresh()
+      }
     } else toast.error(res.message ?? "Erreur")
   }
 
