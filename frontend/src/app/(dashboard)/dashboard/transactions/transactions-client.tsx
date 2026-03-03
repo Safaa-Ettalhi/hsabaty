@@ -216,11 +216,16 @@ export function TransactionsClient() {
                 Ajouter
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-sm p-0 gap-0">
-              <DialogHeader className="p-4 pb-2">
-                <DialogTitle>{editingId ? "Modifier la transaction" : "Nouvelle transaction"}</DialogTitle>
+            <DialogContent className="sm:max-w-[420px] p-5">
+              <DialogHeader className="pb-2">
+                <DialogTitle className="text-base">
+                  {editingId ? "Modifier la transaction" : "Nouvelle transaction"}
+                </DialogTitle>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Date, montant, type, catégorie et description.
+                </p>
               </DialogHeader>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 px-4 pb-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-3">
                   <Field>
                     <FieldLabel className="text-xs">Date</FieldLabel>
