@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client"
 
 import Link from "next/link"
@@ -27,7 +28,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { getStoredUser } from "@/lib/auth-mock"
+import { getStoredUser, USER_UPDATED_EVENT, type MockUser } from "@/lib/auth-mock"
 import { Logo } from "@/components/logo"
 
 const navMain = [
@@ -57,6 +58,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       email: u?.email ?? "utilisateur@exemple.com",
       avatar: "",
     })
+    if (typeof window === "undefined") return
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<MockUser>).detail
+      if (!detail) return
+      setUser({
+        name: detail.name ?? "Utilisateur",
+        email: detail.email ?? "utilisateur@exemple.com",
+        avatar: "",
+      })
+    }
+    window.addEventListener(USER_UPDATED_EVENT, handler)
+    return () => window.removeEventListener(USER_UPDATED_EVENT, handler)
   }, [])
 
   const mockUser = {

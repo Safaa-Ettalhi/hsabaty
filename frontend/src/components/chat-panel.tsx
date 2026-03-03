@@ -19,7 +19,7 @@ import {
   IconCoin,
   IconFileText,
 } from "@tabler/icons-react"
-import { getStoredUser, getStoredToken } from "@/lib/auth-mock"
+import { getStoredUser, getStoredToken, USER_UPDATED_EVENT, type MockUser } from "@/lib/auth-mock"
 import { api, getApiUrl } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -48,8 +48,18 @@ export function ChatPanel() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const u = getStoredUser()
-    setUserName(u?.name?.split(" ")[0] ?? "vous")
+    const applyUser = (u: MockUser | null) => {
+      setUserName(u?.name?.split(" ")[0] ?? "vous")
+    }
+    applyUser(getStoredUser())
+    if (typeof window === "undefined") return
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<MockUser>).detail
+      if (!detail) return
+      applyUser(detail)
+    }
+    window.addEventListener(USER_UPDATED_EVENT, handler)
+    return () => window.removeEventListener(USER_UPDATED_EVENT, handler)
   }, [])
 
   useEffect(() => {
