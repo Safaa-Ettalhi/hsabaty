@@ -33,13 +33,16 @@ export class ExportService {
     });
 
     const donnees = transactions.map(t => ({
-      date: t.date.toISOString().split('T')[0],
+      date: new Date(t.date).toLocaleDateString('fr-FR'),
       description: t.description,
-      categorie: t.categorie,
-      sousCategorie: t.sousCategorie || '',
+      categorie: t.categorie || 'sans',
+      sousCategorie: t.sousCategorie || 'sans',
       montant: t.montant,
-      type: t.type,
-      tags: t.tags.join(', ')
+      type: t.type === 'depense' ? 'Dépense' : 'Revenu',
+      tags:
+        Array.isArray(t.tags) && t.tags.length
+          ? t.tags.join(', ')
+          : 'sans'
     }));
 
     await csvWriter.writeRecords(donnees);
@@ -72,17 +75,22 @@ export class ExportService {
 
     transactions.forEach(transaction => {
       worksheet.addRow({
-        date: transaction.date.toISOString().split('T')[0],
+        date: new Date(transaction.date),
         description: transaction.description,
-        categorie: transaction.categorie,
-        sousCategorie: transaction.sousCategorie || '',
+        categorie: transaction.categorie || 'sans',
+        sousCategorie: transaction.sousCategorie || 'sans',
         montant: transaction.montant,
-        type: transaction.type,
-        tags: transaction.tags.join(', ')
+        type: transaction.type === 'depense' ? 'Dépense' : 'Revenu',
+        tags:
+          Array.isArray(transaction.tags) && transaction.tags.length
+            ? transaction.tags.join(', ')
+            : 'sans'
       });
     });
 
+    worksheet.getColumn('date').numFmt = 'dd/mm/yyyy';
     worksheet.getColumn('montant').numFmt = '#,##0.00';
+    worksheet.getColumn('montant').alignment = { horizontal: 'right' };
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
