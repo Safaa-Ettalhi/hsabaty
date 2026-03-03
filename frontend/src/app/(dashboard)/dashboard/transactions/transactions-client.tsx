@@ -368,7 +368,7 @@ export function TransactionsClient() {
                     <TableHead>Date</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Catégorie</TableHead>
-                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead >Montant</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead className="hidden md:table-cell">Tags</TableHead>
                     <TableHead className="w-22.5">Actions</TableHead>
@@ -382,7 +382,7 @@ export function TransactionsClient() {
                       </TableCell>
                       <TableCell>{t.description}</TableCell>
                       <TableCell>{t.categorie}</TableCell>
-                      <TableCell className={`text-right tabular-nums ${t.type === "depense" ? "text-destructive" : "text-green-600 dark:text-green-400"}`}>
+                      <TableCell className={` tabular-nums ${t.type === "depense" ? "text-destructive" : "text-green-600 dark:text-green-400"}`}>
                         {t.type === "depense" ? "-" : "+"}
                         {t.montant.toFixed(2)} MAD
                       </TableCell>
