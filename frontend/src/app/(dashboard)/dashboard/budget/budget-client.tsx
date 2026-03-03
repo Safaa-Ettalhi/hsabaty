@@ -281,18 +281,49 @@ export function BudgetClient() {
             </DialogContent>
           </Dialog>
           <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Supprimer ce budget ?</DialogTitle>
-              </DialogHeader>
+            <DialogContent className="sm:max-w-[420px] p-5">
               {toDelete && (
-                <>
-                  <p className="text-muted-foreground text-sm">{toDelete.nom} · {toDelete.montant} MAD ({toDelete.periode}). Le suivi des dépenses associées ne sera plus affiché ici.</p>
-                  <DialogFooter>
-                    <Button variant="outline" size="sm" onClick={() => setToDelete(null)}>Annuler</Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(toDelete)}>Supprimer</Button>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                      <Trash2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-base">Supprimer ce budget ?</DialogTitle>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Le budget et son suivi seront retirés de cette page. Les transactions
+                        existantes resteront inchangées.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                    <p className="font-medium">{toDelete.nom}</p>
+                    <p className="mt-1">
+                      {toDelete.montant} MAD · {toDelete.periode}
+                      {toDelete.categorie ? <> · {toDelete.categorie}</> : null}
+                    </p>
+                  </div>
+                  <DialogFooter className="mt-1 flex flex-row gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setToDelete(null)}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleDelete(toDelete)}
+                    >
+                      Supprimer définitivement
+                    </Button>
                   </DialogFooter>
-                </>
+                </div>
               )}
             </DialogContent>
           </Dialog>

@@ -308,20 +308,50 @@ export function GoalsClient() {
             </DialogContent>
           </Dialog>
           <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-            <DialogContent className="max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Supprimer cet objectif ?</DialogTitle>
-              </DialogHeader>
+            <DialogContent className="sm:max-w-[420px] p-5">
               {toDelete && (
-                <>
-                  <p className="text-muted-foreground text-sm">
-                    {toDelete.nom} · {toDelete.montantActuel} / {toDelete.montantCible} MAD. Les contributions enregistrées seront perdues.
-                  </p>
-                  <DialogFooter>
-                    <Button variant="outline" size="sm" onClick={() => setToDelete(null)}>Annuler</Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(toDelete)}>Supprimer</Button>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                      <Trash2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-base">Supprimer cet objectif ?</DialogTitle>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        L&apos;objectif et toutes ses contributions seront définitivement supprimés.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                    <p className="font-medium">{toDelete.nom}</p>
+                    <p className="mt-1">
+                      {toDelete.montantActuel} / {toDelete.montantCible} MAD
+                    </p>
+                    <p className="mt-0.5 text-muted-foreground">
+                      Limite {new Date(toDelete.dateLimite).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                  <DialogFooter className="mt-1 flex flex-row gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setToDelete(null)}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleDelete(toDelete)}
+                    >
+                      Supprimer définitivement
+                    </Button>
                   </DialogFooter>
-                </>
+                </div>
               )}
             </DialogContent>
           </Dialog>

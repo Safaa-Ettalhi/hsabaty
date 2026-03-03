@@ -273,18 +273,50 @@ export function RecurringClient() {
               </DialogContent>
             </Dialog>
             <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-              <DialogContent className="max-w-sm">
-                <DialogHeader>
-                  <DialogTitle>Supprimer cette récurrente ?</DialogTitle>
-                </DialogHeader>
+              <DialogContent className="sm:max-w-[420px] p-5">
                 {toDelete && (
-                  <>
-                    <p className="text-muted-foreground text-sm">{toDelete.description} · {toDelete.montant} MAD ({toDelete.frequence}).</p>
-                    <DialogFooter>
-                      <Button variant="outline" size="sm" onClick={() => setToDelete(null)}>Annuler</Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(toDelete)}>Supprimer</Button>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 pl-1 pr-1 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                        <Trash2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <DialogTitle className="text-base">Supprimer cette récurrence ?</DialogTitle>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Les prochaines occurrences ne seront plus générées automatiquement. Les
+                          transactions déjà créées resteront dans l&apos;historique.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                      <p className="font-medium">{toDelete.description}</p>
+                      <p className="mt-1">
+                        {toDelete.montant} MAD ·{" "}
+                        {frequenceOptions.find((f) => f.value === toDelete.frequence)?.label ??
+                          toDelete.frequence}
+                      </p>
+                    </div>
+                    <DialogFooter className="mt-1 flex flex-row gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setToDelete(null)}
+                      >
+                        Annuler
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleDelete(toDelete)}
+                      >
+                        Supprimer définitivement
+                      </Button>
                     </DialogFooter>
-                  </>
+                  </div>
                 )}
               </DialogContent>
             </Dialog>

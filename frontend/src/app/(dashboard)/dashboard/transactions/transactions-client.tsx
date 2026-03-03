@@ -378,20 +378,49 @@ export function TransactionsClient() {
                 </div>
               </div>
               <Dialog open={!!transactionToDelete} onOpenChange={(o) => !o && setTransactionToDelete(null)}>
-                <DialogContent className="max-w-sm">
-                  <DialogHeader>
-                    <DialogTitle>Supprimer la transaction ?</DialogTitle>
-                  </DialogHeader>
+                <DialogContent className="sm:max-w-[420px] p-5">
                   {transactionToDelete && (
-                    <>
-                      <p className="text-muted-foreground text-sm">
-                        {transactionToDelete.description} – {transactionToDelete.montant.toFixed(2)} MAD. Cette action est irréversible.
-                      </p>
-                      <DialogFooter>
-                        <Button variant="outline" size="sm" onClick={() => setTransactionToDelete(null)}>Annuler</Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(transactionToDelete._id)}>Supprimer</Button>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                          <Trash2 className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <DialogTitle className="text-base">Supprimer cette transaction ?</DialogTitle>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Cette action est définitive et ne pourra pas être annulée.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                        <p className="font-medium">{transactionToDelete.description}</p>
+                        <p className="mt-1">
+                          {new Date(transactionToDelete.date).toLocaleDateString("fr-FR")} ·{" "}
+                          {transactionToDelete.type === "depense" ? "-" : "+"}
+                          {transactionToDelete.montant.toFixed(2)} MAD · {transactionToDelete.categorie}
+                        </p>
+                      </div>
+                      <DialogFooter className="mt-1 flex flex-row gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setTransactionToDelete(null)}
+                        >
+                          Annuler
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleDelete(transactionToDelete._id)}
+                        >
+                          Supprimer définitivement
+                        </Button>
                       </DialogFooter>
-                    </>
+                    </div>
                   )}
                 </DialogContent>
               </Dialog>
