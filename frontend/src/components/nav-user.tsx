@@ -102,19 +102,19 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings">
+                <Link href="/dashboard/compte">
                   <IconUserCircle />
                   Compte
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings">
+                <Link href="/dashboard/facturation">
                   <IconCreditCard />
                   Facturation
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings">
+                <Link href="/dashboard/notifications">
                   <IconNotification />
                   Notifications
                 </Link>
