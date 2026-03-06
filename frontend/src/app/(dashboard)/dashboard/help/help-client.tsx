@@ -34,7 +34,7 @@ const FAQ = [
 const SUPPORT = [
   { label: "Email support", href: "mailto:support@hssabaty.com", icon: Mail, hint: "Réponse sous 24h ouvrées" },
   { label: "Chat intégré", href: "/chat", icon: MessageCircle, hint: "Discutez directement avec l’assistant" },
-  { label: "Documentation", href: "#", icon: BookOpen, hint: "Guides pas à pas et exemples" },
+  { label: "Documentation", href: "/dashboard/documentation", icon: BookOpen, hint: "Guides pas à pas et exemples" },
 ]
 
 export function HelpClient() {
