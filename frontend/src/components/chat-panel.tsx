@@ -192,7 +192,7 @@ export function ChatPanel() {
             <IconPlus className="size-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="top" className="min-w-[180px]">
+        <DropdownMenuContent align="start" side="top" className="min-w-45">
           <DropdownMenuItem onClick={() => handleAttach("file")}>
             <IconFile className="size-4 mr-2" />
             Fichiers
@@ -207,7 +207,7 @@ export function ChatPanel() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <div className="flex-1 relative flex flex-col min-h-[48px] rounded-r-xl border border-input bg-background dark:bg-input/20 dark:border-input focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
+      <div className="flex-1 relative flex flex-col min-h-12 rounded-r-xl border border-input bg-background dark:bg-input/20 dark:border-input focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-1.5 px-3 pt-2">
             {attachments.map((a, i) => (
@@ -232,7 +232,7 @@ export function ChatPanel() {
           placeholder="Comment puis-je vous aider aujourd'hui ?"
           rows={1}
           className={cn(
-            "w-full min-h-[40px] max-h-[200px] resize-none bg-transparent px-4 py-3 pr-24 text-sm",
+            "w-full min-h-10 max-h-50 resize-none bg-transparent px-4 py-3 pr-24 text-sm",
             "placeholder:text-muted-foreground outline-none"
           )}
           disabled={isLoading}

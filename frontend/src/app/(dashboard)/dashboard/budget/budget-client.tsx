@@ -189,7 +189,7 @@ export function BudgetClient() {
                 Créer un budget
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[420px] p-5">
+            <DialogContent className="sm:max-w-105 p-5">
               <DialogHeader className="pb-2">
                 <DialogTitle className="text-base">Nouveau budget</DialogTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -238,7 +238,7 @@ export function BudgetClient() {
             </DialogContent>
           </Dialog>
           <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-            <DialogContent className="sm:max-w-[420px] p-5">
+            <DialogContent className="sm:max-w-105 p-5">
               <DialogHeader className="pb-2">
                 <DialogTitle className="text-base">Modifier le budget</DialogTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -287,7 +287,7 @@ export function BudgetClient() {
             </DialogContent>
           </Dialog>
           <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-            <DialogContent className="sm:max-w-[420px] p-5">
+            <DialogContent className="sm:max-w-105 p-5">
               {toDelete && (
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
@@ -336,7 +336,7 @@ export function BudgetClient() {
         </CardHeader>
         <CardContent className="pt-4">
           {loading ? (
-            <Skeleton className="h-[220px] w-full rounded-lg" />
+            <Skeleton className="h-55 w-full rounded-lg" />
           ) : budgets.length ? (
             <ul className="space-y-4">
               {budgets.map((b) => {
@@ -401,7 +401,7 @@ export function BudgetClient() {
               })}
             </ul>
           ) : (
-            <div className="flex h-[220px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-muted/10 text-center text-muted-foreground text-sm">
+            <div className="flex h-55 flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-muted/10 text-center text-muted-foreground text-sm">
               <p>Aucun budget.</p>
             </div>
           )}

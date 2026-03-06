@@ -141,7 +141,7 @@ export function SettingsClient() {
   if (loading) {
     return (
       <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-        <Skeleton className="h-[320px] w-full rounded-xl" />
+        <Skeleton className="h-80 w-full rounded-xl" />
       </div>
     )
   }
@@ -178,7 +178,7 @@ export function SettingsClient() {
                 name="devise"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-9 w-full max-w-[180px]">
+                    <SelectTrigger className="h-9 w-full max-w-45">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -245,7 +245,7 @@ export function SettingsClient() {
                 name="langue"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-9 w-full max-w-[180px]">
+                    <SelectTrigger className="h-9 w-full max-w-45">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

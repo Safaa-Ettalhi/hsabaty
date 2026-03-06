@@ -83,7 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!h-auto data-[slot=sidebar-menu-button]:!min-h-10 data-[slot=sidebar-menu-button]:!justify-start data-[slot=sidebar-menu-button]:!p-2">
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:h-auto! data-[slot=sidebar-menu-button]:min-h-10! data-[slot=sidebar-menu-button]:justify-start! data-[slot=sidebar-menu-button]:p-2!">
               <Link href="/chat" className="flex w-full items-center justify-start">
                 <Logo className="h-9 w-auto" />
               </Link>

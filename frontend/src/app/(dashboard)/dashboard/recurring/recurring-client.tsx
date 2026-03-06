@@ -163,7 +163,7 @@ export function RecurringClient() {
                   Créer
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[420px] p-5">
+              <DialogContent className="sm:max-w-105 p-5">
                 <DialogHeader className="pb-2">
                   <DialogTitle className="text-base">Nouvelle transaction récurrente</DialogTitle>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -221,7 +221,7 @@ export function RecurringClient() {
               </DialogContent>
             </Dialog>
             <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-              <DialogContent className="sm:max-w-[420px] p-5">
+              <DialogContent className="sm:max-w-105 p-5">
                 <DialogHeader className="pb-2">
                   <DialogTitle className="text-base">Modifier la récurrente</DialogTitle>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -279,7 +279,7 @@ export function RecurringClient() {
               </DialogContent>
             </Dialog>
             <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-              <DialogContent className="sm:max-w-[420px] p-5">
+              <DialogContent className="sm:max-w-105 p-5">
                 {toDelete && (
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-3">
@@ -330,7 +330,7 @@ export function RecurringClient() {
         </CardHeader>
         <CardContent className="pt-4">
           {loading ? (
-            <Skeleton className="h-[220px] w-full rounded-lg" />
+            <Skeleton className="h-55 w-full rounded-lg" />
           ) : data?.transactionsRecurrentes?.length ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between rounded-lg bg-muted/30 px-4 py-3">
@@ -360,7 +360,7 @@ export function RecurringClient() {
               </ul>
             </div>
           ) : (
-            <div className="flex h-[220px] flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-muted/10 text-center">
+            <div className="flex h-55 flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-muted/10 text-center">
               <p className="text-muted-foreground text-sm">Aucune transaction récurrente.</p>
             </div>
           )}
