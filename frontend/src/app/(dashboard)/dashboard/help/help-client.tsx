@@ -1,7 +1,8 @@
 "use client"
-
+import { useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, MessageCircle, BookOpen } from "lucide-react"
+import { Mail, MessageCircle, BookOpen, LifeBuoy, ArrowRight, Plus, Minus } from "lucide-react"
 
 const FAQ = [
   {
@@ -31,57 +32,126 @@ const FAQ = [
 ]
 
 const SUPPORT = [
-  { label: "Email support", href: "mailto:support@hssabaty.com", icon: Mail },
-  { label: "Chat (dans l’app)", href: "/dashboard", icon: MessageCircle },
-  { label: "Documentation", href: "#", icon: BookOpen },
+  { label: "Email support", href: "mailto:support@hssabaty.com", icon: Mail, hint: "Réponse sous 24h ouvrées" },
+  { label: "Chat intégré", href: "/chat", icon: MessageCircle, hint: "Discutez directement avec l’assistant" },
+  { label: "Documentation", href: "#", icon: BookOpen, hint: "Guides pas à pas et exemples" },
 ]
 
 export function HelpClient() {
+  const [openIndex, setOpenIndex] = useState<Set<number>>(new Set())
+
+  const toggle = (i: number) => {
+    setOpenIndex((prev) => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="size-5" />
-            Foire aux questions
-          </CardTitle>
-          <CardDescription>
-            Réponses aux questions les plus fréquentes sur Hssabaty
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-4">
-            {FAQ.map((item, i) => (
-              <li key={i} className="rounded-lg border p-4">
-                <h3 className="font-medium">{item.q}</h3>
-                <p className="mt-2 text-muted-foreground text-sm">{item.a}</p>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-[1.4fr,1fr]">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <LifeBuoy className="size-5 text-primary" />
+              Centre d’aide
+            </CardTitle>
+            <CardDescription>
+              Parcourez les réponses rapides et les ressources pour bien utiliser Hssabaty.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ul className="divide-y rounded-lg border bg-card/40">
+              {FAQ.map((item, i) => {
+                const isOpen = openIndex.has(i)
+                return (
+                  <li key={i} className="first:rounded-t-lg last:rounded-b-lg">
+                    <button
+                      type="button"
+                      onClick={() => toggle(i)}
+                      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+                    >
+                      <span className="text-sm font-medium">{item.q}</span>
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded border border-muted-foreground/30 text-sm font-medium">
+                        {isOpen ? <Minus className="size-3.5" /> : <Plus className="size-3.5" />}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="border-t border-border/60 bg-muted/20 px-4 py-3">
+                        <p className="text-xs text-muted-foreground">{item.a}</p>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </CardContent>
+        </Card>
 
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Aide et support</CardTitle>
-          <CardDescription>Nous contacter ou accéder à la doc</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-3">
-            {SUPPORT.map((s) => (
-              <li key={s.label}>
-                <a
-                  href={s.href}
-                  className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                >
-                  <s.icon className="size-5 text-muted-foreground" />
-                  <span className="font-medium">{s.label}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+        <div className="space-y-4">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle>Besoin d&apos;aide ?</CardTitle>
+              <CardDescription>Choisissez le canal de support qui vous convient.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ul className="space-y-3">
+                {SUPPORT.map((s) => (
+                  <li key={s.label}>
+                    {s.href.startsWith("http") || s.href.startsWith("mailto") ? (
+                      <a
+                        href={s.href}
+                        className="flex items-center justify-between gap-3 rounded-lg border bg-card/40 px-3 py-2.5 text-sm transition-colors hover:bg-muted/60"
+                      >
+                        <div className="flex items-center gap-3">
+                          <s.icon className="size-5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{s.label}</p>
+                            {s.hint && <p className="text-xs text-muted-foreground">{s.hint}</p>}
+                          </div>
+                        </div>
+                        <ArrowRight className="size-4 text-muted-foreground" />
+                      </a>
+                    ) : (
+                      <Link
+                        href={s.href}
+                        className="flex items-center justify-between gap-3 rounded-lg border bg-card/40 px-3 py-2.5 text-sm transition-colors hover:bg-muted/60"
+                      >
+                        <div className="flex items-center gap-3">
+                          <s.icon className="size-5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{s.label}</p>
+                            {s.hint && <p className="text-xs text-muted-foreground">{s.hint}</p>}
+                          </div>
+                        </div>
+                        <ArrowRight className="size-4 text-muted-foreground" />
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Conseils d&apos;utilisation</CardTitle>
+              <CardDescription className="text-xs">
+                Quelques bonnes pratiques pour tirer le maximum de la plateforme.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <ul className="space-y-1.5 text-xs text-muted-foreground">
+                <li>• Enregistrez vos transactions au fil de l&apos;eau pour garder un suivi précis.</li>
+                <li>• Utilisez les budgets et objectifs pour vous fixer des limites claires.</li>
+                <li>• Consultez régulièrement les rapports et les insights IA pour ajuster vos habitudes.</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }
