@@ -98,63 +98,108 @@ export function CompteClient() {
     } else toast.error(res.message ?? "Erreur")
   }
 
+  const initials =
+    (user?.nom || "")
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U"
+
   if (loading) {
     return (
       <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-        <Skeleton className="h-70 w-full rounded-xl" />
+        <Skeleton className="h-65 w-full rounded-xl" />
       </div>
     )
   }
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
+      <div className="space-y-3">
+        <h1 className="text-xl font-semibold md:text-2xl">Mon compte</h1>
+        <p className="text-sm text-muted-foreground">
+          Gérez vos informations personnelles et la devise utilisée dans l’application.
+        </p>
+        <div className="flex items-center gap-3 rounded-lg border bg-card/60 px-3 py-2.5 shadow-sm">
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
+              {[user?.nom, user?.prenom].filter(Boolean).join(" ") || "Utilisateur"}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+          </div>
+          <div className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            Devise&nbsp;:&nbsp;{user?.devise ?? "MAD"}
+          </div>
+        </div>
+      </div>
+
       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Mon compte</CardTitle>
-          <CardDescription>Informations personnelles et devise utilisée dans l’application</CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Informations du profil</CardTitle>
+          <CardDescription>Modifiez votre nom, prénom et devise principale.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel>Nom</FieldLabel>
-                <Input {...form.register("nom")} className="h-9" />
-                <FieldError errors={[form.formState.errors.nom]} />
-              </Field>
-              <Field>
-                <FieldLabel>Prénom</FieldLabel>
-                <Input {...form.register("prenom")} className="h-9" />
-              </Field>
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)]">
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel>Nom</FieldLabel>
+                    <Input {...form.register("nom")} className="h-9" />
+                    <FieldError errors={[form.formState.errors.nom]} />
+                  </Field>
+                  <Field>
+                    <FieldLabel>Prénom</FieldLabel>
+                    <Input {...form.register("prenom")} className="h-9" />
+                  </Field>
+                </div>
+                <Field>
+                  <FieldLabel>Email</FieldLabel>
+                  <Input value={user?.email ?? ""} readOnly disabled className="h-9 bg-muted" />
+                  <p className="text-xs text-muted-foreground">
+                    L’email ne peut pas être modifié ici.
+                  </p>
+                </Field>
+              </div>
+
+              <div className="space-y-4 border-t pt-4 md:border-l md:border-t-0 md:pl-4">
+                <Field>
+                  <FieldLabel>Devise</FieldLabel>
+                  <Controller
+                    control={form.control}
+                    name="devise"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="h-9 w-full max-w-50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {deviseOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </Field>
+                <p className="text-xs text-muted-foreground">
+                  La devise est utilisée pour l’affichage des montants dans les tableaux, graphiques et
+                  rapports.
+                </p>
+              </div>
             </div>
-            <Field>
-              <FieldLabel>Email</FieldLabel>
-              <Input value={user?.email ?? ""} readOnly disabled className="h-9 bg-muted" />
-              <p className="text-muted-foreground text-xs">L’email ne peut pas être modifié ici.</p>
-            </Field>
-            <Field>
-              <FieldLabel>Devise</FieldLabel>
-              <Controller
-                control={form.control}
-                name="devise"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-9 w-full max-w-45">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {deviseOptions.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-            <Button type="submit" size="sm" disabled={saving}>
-              {saving ? "Enregistrement…" : "Enregistrer"}
-            </Button>
+
+            <div className="flex justify-end">
+              <Button type="submit" size="sm" disabled={saving}>
+                {saving ? "Enregistrement…" : "Enregistrer les modifications"}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
