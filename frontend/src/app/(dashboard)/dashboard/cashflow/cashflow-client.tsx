@@ -1,16 +1,44 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+
 import { api } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
 
 type FluxData = {
   sources: Array<{ nom: string; montant: number }>
   categories: Array<{ nom: string; montant: number }>
   epargne: number
 }
+
+const revenusChartConfig = {
+  revenus: {
+    label: "Revenus",
+    theme: {
+      light: "hsl(142 76% 40%)",
+      dark: "hsl(142 70% 55%)",
+    },
+  },
+} satisfies ChartConfig
+
+const depensesChartConfig = {
+  depenses: {
+    label: "Dépenses",
+    theme: {
+      light: "hsl(343 82% 50%)",
+      dark: "hsl(343 90% 60%)",
+    },
+  },
+} satisfies ChartConfig
 
 export function CashflowClient() {
   const [data, setData] = useState<FluxData | null>(null)
@@ -32,7 +60,18 @@ export function CashflowClient() {
 
   const totalRevenus = data?.sources?.reduce((s, x) => s + x.montant, 0) ?? 0
   const totalDepenses = data?.categories?.reduce((s, x) => s + x.montant, 0) ?? 0
-  const maxFlow = Math.max(totalRevenus, totalDepenses + (data?.epargne ?? 0), 1)
+
+  const revenusData =
+    data?.sources?.map((s) => ({
+      label: s.nom,
+      montant: s.montant,
+    })) ?? []
+
+  const depensesData =
+    data?.categories?.map((c) => ({
+      label: c.nom,
+      montant: c.montant,
+    })) ?? []
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">
@@ -40,70 +79,157 @@ export function CashflowClient() {
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
           <div>
             <CardTitle>Flux de trésorerie</CardTitle>
-            <CardDescription>Revenus → Dépenses → Épargne (épaisseur proportionnelle aux montants)</CardDescription>
+            <CardDescription>Visualisation des entrées, sorties et de l&apos;épargne nette</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Input type="date" className="w-[140px]" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
-            <Input type="date" className="w-[140px]" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
+            <Input
+              type="date"
+              className="w-35"
+              value={dateDebut}
+              onChange={(e) => setDateDebut(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-35"
+              value={dateFin}
+              onChange={(e) => setDateFin(e.target.value)}
+            />
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <Skeleton className="h-[280px] w-full rounded-lg" />
+            <Skeleton className="h-80 w-full rounded-lg" />
           ) : data ? (
             <div className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-3">
-                <div>
-                  <h4 className="mb-2 text-sm font-medium text-muted-foreground">Sources de revenus</h4>
-                  <div className="space-y-2">
-                    {data.sources.map((s) => (
-                      <div key={s.nom} className="flex items-center gap-2">
-                        <div
-                          className="h-6 min-w-[4px] rounded bg-green-500/80"
-                          style={{ width: `${Math.max(4, (s.montant / maxFlow) * 120)}px` }}
-                        />
-                        <span className="text-sm">{s.nom}</span>
-                        <span className="tabular-nums text-sm text-muted-foreground">{s.montant.toFixed(0)} MAD</span>
-                      </div>
-                    ))}
-                    {!data.sources.length && <p className="text-muted-foreground text-sm">Aucune</p>}
-                  </div>
-                  <p className="mt-2 border-t pt-2 text-sm font-medium">Total entrées: {totalRevenus.toFixed(0)} MAD</p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Total entrées</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums">
+                    {totalRevenus.toFixed(0)}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">MAD</span>
+                  </p>
                 </div>
-                <div>
-                  <h4 className="mb-2 text-sm font-medium text-muted-foreground">Catégories de dépenses</h4>
-                  <div className="space-y-2">
-                    {data.categories.map((c) => (
-                      <div key={c.nom} className="flex items-center gap-2">
-                        <div
-                          className="h-6 min-w-[4px] rounded bg-rose-500/80"
-                          style={{ width: `${Math.max(4, (c.montant / maxFlow) * 120)}px` }}
-                        />
-                        <span className="text-sm">{c.nom}</span>
-                        <span className="tabular-nums text-sm text-muted-foreground">{c.montant.toFixed(0)} MAD</span>
-                      </div>
-                    ))}
-                    {!data.categories.length && <p className="text-muted-foreground text-sm">Aucune</p>}
-                  </div>
-                  <p className="mt-2 border-t pt-2 text-sm font-medium">Total sorties: {totalDepenses.toFixed(0)} MAD</p>
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Total sorties</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums">
+                    {totalDepenses.toFixed(0)}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">MAD</span>
+                  </p>
                 </div>
-                <div>
-                  <h4 className="mb-2 text-sm font-medium text-muted-foreground">Épargne nette</h4>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="h-8 min-w-[4px] rounded bg-primary/80"
-                      style={{ width: `${Math.max(4, (Math.max(0, data.epargne) / maxFlow) * 120)}px` }}
-                    />
-                    <span className="tabular-nums font-medium">{data.epargne.toFixed(0)} MAD</span>
-                  </div>
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Épargne nette</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums">
+                    {data.epargne.toFixed(0)}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">MAD</span>
+                  </p>
                 </div>
               </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Sources de revenus</p>
+                  {revenusData.length ? (
+                    <ChartContainer
+                      config={revenusChartConfig}
+                      className="aspect-auto h-65 w-full"
+                    >
+                      <BarChart
+                        data={revenusData}
+                        layout="vertical"
+                        margin={{ left: 0, right: 16, top: 8, bottom: 8 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" hide />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={120}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={4}
+                        />
+                        <ChartTooltip
+                          cursor={{ fill: "hsl(var(--muted))" }}
+                          content={
+                            <ChartTooltipContent
+                          formatter={(value) => [
+                            `${Number(value).toFixed(0).toString()} MAD`,
+                            "Revenus",
+                          ]}
+                            />
+                          }
+                        />
+                        <Bar
+                          dataKey="montant"
+                      fill="var(--color-revenus)"
+                      stroke="var(--color-revenus)"
+                          radius={[0, 4, 4, 0]}
+                        />
+                      </BarChart>
+                    </ChartContainer>
+                  ) : (
+                    <div className="bg-muted/40 flex h-65 items-center justify-center rounded-lg text-xs text-muted-foreground">
+                      Aucune source de revenus sur la période sélectionnée.
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground">Catégories de dépenses</p>
+                  {depensesData.length ? (
+                    <ChartContainer
+                      config={depensesChartConfig}
+                      className="aspect-auto h-65 w-full"
+                    >
+                      <BarChart
+                        data={depensesData}
+                        layout="vertical"
+                        margin={{ left: 0, right: 16, top: 8, bottom: 8 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" hide />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={120}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={4}
+                        />
+                        <ChartTooltip
+                          cursor={{ fill: "hsl(var(--muted))" }}
+                          content={
+                            <ChartTooltipContent
+                          formatter={(value) => [
+                            `${Number(value).toFixed(0).toString()} MAD`,
+                            "Dépenses",
+                          ]}
+                            />
+                          }
+                        />
+                        <Bar
+                          dataKey="montant"
+                      fill="var(--color-depenses)"
+                      stroke="var(--color-depenses)"
+                          radius={[0, 4, 4, 0]}
+                        />
+                      </BarChart>
+                    </ChartContainer>
+                  ) : (
+                    <div className="bg-muted/40 flex h-65 items-center justify-center rounded-lg text-xs text-muted-foreground">
+                      Aucune dépense sur la période sélectionnée.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="border-t pt-4 text-sm text-muted-foreground">
-                Entrées: {totalRevenus.toFixed(0)} MAD · Sorties: {totalDepenses.toFixed(0)} MAD · Net: {data.epargne.toFixed(0)} MAD
+                Entrées: {totalRevenus.toFixed(0)} MAD · Sorties: {totalDepenses.toFixed(0)} MAD · Net:{" "}
+                {data.epargne.toFixed(0)} MAD
               </div>
             </div>
           ) : (
-            <div className="bg-muted/50 flex h-[200px] items-center justify-center rounded-lg text-muted-foreground text-sm">
+            <div className="bg-muted/50 flex h-50 items-center justify-center rounded-lg text-muted-foreground text-sm">
               Aucune donnée
             </div>
           )}
