@@ -11,7 +11,30 @@ import {
   IconNotification,
   IconCreditCard,
   IconSettings,
+  IconChevronRight,
+  IconLogout,
 } from "@tabler/icons-react"
+
+const SECTIONS = [
+  {
+    href: "/dashboard/compte",
+    icon: IconUserCircle,
+    title: "Compte",
+    description: "Nom, prénom, email et devise",
+  },
+  {
+    href: "/dashboard/notifications",
+    icon: IconNotification,
+    title: "Notifications",
+    description: "Alertes email, navigateur et langue",
+  },
+  {
+    href: "/dashboard/facturation",
+    icon: IconCreditCard,
+    title: "Facturation",
+    description: "Moyens de paiement et factures",
+  },
+] as const
 
 export function SettingsClient() {
   const router = useRouter()
@@ -30,61 +53,81 @@ export function SettingsClient() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <IconSettings className="size-5 text-primary" />
-            Paramètres
-          </CardTitle>
-          <CardDescription>
-            Accédez aux différentes sections de votre compte.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Link
-            href="/dashboard/compte"
-            className="flex items-center gap-3 rounded-lg border bg-card/40 px-3 py-2.5 text-sm transition-colors hover:bg-muted/60"
-          >
-            <IconUserCircle className="size-5 text-muted-foreground" />
-            <div className="flex-1">
-              <p className="font-medium">Compte</p>
-              <p className="text-xs text-muted-foreground">Nom, prénom, email et devise</p>
-            </div>
-          </Link>
-          <Link
-            href="/dashboard/notifications"
-            className="flex items-center gap-3 rounded-lg border bg-card/40 px-3 py-2.5 text-sm transition-colors hover:bg-muted/60"
-          >
-            <IconNotification className="size-5 text-muted-foreground" />
-            <div className="flex-1">
-              <p className="font-medium">Notifications</p>
-              <p className="text-xs text-muted-foreground">Alertes email, navigateur et langue</p>
-            </div>
-          </Link>
-          <Link
-            href="/dashboard/facturation"
-            className="flex items-center gap-3 rounded-lg border bg-card/40 px-3 py-2.5 text-sm transition-colors hover:bg-muted/60"
-          >
-            <IconCreditCard className="size-5 text-muted-foreground" />
-            <div className="flex-1">
-              <p className="font-medium">Facturation</p>
-              <p className="text-xs text-muted-foreground">Moyens de paiement et factures</p>
-            </div>
-          </Link>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <h1 className="flex items-center gap-2 text-xl font-semibold md:text-2xl">
+          <IconSettings className="size-6 text-primary" />
+          Paramètres
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Gérez votre compte, vos préférences et votre session en un seul endroit.
+        </p>
+      </div>
 
-      <Card className="shadow-sm border-destructive/30">
-        <CardHeader>
-          <CardTitle>Déconnexion</CardTitle>
-          <CardDescription>Se déconnecter de ce compte sur cet appareil</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="destructive" size="sm" onClick={handleLogout} disabled={loggingOut}>
-            {loggingOut ? "Déconnexion…" : "Se déconnecter"}
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-[1fr,minmax(280px,360px)]">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Sections du compte</CardTitle>
+            <CardDescription>
+              Accédez aux différentes parties de votre profil et de la facturation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {SECTIONS.map((section) => (
+              <Link
+                key={section.href}
+                href={section.href}
+                className="flex items-center gap-3 rounded-lg border bg-card/50 px-3 py-3 transition-colors hover:bg-muted/50 hover:border-muted-foreground/20"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <section.icon className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{section.title}</p>
+                  <p className="truncate text-xs text-muted-foreground">{section.description}</p>
+                </div>
+                <IconChevronRight className="size-5 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4">
+          <Card className="shadow-sm border-destructive/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <IconLogout className="size-5 text-destructive" />
+                Session
+              </CardTitle>
+              <CardDescription>
+                Déconnectez-vous de ce compte sur cet appareil. Vous devrez vous reconnecter pour accéder à nouveau à Hssabaty.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="w-full sm:w-auto"
+              >
+                {loggingOut ? "Déconnexion…" : "Se déconnecter"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="pt-4">
+              <Link
+                href="/dashboard/help"
+                className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <span>Centre d’aide et FAQ</span>
+                <IconChevronRight className="size-4" />
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }
