@@ -93,62 +93,98 @@ export function NotificationsClient() {
   if (loading) {
     return (
       <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-        <Skeleton className="h-60 w-full rounded-xl" />
+        <Skeleton className="h-65 w-full rounded-xl" />
       </div>
     )
   }
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-      <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-          <CardDescription>
-            Alertes par email, notifications dans le navigateur et langue de l’interface.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Controller
-                control={form.control}
-                name="notificationsEmail"
-                render={({ field }) => (
-                  <Checkbox
-                    id="notif-email"
-                    checked={field.value}
-                    onCheckedChange={(v) => field.onChange(!!v)}
+      <div className="space-y-2">
+        <h1 className="text-xl font-semibold md:text-2xl">Notifications & langue</h1>
+        <p className="text-sm text-muted-foreground">
+          Choisissez comment vous souhaitez être prévenu et dans quelle langue utiliser Hssabaty.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr),minmax(0,1fr)]">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Canaux de notification</CardTitle>
+            <CardDescription>Activez ou désactivez les alertes importantes.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start gap-2">
+                  <Controller
+                    control={form.control}
+                    name="notificationsEmail"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="notif-email"
+                        checked={field.value}
+                        onCheckedChange={(v) => field.onChange(!!v)}
+                      />
+                    )}
                   />
-                )}
-              />
-              <label htmlFor="notif-email" className="text-sm font-medium leading-none">
-                Recevoir les alertes par email (budgets, objectifs)
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Controller
-                control={form.control}
-                name="notificationsPush"
-                render={({ field }) => (
-                  <Checkbox
-                    id="notif-push"
-                    checked={field.value}
-                    onCheckedChange={(v) => field.onChange(!!v)}
+                  <div className="space-y-0.5">
+                    <label htmlFor="notif-email" className="text-sm font-medium leading-none">
+                      Alertes par email
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Budgets proches du dépassement, objectifs, rapports périodiques.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <Controller
+                    control={form.control}
+                    name="notificationsPush"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="notif-push"
+                        checked={field.value}
+                        onCheckedChange={(v) => field.onChange(!!v)}
+                      />
+                    )}
                   />
-                )}
-              />
-              <label htmlFor="notif-push" className="text-sm font-medium leading-none">
-                Notifications dans le navigateur
-              </label>
-            </div>
+                  <div className="space-y-0.5">
+                    <label htmlFor="notif-push" className="text-sm font-medium leading-none">
+                      Notifications dans le navigateur
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Rappels rapides et informations en temps réel pendant que l’application est
+                      ouverte.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="submit" size="sm" disabled={saving}>
+                  {saving ? "Enregistrement…" : "Enregistrer les préférences"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Langue de l’interface</CardTitle>
+            <CardDescription>Choisissez la langue utilisée pour les textes de l’application.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
             <Field>
-              <FieldLabel>Langue de l’interface</FieldLabel>
+              <FieldLabel>Langue</FieldLabel>
               <Controller
                 control={form.control}
                 name="langue"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-9 w-full max-w-45">
+                    <SelectTrigger className="h-9 w-full max-w-50">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -162,12 +198,13 @@ export function NotificationsClient() {
                 )}
               />
             </Field>
-            <Button type="submit" size="sm" disabled={saving}>
-              {saving ? "Enregistrement…" : "Enregistrer"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground">
+              La langue influence aussi les messages de l’assistant IA et certains contenus
+              générés automatiquement.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
