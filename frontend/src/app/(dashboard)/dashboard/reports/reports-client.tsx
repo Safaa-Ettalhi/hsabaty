@@ -87,7 +87,7 @@ export function ReportsClient() {
     api
       .get(path)
       .then((res) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         if (res.succes && res.donnees) setData(res.donnees as any)
       })
       .finally(() => setLoading(false))
@@ -128,27 +128,52 @@ export function ReportsClient() {
   }
 
   function renderContent() {
-    if (loading) return <Skeleton className="h-50 w-full rounded-lg" />
+    if (loading) return <Skeleton className="h-65 w-full rounded-lg" />
     if (!data) return <div className="text-muted-foreground text-sm">Aucune donnée</div>
     if (reportType === "mensuel" && "resume" in data) {
       const d = data as MensuelData
       return (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <p><span className="text-muted-foreground">Revenus</span> {d.resume.revenus.toFixed(0)} MAD</p>
-            <p><span className="text-muted-foreground">Dépenses</span> {d.resume.depenses.toFixed(0)} MAD</p>
-            <p><span className="text-muted-foreground">Épargne</span> {d.resume.epargne.toFixed(0)} MAD</p>
-            <p><span className="text-muted-foreground">Taux d&apos;épargne</span> {d.resume.tauxEpargne.toFixed(1)} %</p>
+            <div className="rounded-lg border bg-muted/50 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Revenus</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">
+                {d.resume.revenus.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MAD</span>
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/50 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Dépenses</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">
+                {d.resume.depenses.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MAD</span>
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/50 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Épargne</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">
+                {d.resume.epargne.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MAD</span>
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/50 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Taux d&apos;épargne</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">{d.resume.tauxEpargne.toFixed(1)} %</p>
+            </div>
           </div>
           {d.repartitionDepenses?.length ? (
-            <ul className="space-y-1 text-sm">
-              {d.repartitionDepenses.slice(0, 8).map((r) => (
-                <li key={r.categorie} className="flex justify-between">
-                  <span>{r.categorie}</span>
-                  <span className="tabular-nums">{r.montant.toFixed(0)} MAD ({r.pourcentage.toFixed(1)} %)</span>
-                </li>
-              ))}
-            </ul>
+            <div className="rounded-lg border overflow-hidden">
+              <div className="bg-muted/60 px-4 py-2 text-xs font-medium text-muted-foreground">
+                Répartition des dépenses (top 8)
+              </div>
+              <div className="divide-y text-sm">
+                {d.repartitionDepenses.slice(0, 8).map((r) => (
+                  <div key={r.categorie} className="flex items-center justify-between px-4 py-2">
+                    <span>{r.categorie}</span>
+                    <span className="tabular-nums text-right text-muted-foreground">
+                      {r.montant.toFixed(0)} MAD · {r.pourcentage.toFixed(1)} %
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       )
@@ -156,18 +181,39 @@ export function ReportsClient() {
     if (reportType === "depenses" && "totalDepenses" in data) {
       const d = data as DepensesData
       return (
-        <div className="space-y-4">
-          <p><strong>Total dépenses</strong> {d.totalDepenses.toFixed(0)} MAD</p>
-          <p className="text-muted-foreground text-sm">Évolution vs période précédente: {d.evolution?.toFixed(0) ?? 0} MAD</p>
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Total dépenses</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">
+                {d.totalDepenses.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MAD</span>
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Transactions</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">{d.nombreTransactions}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Évolution vs période préc.</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">
+                {d.evolution?.toFixed(0) ?? 0} <span className="text-sm font-normal text-muted-foreground">MAD</span>
+              </p>
+            </div>
+          </div>
           {d.repartitionParCategorie?.length ? (
-            <ul className="space-y-1 text-sm">
-              {d.repartitionParCategorie.map((r: any) => (
-                <li key={r.categorie} className="flex justify-between">
-                  <span>{r.categorie}</span>
-                  <span className="tabular-nums">{r.montant.toFixed(0)} MAD</span>
-                </li>
-              ))}
-            </ul>
+            <div className="rounded-lg border overflow-hidden">
+              <div className="bg-muted/60 px-4 py-2 text-xs font-medium text-muted-foreground">
+                Dépenses par catégorie
+              </div>
+              <div className="divide-y text-sm">
+                {d.repartitionParCategorie.map((r: any) => (
+                  <div key={r.categorie} className="flex items-center justify-between px-4 py-2">
+                    <span>{r.categorie}</span>
+                    <span className="tabular-nums text-muted-foreground">{r.montant.toFixed(0)} MAD</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       )
@@ -175,17 +221,31 @@ export function ReportsClient() {
     if (reportType === "revenus" && "totalRevenus" in data) {
       const d = data as RevenusData
       return (
-        <div className="space-y-4">
-          <p><strong>Total revenus</strong> {d.totalRevenus.toFixed(0)} MAD</p>
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Total revenus</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">
+                {d.totalRevenus.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MAD</span>
+              </p>
+            </div>
+          </div>
           {d.repartitionParSource?.length ? (
-            <ul className="space-y-1 text-sm">
-              {d.repartitionParSource.map((r) => (
-                <li key={r.source} className="flex justify-between">
-                  <span>{r.source}</span>
-                  <span className="tabular-nums">{r.montant.toFixed(0)} MAD ({r.pourcentage.toFixed(1)} %)</span>
-                </li>
-              ))}
-            </ul>
+            <div className="rounded-lg border overflow-hidden">
+              <div className="bg-muted/60 px-4 py-2 text-xs font-medium text-muted-foreground">
+                Revenus par source
+              </div>
+              <div className="divide-y text-sm">
+                {d.repartitionParSource.map((r) => (
+                  <div key={r.source} className="flex items-center justify-between px-4 py-2">
+                    <span>{r.source}</span>
+                    <span className="tabular-nums text-right text-muted-foreground">
+                      {r.montant.toFixed(0)} MAD · {r.pourcentage.toFixed(1)} %
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       )
@@ -193,9 +253,27 @@ export function ReportsClient() {
     if (reportType === "epargne" && "montantEpargne" in data) {
       const d = data as EpargneData
       return (
-        <div className="space-y-2">
-          <p><strong>Montant épargné</strong> {d.montantEpargne.toFixed(0)} MAD</p>
-          <p><strong>Taux d&apos;épargne</strong> {d.tauxEpargne.toFixed(1)} %</p>
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Montant épargné</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">
+                {d.montantEpargne.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MAD</span>
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs font-medium uppercase text-muted-foreground">Taux d&apos;épargne</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">{d.tauxEpargne.toFixed(1)} %</p>
+            </div>
+            {typeof d.evolution === "number" && (
+              <div className="rounded-lg border bg-muted/40 p-3">
+                <p className="text-xs font-medium uppercase text-muted-foreground">Évolution vs période préc.</p>
+                <p className="mt-1 text-xl font-semibold tabular-nums">
+                  {d.evolution.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">MAD</span>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )
     }
@@ -222,7 +300,7 @@ export function ReportsClient() {
             {reportType === "mensuel" ? (
               <>
                 <Select value={String(mois)} onValueChange={(v) => setMois(Number(v))}>
-                  <SelectTrigger className="w-25"><SelectValue placeholder="Mois" /></SelectTrigger>
+                  <SelectTrigger className="w-32.5"><SelectValue placeholder="Mois" /></SelectTrigger>
                   <SelectContent>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
                       <SelectItem key={m} value={String(m)}>
@@ -231,12 +309,29 @@ export function ReportsClient() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Input type="number" className="w-20" value={annee} onChange={(e) => setAnnee(Number(e.target.value))} min={2020} max={2100} />
+                <Input
+                  type="number"
+                  className="w-22.5"
+                  value={annee}
+                  onChange={(e) => setAnnee(Number(e.target.value))}
+                  min={2020}
+                  max={2100}
+                />
               </>
             ) : (
               <>
-                <Input type="date" className="w-35" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
-                <Input type="date" className="w-35" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
+                <Input
+                  type="date"
+                  className="w-37.5"
+                  value={dateDebut}
+                  onChange={(e) => setDateDebut(e.target.value)}
+                />
+                <Input
+                  type="date"
+                  className="w-37.5"
+                  value={dateFin}
+                  onChange={(e) => setDateFin(e.target.value)}
+                />
               </>
             )}
             <Button variant="outline" size="sm" onClick={handleExportPdf}>Exporter PDF</Button>
