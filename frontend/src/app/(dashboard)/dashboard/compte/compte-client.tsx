@@ -1,11 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
+import { updateStoredUser } from "@/lib/auth-mock"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
@@ -44,6 +46,7 @@ const profilSchema = z.object({
 type ProfilFormValues = z.infer<typeof profilSchema>
 
 export function CompteClient() {
+  const router = useRouter()
   const [user, setUser] = useState<Utilisateur | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -85,14 +88,20 @@ export function CompteClient() {
     setSaving(false)
     if (res.succes) {
       toast.success("Profil enregistré")
-      if (res.donnees?.utilisateur) setUser(res.donnees.utilisateur)
+      if (res.donnees?.utilisateur) {
+        const u = res.donnees.utilisateur
+        setUser(u)
+        const fullName = [u.nom, u.prenom].filter(Boolean).join(" ")
+        updateStoredUser({ name: fullName || u.email })
+        router.refresh()
+      }
     } else toast.error(res.message ?? "Erreur")
   }
 
   if (loading) {
     return (
       <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-        <Skeleton className="h-[280px] w-full rounded-xl" />
+        <Skeleton className="h-70 w-full rounded-xl" />
       </div>
     )
   }
@@ -129,7 +138,7 @@ export function CompteClient() {
                 name="devise"
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="h-9 w-full max-w-[180px]">
+                    <SelectTrigger className="h-9 w-full max-w-45">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
