@@ -101,7 +101,9 @@ export class ServiceCalculsFinanciers {
     const totalRevenus = transactions.reduce((sum, t) => sum + t.montant, 0);
 
     const parCategorie = transactions.reduce((acc: any, transaction) => {
-      const categorie = transaction.categorie || 'Autres';
+      let categorie = transaction.categorie ? transaction.categorie.trim() : 'Autres';
+      categorie = categorie.charAt(0).toUpperCase() + categorie.slice(1).toLowerCase();
+      
       if (!acc[categorie]) {
         acc[categorie] = 0;
       }
