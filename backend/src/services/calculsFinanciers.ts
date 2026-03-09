@@ -5,7 +5,6 @@ import mongoose from 'mongoose';
 import { format } from 'date-fns';
 
 export class ServiceCalculsFinanciers {
-//calculer le solde total d'un utilisateur
   async calculerSolde(utilisateurId: string): Promise<number> {
     const transactions = await Transaction.find({
       utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
@@ -16,7 +15,6 @@ export class ServiceCalculsFinanciers {
     }, 0);
   }
 
-//calculer les revenus totaux sur une période
   async calculerRevenus(
     utilisateurId: string,
     dateDebut: Date,
@@ -31,7 +29,6 @@ export class ServiceCalculsFinanciers {
     return transactions.reduce((total, transaction) => total + transaction.montant, 0);
   }
 
-//calculer les dépenses totales sur une période
   async calculerDepenses(
     utilisateurId: string,
     dateDebut: Date,
@@ -46,7 +43,6 @@ export class ServiceCalculsFinanciers {
     return transactions.reduce((total, transaction) => total + transaction.montant, 0);
   }
 
-//calculer le taux d'épargne
   async calculerTauxEpargne(
     utilisateurId: string,
     dateDebut: Date,
@@ -60,7 +56,6 @@ export class ServiceCalculsFinanciers {
     return ((revenus - depenses) / revenus) * 100;
   }
 
- //obtenir la répartition des dépenses par catégorie
   async obtenirRepartitionDepenses(
     utilisateurId: string,
     dateDebut: Date,
@@ -92,7 +87,37 @@ export class ServiceCalculsFinanciers {
       .sort((a, b) => b.montant - a.montant);
   }
 
-//obtenir les top dépenses
+  async obtenirRepartitionRevenus(
+    utilisateurId: string,
+    dateDebut: Date,
+    dateFin: Date
+  ): Promise<Array<{ categorie: string; montant: number; pourcentage: number }>> {
+    const transactions = await Transaction.find({
+      utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+      type: 'revenu',
+      date: { $gte: dateDebut, $lte: dateFin }
+    });
+
+    const totalRevenus = transactions.reduce((sum, t) => sum + t.montant, 0);
+
+    const parCategorie = transactions.reduce((acc: any, transaction) => {
+      const categorie = transaction.categorie || 'Autres';
+      if (!acc[categorie]) {
+        acc[categorie] = 0;
+      }
+      acc[categorie] += transaction.montant;
+      return acc;
+    }, {});
+
+    return Object.entries(parCategorie)
+      .map(([categorie, montant]: [string, any]) => ({
+        categorie,
+        montant,
+        pourcentage: totalRevenus > 0 ? (montant / totalRevenus) * 100 : 0
+      }))
+      .sort((a, b) => b.montant - a.montant);
+  }
+
   async obtenirTopDepenses(
     utilisateurId: string,
     dateDebut: Date,
@@ -115,7 +140,6 @@ export class ServiceCalculsFinanciers {
     }));
   }
 
-//obtenir l'évolution du solde sur une période
   async obtenirEvolutionSolde(
     utilisateurId: string,
     dateDebut: Date,
@@ -155,7 +179,6 @@ export class ServiceCalculsFinanciers {
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
-//calculer les statistiques d'un budget
   async calculerStatistiquesBudget(budgetId: string): Promise<{
     montantUtilise: number;
     montantRestant: number;
@@ -222,7 +245,6 @@ export class ServiceCalculsFinanciers {
     };
   }
 
-//générer les données pour le flux de trésorerie
   async genererFluxTresorerie(
     utilisateurId: string,
     dateDebut: Date,

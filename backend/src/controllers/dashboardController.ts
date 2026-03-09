@@ -7,7 +7,6 @@ import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, format } f
 const serviceCalculs = new ServiceCalculsFinanciers();
 
 export class DashboardController {
-//metriques du tableau de bord
   static obtenirMetriques = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const { periode, dateDebut: dateDebutStr, dateFin: dateFinStr } = req.query as {
       periode?: string;
@@ -54,6 +53,7 @@ export class DashboardController {
     const depenses = await serviceCalculs.calculerDepenses(req.utilisateurId!, dateDebut, dateFin);
     const tauxEpargne = await serviceCalculs.calculerTauxEpargne(req.utilisateurId!, dateDebut, dateFin);
     const repartition = await serviceCalculs.obtenirRepartitionDepenses(req.utilisateurId!, dateDebut, dateFin);
+    const repartitionRevenus = await serviceCalculs.obtenirRepartitionRevenus(req.utilisateurId!, dateDebut, dateFin);
     const topDepenses = await serviceCalculs.obtenirTopDepenses(req.utilisateurId!, dateDebut, dateFin, 5);
     const evolution = await serviceCalculs.obtenirEvolutionSolde(req.utilisateurId!, dateDebut, dateFin, 'jour');
 
@@ -69,13 +69,13 @@ export class DashboardController {
           tauxEpargne
         },
         repartitionDepenses: repartition,
+        repartitionRevenus,
         topDepenses,
         evolutionSolde: evolution
       }
     });
   });
 
-  // tendances mensuelles (revenus vs dépenses par mois) pour les N derniers mois
   static tendancesMensuelles = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const nbMois = Math.min(12, Math.max(3, parseInt((req.query.nbMois as string) || '6', 10) || 6));
     const fin = new Date();
