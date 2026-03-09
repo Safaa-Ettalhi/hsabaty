@@ -30,7 +30,6 @@ export function getChartColors() {
     muted: getCssVar("--muted") || FALLBACK.muted,
     mutedFg: getCssVar("--muted-foreground") || FALLBACK.mutedDark,
     border,
-    /** Very light gray for grid/axis lines so they don't dominate */
     gridLine: "rgba(0, 0, 0, 0.07)",
     background: getCssVar("--background") || "oklch(1 0 0)",
   }
@@ -43,7 +42,6 @@ export function getChartPalette(): string[] {
   return CHART_COLORS.map((k) => c[k])
 }
 
-/** Pro default options for all charts: grid, font, tooltip, legend */
 export function getChartDefaults(): Partial<ChartOptions<"line" | "bar" | "doughnut" | "pie">> {
   const colors = getChartColors()
   return {
