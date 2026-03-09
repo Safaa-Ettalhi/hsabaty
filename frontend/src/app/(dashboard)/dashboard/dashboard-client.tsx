@@ -413,7 +413,7 @@ function moyennesTendances(data: any[]) {
 
 function ChartRevenusCanauxBar({ revenusData }: { revenusData: any[] }) {
   const opacities = [0.9, 0.7, 0.5, 0.35, 0.2]
-  const chartData = (revenusData || []).slice(0, 5).map((r, i) => ({
+  const chartData = (revenusData || []).slice(0, 6).map((r, i) => ({
     canal: r.categorie,
     montant: r.montant,
     fill: `rgba(83, 58, 253, ${opacities[i] ?? 0.2})`,
@@ -431,6 +431,7 @@ function ChartRevenusCanauxBar({ revenusData }: { revenusData: any[] }) {
           <YAxis
             dataKey="canal"
             type="category"
+            width={140}
             tickLine={false}
             tickMargin={10}
             axisLine={false}
