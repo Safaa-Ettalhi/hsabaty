@@ -17,6 +17,7 @@ import {
   LabelList,
   PolarGrid,
   PolarRadiusAxis,
+  PolarAngleAxis,
   RadialBar,
   RadialBarChart,
   XAxis,
@@ -227,10 +228,12 @@ function ChartRadialEpargne({ valeur }: { valeur: number }) {
         >
           <RadialBarChart
             data={chartData}
-            endAngle={100}
+            startAngle={90}
+            endAngle={-270}
             innerRadius={80}
             outerRadius={140}
           >
+            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
             <PolarGrid
               gridType="circle"
               radialLines={false}
@@ -238,7 +241,7 @@ function ChartRadialEpargne({ valeur }: { valeur: number }) {
               className="first:fill-muted last:fill-background"
               polarRadius={[86, 74]}
             />
-            <RadialBar dataKey="pourcentage" background />
+            <RadialBar dataKey="pourcentage" background cornerRadius={10} />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
               <Label
                 content={({ viewBox }) => {
