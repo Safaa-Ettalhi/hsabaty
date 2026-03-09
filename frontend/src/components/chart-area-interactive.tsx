@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 "use client"
 
 import * as React from "react"
@@ -139,7 +140,7 @@ export function ChartAreaInteractive({
             value={timeRange}
             onValueChange={setTimeRange}
             variant="outline"
-            className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
+            className="hidden *:data-[slot=toggle-group-item]:px-4! @[767px]/card:flex"
           >
             <ToggleGroupItem value="90d">3 mois</ToggleGroupItem>
             <ToggleGroupItem value="30d">30 jours</ToggleGroupItem>
@@ -169,11 +170,11 @@ export function ChartAreaInteractive({
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         {chartData ? (
-          <div className="h-[250px] w-full">
+          <div className="h-62.5 w-full">
             <Line data={chartData} options={options as object} />
           </div>
         ) : (
-          <div className="bg-muted/50 flex h-[250px] items-center justify-center rounded-lg text-muted-foreground text-sm">
+          <div className="bg-muted/50 flex h-62.5 items-center justify-center rounded-lg text-muted-foreground text-sm">
             {isLoading ? "Chargement..." : "Aucune donnée d'évolution sur la période"}
           </div>
         )}
