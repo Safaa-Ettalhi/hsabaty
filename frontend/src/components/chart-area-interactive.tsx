@@ -1,8 +1,18 @@
 "use client"
 
 import * as React from "react"
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
-
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Filler,
+  Tooltip,
+  Legend,
+  LineController,
+} from "chart.js"
+import { Line } from "react-chartjs-2"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
   Card,
@@ -13,39 +23,27 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart"
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { getChartColors, getChartDefaults } from "@/lib/chart-theme"
 
-export const description = "Graphique d’évolution du solde"
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Filler,
+  Tooltip,
+  Legend,
+  LineController
+)
 
-const chartConfig = {
-  solde: {
-    label: "Solde",
-    color: "var(--primary)",
-  },
-  desktop: {
-    label: "Solde",
-    color: "var(--primary)",
-  },
-  mobile: {
-    label: "Solde",
-    color: "var(--primary)",
-  },
-} satisfies ChartConfig
+export const description = "Graphique d'évolution du solde"
 
 export function ChartAreaInteractive({
   evolutionSolde,
@@ -58,9 +56,7 @@ export function ChartAreaInteractive({
   const [timeRange, setTimeRange] = React.useState("90d")
 
   React.useEffect(() => {
-    if (isMobile) {
-      setTimeRange("7d")
-    }
+    if (isMobile) setTimeRange("7d")
   }, [isMobile])
 
   const apiData = React.useMemo(() => {
@@ -81,14 +77,60 @@ export function ChartAreaInteractive({
         })()
       : apiData
 
+  const colors = getChartColors()
+  const defaults = getChartDefaults()
+
+  const chartData = React.useMemo(() => {
+    if (!filteredApiData?.length) return null
+    return {
+      labels: filteredApiData.map((d) =>
+        new Date(d.date).toLocaleDateString("fr-FR", { month: "short", day: "numeric" })
+      ),
+      datasets: [
+        {
+          label: "Solde",
+          data: filteredApiData.map((d) => d.solde),
+          borderColor: colors.primary,
+          backgroundColor: colors.primary + "25",
+          fill: true,
+          tension: 0.35,
+          pointRadius: 2,
+          pointBackgroundColor: colors.primary,
+        },
+      ],
+    }
+  }, [filteredApiData, colors.primary])
+
+  const options = React.useMemo(
+    () => ({
+      ...defaults,
+      plugins: {
+        ...defaults.plugins,
+        legend: { display: false },
+        tooltip: {
+          ...defaults.plugins?.tooltip,
+          callbacks: {
+            title: (items: { dataIndex?: number }[]) => {
+              const idx = items[0]?.dataIndex
+              const date = filteredApiData?.[idx ?? 0]?.date
+              return date
+                ? new Date(date).toLocaleDateString("fr-FR", { month: "short", day: "numeric" })
+                : ""
+            },
+            label: (ctx: { parsed: { y?: number } }) => `${ctx.parsed.y?.toLocaleString("fr-MA", { maximumFractionDigits: 0 })} MAD`,
+          },
+        },
+      },
+    }),
+    [defaults, filteredApiData]
+  )
+
   return (
     <Card className="@container/card">
       <CardHeader>
         <CardTitle>Évolution du solde</CardTitle>
         <CardDescription>
-          <span className="hidden @[540px]/card:block">
-            Solde sur les 3 derniers mois
-          </span>
+          <span className="hidden @[540px]/card:block">Solde sur les 3 derniers mois</span>
           <span className="@[540px]/card:hidden">3 derniers mois</span>
         </CardDescription>
         <CardAction>
@@ -126,67 +168,13 @@ export function ChartAreaInteractive({
         </CardAction>
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        {filteredApiData?.length ? (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[250px] w-full"
-          >
-            <AreaChart data={filteredApiData}>
-              <defs>
-                <linearGradient id="fillSolde" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="var(--color-solde)"
-                    stopOpacity={1}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="var(--color-solde)"
-                    stopOpacity={0.1}
-                  />
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="date"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                minTickGap={32}
-                tickFormatter={(value) => {
-                  const date = new Date(value)
-                  return date.toLocaleDateString("fr-FR", {
-                    month: "short",
-                    day: "numeric",
-                  })
-                }}
-              />
-              <ChartTooltip
-                cursor={false}
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(value) =>
-                      new Date(value).toLocaleDateString("fr-FR", {
-                        month: "short",
-                        day: "numeric",
-                      })
-                    }
-                    formatter={(value) => [`${Number(value).toFixed(0)} MAD`, "Solde"]}
-                    indicator="dot"
-                  />
-                }
-              />
-              <Area
-                dataKey="solde"
-                type="natural"
-                fill="url(#fillSolde)"
-                stroke="var(--color-solde)"
-              />
-            </AreaChart>
-          </ChartContainer>
+        {chartData ? (
+          <div className="h-[250px] w-full">
+            <Line data={chartData} options={options as object} />
+          </div>
         ) : (
           <div className="bg-muted/50 flex h-[250px] items-center justify-center rounded-lg text-muted-foreground text-sm">
-            {isLoading ? "Chargement..." : "Aucune donnée d’évolution sur la période"}
+            {isLoading ? "Chargement..." : "Aucune donnée d'évolution sur la période"}
           </div>
         )}
       </CardContent>
