@@ -176,6 +176,24 @@ export function InsightsClient() {
         });
       };
 
+      const processedBlocks: any[] = [];
+      let currentTable: string[] | null = null;
+      
+      for (let i = 0; i < blocks.length; i++) {
+        const trimmed = blocks[i].trim();
+        if (trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.includes('|')) {
+          if (!currentTable) currentTable = [];
+          currentTable.push(trimmed);
+        } else {
+          if (currentTable) {
+            processedBlocks.push({ type: 'table', rows: currentTable });
+            currentTable = null;
+          }
+          processedBlocks.push({ type: 'line', content: blocks[i] });
+        }
+      }
+      if (currentTable) processedBlocks.push({ type: 'table', rows: currentTable });
+
       return (
         <div className="w-full relative rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 p-6 md:p-8 xl:p-10 shadow-sm transition-all">
            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8 pb-6 border-b border-zinc-100 dark:border-zinc-800/80">
@@ -190,19 +208,65 @@ export function InsightsClient() {
              </div>
            </div>
 
-           <div dir="auto" className="space-y-1.5 max-w-4xl">
-             {blocks.map((block, i) => {
-               const trimmed = block.trim();
-               if (!trimmed) return <div key={i} className="h-2"></div>;
+           <div dir="auto" className="space-y-1.5 w-full">
+             {processedBlocks.map((item, i) => {
+                 if (item.type === 'table') {
+                    const headerRow = item.rows[0];
+                    const hasSeparator = item.rows.length > 1 && item.rows[1].startsWith('|-');
+                    const bodyRows = hasSeparator ? item.rows.slice(2) : item.rows.slice(1);
+                    const headerCells = headerRow.split('|').filter((c: string) => c.trim() !== '');
+                    
+                    return (
+                      <div key={i} className="my-6 w-full overflow-x-auto pb-2">
+                        <div className="min-w-175 border border-zinc-200/80 dark:border-zinc-800/80 rounded-xl overflow-hidden bg-white dark:bg-zinc-900/30">
+                           <div className="grid bg-zinc-50/80 dark:bg-zinc-800/40 border-b border-zinc-200/80 dark:border-zinc-800/80 font-bold text-xs uppercase tracking-wider text-zinc-500" style={{ gridTemplateColumns: `repeat(${headerCells.length}, minmax(0, 1fr))` }}>
+                             {headerCells.map((cell: string, idx: number) => (
+                               <div key={idx} className="p-3.5 px-4 leading-relaxed whitespace-pre-wrap">{formatInline(cell.trim())}</div>
+                             ))}
+                           </div>
+                           {bodyRows.map((row: string, rowIdx: number) => {
+                              const cells = row.split('|').filter((c: string) => c.trim() !== '');
+                              const colCount = Math.max(headerCells.length, cells.length);
+                              return (
+                                <div key={rowIdx} className={cn("grid text-[14px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40 transition-colors", rowIdx !== bodyRows.length - 1 && "border-b border-zinc-100 dark:border-zinc-800/80")} style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}>
+                                  {cells.map((cell: string, idx: number) => (
+                                    <div key={idx} className="p-3.5 px-4 leading-relaxed whitespace-pre-wrap">{formatInline(cell.trim())}</div>
+                                  ))}
+                                </div>
+                              );
+                           })}
+                        </div>
+                      </div>
+                    );
+                 }
+
+                 const trimmed = item.content.trim();
+                 if (!trimmed) return <div key={i} className="h-2"></div>;
+
+                 if (trimmed.startsWith('## ')) {
+                   return (
+                     <h3 key={i} className="text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-3 mt-8 mb-4">
+                       <span className={cn("w-1.5 h-6 rounded-full bg-current shrink-0", tabConfig.color)}></span>
+                       <span>{formatInline(trimmed.substring(3))}</span>
+                     </h3>
+                   );
+                 }
+                 if (trimmed.startsWith('# ')) {
+                   return <h2 key={i} className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 mt-10 mb-5">{formatInline(trimmed.substring(2))}</h2>;
+                 }
+
+                 if (trimmed === '---' || trimmed === '***') {
+                   return <div key={i} className="h-px w-full bg-zinc-200 dark:bg-zinc-800 my-8"></div>;
+                 }
 
                const isFullBold = trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 150;
-               if (isFullBold) {
+               if (isFullBold && !trimmed.includes('|')) {
                  return (
                    <div key={i} className="pt-6 pb-2">
-                     <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-start gap-3">
-                       <span className={cn("mt-1.5 w-1.5 h-4 rounded-full bg-current shrink-0", tabConfig.color)}></span>
+                     <h4 className="text-[17px] font-bold text-zinc-900 dark:text-zinc-100 flex items-start gap-2.5">
+                       <span className={cn("mt-1.5 size-1.5 rounded-full bg-current shrink-0", tabConfig.color)}></span>
                        <span className="leading-snug">{trimmed.slice(2, -2)}</span>
-                     </h3>
+                     </h4>
                    </div>
                  );
                }
@@ -211,13 +275,13 @@ export function InsightsClient() {
                  const match = trimmed.match(/^(\d+)\.\s(.*)/);
                  if (match) {
                    return (
-                     <div key={i} className="pt-6 pb-2 flex items-start gap-3.5">
-                       <span className={cn("shrink-0 flex items-center justify-center size-8 rounded-full text-sm font-extrabold shadow-sm border", tabConfig.bg, tabConfig.color, "border-current/10")}>
+                     <div key={i} className="pt-5 pb-1.5 flex items-start gap-3.5">
+                       <span className={cn("shrink-0 flex items-center justify-center size-8 rounded-full text-sm font-extrabold shadow-sm border mt-0.5", tabConfig.bg, tabConfig.color, "border-current/10")}>
                          {match[1]}
                        </span>
-                       <h4 className="text-base font-bold text-zinc-900 dark:text-zinc-100 pt-1 leading-relaxed">
+                       <div className="text-[15.5px] font-bold text-zinc-900 dark:text-zinc-100 pt-1 leading-relaxed">
                          {formatInline(match[2])}
-                       </h4>
+                       </div>
                      </div>
                    );
                  }
@@ -229,6 +293,19 @@ export function InsightsClient() {
                      <div className="mt-2.5 size-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600 shrink-0"></div>
                      <div className="text-zinc-600 dark:text-zinc-300 leading-relaxed text-[15px]">
                        {formatInline(trimmed.substring(2))}
+                     </div>
+                   </div>
+                 );
+               }
+
+               if (trimmed.startsWith('>')) {
+                 return (
+                   <div key={i} className="my-6 p-4 md:p-5 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 flex gap-3.5 text-blue-800 dark:text-blue-300">
+                     <div className="mt-0.5 shrink-0 text-blue-500">
+                       <Sparkles className="size-5" />
+                     </div>
+                     <div className="text-[14px] leading-relaxed font-medium italic">
+                       {formatInline(trimmed.substring(1).trim())}
                      </div>
                    </div>
                  );
