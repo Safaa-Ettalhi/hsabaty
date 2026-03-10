@@ -355,6 +355,43 @@ export class ServiceAgentIA {
     }
   }
 
+
+  async genererConseils(prompt: string): Promise<{ reponse: string }> {
+    try {
+      const systemInstruction = "Tu es un expert financier. Tu DOIS ABSOLUMENT RÉPONDRE EN FRANÇAIS QUEL QUE SOIT LE CONTEXTE. Sois précis, structuré et professionnel.";
+      if (this.provider === 'openai' && this.openai) {
+        const completion = await this.openai.chat.completions.create({
+          model: this.model,
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+        });
+        return { reponse: completion.choices[0].message.content || '' };
+      } else if (this.provider === 'claude' && this.anthropic) {
+        const message = await this.anthropic.messages.create({
+          model: this.model,
+          max_tokens: 1024,
+          system: systemInstruction,
+          messages: [{ role: 'user', content: prompt }]
+        });
+        return { reponse: message.content[0].type === 'text' ? message.content[0].text : '' };
+      } else if (this.provider === 'gemini' && this.gemini) {
+        const model = this.gemini.getGenerativeModel({
+          model: this.model,
+          systemInstruction: systemInstruction
+        });
+        const result = await model.generateContent(prompt);
+        return { reponse: result.response.text() || '' };
+      }
+      return { reponse: "" };
+    } catch (e) {
+      console.error("[ServiceAgentIA] Erreur genererConseils", e);
+      return { reponse: "Voici quelques conseils généraux: \n1. Suivez vos dépenses.\n2. Épargnez régulièrement." };
+    }
+  }
+
 //transcrire un fichier audio en texte
   async transcrireAudio(bufferAudio: Buffer, nomFichier = 'audio.webm'): Promise<string> {
     if (!this.openai) {
