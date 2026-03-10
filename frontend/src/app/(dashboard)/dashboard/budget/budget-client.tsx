@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plus, Pencil, Trash2, Wallet, Target, AlertCircle} from "lucide-react"
+import { Plus, Pencil, Trash2, Wallet, Target, AlertCircle, TrendingDown} from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -70,25 +70,22 @@ function chargerBudgets(setBudgets: (b: Budget[]) => void, setLoading: (l: boole
 
 function ProgressBar({ statut, pourcentage }: { statut?: string; pourcentage: number }) {
   const pct = Math.min(100, Math.max(0, pourcentage))
-  
-  let gradientClass = "bg-linear-to-r from-emerald-400 to-emerald-500 dark:from-emerald-500 dark:to-emerald-600"
-  let bgClass = "bg-emerald-100 dark:bg-emerald-950/40"
-  let shadowClass = "shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-  
+
+  let gradientClass = "bg-emerald-500"
+  let bgClass = "bg-emerald-50 dark:bg-emerald-500/10"
+
   if (statut === "depasse") {
-    gradientClass = "bg-linear-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700"
-    bgClass = "bg-red-100 dark:bg-red-950/40"
-    shadowClass = "shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+    gradientClass = "bg-rose-500"
+    bgClass = "bg-rose-50 dark:bg-rose-500/10"
   } else if (statut === "attention") {
-    gradientClass = "bg-linear-to-r from-amber-400 to-amber-500 dark:from-amber-500 dark:to-amber-600"
-    bgClass = "bg-amber-100 dark:bg-amber-950/40"
-    shadowClass = "shadow-[0_0_10px_rgba(245,158,11,0.3)]"
+    gradientClass = "bg-amber-500"
+    bgClass = "bg-amber-50 dark:bg-amber-500/10"
   }
 
   return (
-    <div className={cn("h-3 w-full overflow-hidden rounded-full", bgClass)}>
+    <div className={cn("h-2.5 w-full overflow-hidden rounded-full", bgClass)}>
       <div
-        className={cn("h-full rounded-full transition-all duration-1000 ease-out", gradientClass, pct > 10 && shadowClass)}
+        className={cn("h-full rounded-full transition-all duration-1000 ease-out", gradientClass)}
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -188,44 +185,42 @@ export function BudgetClient() {
   const globalRestant = Math.max(0, globalMontantTotal - globalUtilise)
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Budgets</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Gérez vos enveloppes de dépenses de manière claire et précise.
-          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Budgets</h1>
+          <p className="text-zinc-500 mt-1 block">Fixez vos limites et contrôlez précisément vos dépenses.</p>
         </div>
         <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ nom: "", montant: 0, periode: "mensuel", categorie: "" }) }}>
           <DialogTrigger asChild>
-            <Button className="gap-2 shadow-sm rounded-full px-6" onClick={() => setEditing(null)}>
-              <Plus className="h-4 w-4" />
-              Nouveau budget
+            <Button className="gap-2 shadow-sm bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-all rounded-xl px-5 h-11">
+              <Plus className="size-4" />
+              Nouveau Budget
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md p-6">
-            <DialogHeader className="pb-4 border-b">
-              <DialogTitle className="text-lg">Créer une enveloppe</DialogTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Définissez une limite de dépenses pour une période donnée.
+          <DialogContent className="sm:max-w-md p-6 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 shadow-xl">
+            <DialogHeader className="pb-4 border-b border-zinc-100 dark:border-zinc-800/80 mb-2">
+              <DialogTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Créer une enveloppe</DialogTitle>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Définissez un plafond de dépenses pour sécuriser votre épargne.
               </p>
             </DialogHeader>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
               <div className="grid grid-cols-2 gap-4">
                 <Field>
-                  <FieldLabel className="text-sm font-medium mb-1.5">Nom</FieldLabel>
-                  <Input placeholder="Ex. Courses" className="h-10" {...form.register("nom")} />
+                  <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-200">Nom</FieldLabel>
+                  <Input placeholder="Ex. Restaurants" className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800" {...form.register("nom")} />
                   <FieldError errors={[form.formState.errors.nom]} />
                 </Field>
                 <Field>
-                  <FieldLabel className="text-sm font-medium mb-1.5">Période</FieldLabel>
+                  <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-200">Période</FieldLabel>
                   <Controller
                     control={form.control}
                     name="periode"
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectTrigger className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800"><SelectValue /></SelectTrigger>
+                        <SelectContent className="rounded-xl">
                           {periodeOptions.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                           ))}
@@ -237,18 +232,18 @@ export function BudgetClient() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <Field>
-                  <FieldLabel className="text-sm font-medium mb-1.5">Limite (MAD)</FieldLabel>
-                  <Input type="number" min={1} step={1} placeholder="5000" className="h-10" {...form.register("montant", { valueAsNumber: true })} />
+                  <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-200">Plafond (MAD)</FieldLabel>
+                  <Input type="number" min={1} step={1} placeholder="3000" className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 font-semibold" {...form.register("montant", { valueAsNumber: true })} />
                   <FieldError errors={[form.formState.errors.montant]} />
                 </Field>
                 <Field>
-                  <FieldLabel className="text-sm font-medium mb-1.5">Catégorie</FieldLabel>
-                  <Input placeholder="Ex. Alimentation" className="h-10" {...form.register("categorie")} />
+                  <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-200 text-optional">Catégorie associée</FieldLabel>
+                  <Input placeholder="Ex. Loisirs" className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800" {...form.register("categorie")} />
                 </Field>
               </div>
-              <DialogFooter className="pt-4 flex gap-2">
-                <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setOpen(false)}>Annuler</Button>
-                <Button type="submit" className="w-full sm:w-auto">Créer le budget</Button>
+              <DialogFooter className="pt-4 mt-2">
+                <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setOpen(false)}>Annuler</Button>
+                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 h-11">Enregistrer</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -256,29 +251,29 @@ export function BudgetClient() {
       </div>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="sm:max-w-md p-6">
-          <DialogHeader className="pb-4 border-b">
-            <DialogTitle className="text-lg">Modifier le budget</DialogTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Ajustez les paramètres de votre enveloppe existante.
+        <DialogContent className="sm:max-w-md p-6 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 shadow-xl">
+          <DialogHeader className="pb-4 border-b border-zinc-100 dark:border-zinc-800/80 mb-2">
+            <DialogTitle className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Modifier le budget</DialogTitle>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Ajustez vos paramètres financiers pour cette enveloppe.
             </p>
           </DialogHeader>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-4">
               <Field>
-                <FieldLabel className="text-sm font-medium mb-1.5">Nom</FieldLabel>
-                <Input className="h-10" {...form.register("nom")} />
+                <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-200">Nom</FieldLabel>
+                <Input className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800" {...form.register("nom")} />
                 <FieldError errors={[form.formState.errors.nom]} />
               </Field>
               <Field>
-                <FieldLabel className="text-sm font-medium mb-1.5">Période</FieldLabel>
+                <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-200">Période</FieldLabel>
                 <Controller
                   control={form.control}
                   name="periode"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800"><SelectValue /></SelectTrigger>
+                      <SelectContent className="rounded-xl">
                         {periodeOptions.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                         ))}
@@ -290,49 +285,51 @@ export function BudgetClient() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Field>
-                <FieldLabel className="text-sm font-medium mb-1.5">Limite (MAD)</FieldLabel>
-                <Input type="number" min={1} step={1} className="h-10" {...form.register("montant", { valueAsNumber: true })} />
+                <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-200">Plafond (MAD)</FieldLabel>
+                <Input type="number" min={1} step={1} className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800 font-semibold" {...form.register("montant", { valueAsNumber: true })} />
                 <FieldError errors={[form.formState.errors.montant]} />
               </Field>
               <Field>
-                <FieldLabel className="text-sm font-medium mb-1.5">Catégorie</FieldLabel>
-                <Input className="h-10" {...form.register("categorie")} />
+                <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-200 text-optional">Catégorie associée</FieldLabel>
+                <Input className="h-11 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800" {...form.register("categorie")} />
               </Field>
             </div>
-            <DialogFooter className="pt-4 flex gap-2">
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setEditing(null)}>Annuler</Button>
-              <Button type="submit" className="w-full sm:w-auto">Enregistrer</Button>
+            <DialogFooter className="pt-4 mt-2">
+              <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setEditing(null)}>Annuler</Button>
+              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 h-11">Mettre à jour</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <DialogContent className="sm:max-w-md p-6">
+        <DialogContent className="sm:max-w-md p-6 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 shadow-xl">
           {toDelete && (
-             <div className="flex flex-col gap-5">
-               <DialogHeader>
-                 <DialogTitle className="text-lg flex items-center gap-2 text-destructive">
-                   <AlertCircle className="h-5 w-5" />
-                   Suppression de budget
-                 </DialogTitle>
-                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                   Vous êtes sur le point de supprimer ce budget. Son suivi sera effacé mais <strong>vos transactions resteront intactes</strong>.
-                 </p>
-               </DialogHeader>
-               <div className="rounded-lg border bg-destructive/5 p-4 flex flex-col gap-1">
-                 <p className="font-semibold text-foreground">{toDelete.nom}</p>
-                 <p className="text-sm text-muted-foreground">
-                   {formatter.format(toDelete.montant)} · {toDelete.periode}
-                   {toDelete.categorie ? <> · {toDelete.categorie}</> : null}
+             <div className="flex flex-col gap-4">
+               <div>
+                  <DialogTitle className="text-xl text-rose-600 flex items-center gap-2">
+                    Supprimer ce budget ?
+                  </DialogTitle>
+                  <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    Son enveloppe de suivi sera supprimée, mais soyez sans crainte : <strong className="text-zinc-900 dark:text-zinc-100">vos transactions resteront intactes.</strong>
+                  </p>
+               </div>
+               
+               <div className="rounded-2xl border border-rose-100 dark:border-rose-900/30 bg-rose-50/50 dark:bg-rose-500/5 p-4 flex flex-col gap-2 mt-2">
+                 <p className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center justify-between text-base">
+                   {toDelete.nom}
+                   <span className="font-bold text-rose-600">
+                     {formatter.format(toDelete.montant)}
+                   </span>
                  </p>
                </div>
-               <DialogFooter className="mt-2 flex gap-2">
-                 <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setToDelete(null)}>
-                   Annuler
+
+               <DialogFooter className="mt-4 flex gap-2">
+                 <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11 font-medium" onClick={() => setToDelete(null)}>
+                   Conserver
                  </Button>
-                 <Button type="button" variant="destructive" className="w-full sm:w-auto" onClick={() => handleDelete(toDelete)}>
-                   Supprimer définitivement
+                 <Button type="button" variant="destructive" className="rounded-xl w-full sm:w-auto shadow-sm hover:shadow-md bg-rose-600 hover:bg-rose-700 h-11 font-semibold" onClick={() => handleDelete(toDelete)}>
+                   Oui, supprimer
                  </Button>
                </DialogFooter>
              </div>
@@ -343,161 +340,139 @@ export function BudgetClient() {
       {/* Contenu principal */}
       {loading ? (
         <div className="space-y-4">
-          <Skeleton className="h-16 w-full rounded-2xl" />
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+          <Skeleton className="h-32 w-full rounded-3xl" />
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
         </div>
       ) : budgets.length > 0 ? (
         <div className="space-y-6">
-          {/* Bannière de synthèse très discrète (pas de grosse carte) */}
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-muted/30 px-6 py-4 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Target className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Budget Global</p>
-                <p className="text-lg font-bold">{formatter.format(globalMontantTotal)}</p>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-center">
+               <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Masse Budgétisée</p>
+               <h3 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">{formatter.format(globalMontantTotal)}</h3>
+               <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+                 Total de vos plafonds
+               </div>
             </div>
-            
-            <div className="w-px h-10 bg-border hidden sm:block"></div>
-            
-            <div className="flex items-center gap-8">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Consommé</p>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-amber-500"></div>
-                  <p className="font-semibold">{formatter.format(globalUtilise)}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Restant</p>
-                <div className="flex items-center gap-1.5">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                  <p className="font-semibold">{formatter.format(globalRestant)}</p>
-                </div>
-              </div>
+
+            <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-center">
+               <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
+                 <TrendingDown className="size-24" />
+               </div>
+               <p className="text-sm font-semibold text-rose-700/80 dark:text-rose-400/80 mb-1">Dépensé</p>
+               <h3 className="text-3xl font-extrabold tracking-tight text-rose-600 dark:text-rose-400 tabular-nums">{formatter.format(globalUtilise)}</h3>
+               <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Déjà consommé
+               </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-6 shadow-sm text-white flex flex-col justify-center">
+               <div className="absolute top-0 right-0 p-4 opacity-5">
+                 <Wallet className="size-24" />
+               </div>
+               <p className="text-sm font-semibold text-zinc-300 mb-1">Reste disponible</p>
+               <h3 className="text-3xl font-extrabold tabular-nums tracking-tight text-white">{formatter.format(globalRestant)}</h3>
+               <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+                 Coussin sécuritaire
+               </div>
             </div>
           </div>
 
-          {/* Liste Ultra-Premium */}
-          <ul className="space-y-4">
+          <div className="space-y-3">
             {budgets.map((b) => {
               const statut = b.statistiques?.statut ?? "ok"
               const pct = b.statistiques?.pourcentageUtilise ?? 0
               const restant = b.statistiques?.montantRestant ?? b.montant
               const utilise = b.statistiques?.montantUtilise ?? 0
-              const dateFin = b.dateFin ? new Date(b.dateFin) : null
-              const dateDebut = b.dateDebut ? new Date(b.dateDebut) : null
-              const now = new Date()
-              const joursTotal = dateDebut && dateFin ? Math.max(1, Math.ceil((dateFin.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24))) : 0
-              const joursEcoules = dateDebut ? Math.max(0, Math.ceil((now.getTime() - dateDebut.getTime()) / (1000 * 60 * 60 * 24))) : 0
-              const previsionFin = joursEcoules > 0 && joursTotal > 0 && utilise > 0
-                ? (utilise / joursEcoules) * joursTotal
-                : null
-
+              
               const isDepasse = statut === "depasse"
               const isAttention = statut === "attention"
 
               return (
-                <li
+                <div
                   key={b._id}
                   className={cn(
-                    "group relative overflow-hidden rounded-2xl border bg-card/40 p-5 shadow-xs transition-all duration-300 hover:shadow-md hover:bg-card hover:border-border/80 flex flex-col sm:flex-row sm:items-center gap-6",
-                    isDepasse && "border-red-200/50 dark:border-red-900/30 bg-red-50/10 dark:bg-red-950/10",
-                    isAttention && "border-amber-200/50 dark:border-amber-900/30"
+                    "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-5 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 p-5 shadow-sm transition-all hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700"
                   )}
                 >
-                  {/* Icône de catégorie ou Wallet générique */}
-                  <div className={cn(
-                    "shrink-0 h-14 w-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105",
-                    isDepasse ? "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400" :
-                    isAttention ? "bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400" :
-                    "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
-                  )}>
-                    {isDepasse ? <AlertCircle className="h-6 w-6" /> : isAttention ? <Target className="h-6 w-6" /> : <Wallet className="h-6 w-6" />}
-                  </div>
-
-                  {/* Info Titre */}
-                  <div className="sm:w-1/4 min-w-45">
-                    <h3 className="text-lg font-bold tracking-tight mb-1">{b.nom}</h3>
-                    <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                      {b.categorie || "Toutes catégories"} 
-                      <span className="h-1 w-1 rounded-full bg-border"></span>
-                      <span className="capitalize">{b.periode}</span>
-                    </p>
-                  </div>
-
-                  {/* Barre de Progression et Nombres */}
-                  <div className="flex-1 min-w-50">
-                    <div className="flex items-end justify-between mb-2.5">
-                      <div>
-                        <span className="text-lg font-bold tabular-nums leading-none">
-                          {formatter.format(utilise)}
-                        </span>
-                        <span className="text-sm font-medium text-muted-foreground/80 tabular-nums ml-1">
-                          / {formatter.format(b.montant)}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className={cn(
-                          "text-sm font-bold tabular-nums px-2.5 py-1 rounded-full",
-                          isDepasse ? "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-400" : 
-                          isAttention ? "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400" : 
-                          "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400"
-                        )}>
-                          {pct.toFixed(0)}%
-                        </span>
-                      </div>
+                  <div className="flex items-center gap-4 sm:w-1/3 min-w-48">
+                    <div className={cn(
+                      "shrink-0 h-14 w-14 rounded-2xl flex items-center justify-center border shadow-xs transition-transform group-hover:scale-105",
+                      isDepasse ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20" :
+                        isAttention ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20" :
+                          "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                    )}>
+                      {isDepasse ? <AlertCircle className="size-6" /> : isAttention ? <Target className="size-6" /> : <Wallet className="size-6" />}
                     </div>
-                    
+                    <div>
+                      <h3 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100 mb-1">{b.nom}</h3>
+                      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                        <span className="capitalize">{b.periode}</span>
+                        {b.categorie && (
+                          <>
+                            <span className="h-1 w-1 rounded-full bg-zinc-300 dark:bg-zinc-700"></span>
+                            <span>{b.categorie}</span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex flex-col gap-2 w-full min-w-32 max-w-sm">
+                    <div className="flex justify-between items-end px-1">
+                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">
+                        {formatter.format(utilise)}
+                      </span>
+                      <span className="text-xs font-semibold text-zinc-400 tabular-nums">
+                        / {formatter.format(b.montant)}
+                      </span>
+                    </div>
                     <ProgressBar statut={statut} pourcentage={pct} />
-                    
-                    <div className="mt-2.5 flex items-center justify-between text-xs font-medium">
-                      {isDepasse ? (
-                         <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
-                           Dépassé de {formatter.format(Math.abs(restant))}
-                         </span>
-                      ) : (
-                         <span className="text-muted-foreground">
-                           Reste <span className="text-foreground">{formatter.format(restant)}</span>
-                         </span>
-                      )}
-                      
-                      {previsionFin != null && !isDepasse && (
-                        <span className="text-muted-foreground/70">
-                          Projection : ~{formatter.format(previsionFin)}
-                        </span>
-                      )}
-                    </div>
                   </div>
 
-                  {/* Actions (toujours visible sur mobile, hover sur desktop) */}
-                  <div className="flex sm:flex-col shrink-0 gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200 w-full sm:w-auto mt-2 sm:mt-0 justify-end sm:justify-center border-t sm:border-t-0 sm:border-l border-border/50 pt-3 sm:pt-0 sm:pl-4">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full" onClick={() => openEdit(b)}>
-                      <Pencil className="size-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full" onClick={() => setToDelete(b)}>
-                      <Trash2 className="size-4" />
-                    </Button>
+                  <div className="sm:w-1/4 flex items-center justify-between sm:justify-end gap-5 border-t border-zinc-100 dark:border-zinc-800/80 sm:border-t-0 pt-4 sm:pt-0">
+                    <div className="flex flex-col items-start sm:items-end">
+                      <span className={cn(
+                        "text-xl font-extrabold tabular-nums tracking-tight",
+                         isDepasse ? "text-rose-600 dark:text-rose-400" :
+                           isAttention ? "text-amber-600 dark:text-amber-400" :
+                             "text-emerald-600 dark:text-emerald-400"
+                      )}>
+                        {pct.toFixed(0)}%
+                      </span>
+                      <span className={cn(
+                        "text-xs font-semibold mt-0.5",
+                        isDepasse ? "text-rose-500 dark:text-rose-400" : "text-emerald-500 dark:text-emerald-400"
+                      )}>
+                        {isDepasse ? "Dépassement de " + formatter.format(Math.abs(restant)) : "Reste " + formatter.format(restant)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <Button size="icon" variant="ghost" className="h-10 w-10 bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full" onClick={() => openEdit(b)}>
+                        <Pencil className="size-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-10 w-10 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 rounded-full" onClick={() => setToDelete(b)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </div>
-                </li>
+                </div>
               )
             })}
-          </ul>
+          </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center p-12 text-center border rounded-3xl border-dashed bg-muted/10 h-[40vh]">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-5">
-            <Target className="h-8 w-8 text-primary" />
+        <div className="flex flex-col items-center justify-center p-16 text-center h-125 border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 rounded-3xl">
+          <div className="size-20 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-5 shadow-sm border border-zinc-200 dark:border-zinc-700">
+            <Target className="size-10 text-zinc-400" />
           </div>
-          <h3 className="text-xl font-bold mb-2">Aucun budget défini</h3>
-          <p className="text-muted-foreground text-sm max-w-sm mb-6">
-            Vous n&apos;avez pas encore créé d&apos;enveloppes budgétaires. Celles-ci vous permettent de recevoir des alertes pour ne pas dépenser excessivement.
+          <h3 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-zinc-100">Aucun plafond de sécurité</h3>
+          <p className="text-zinc-500 text-base max-w-md mx-auto mb-8 leading-relaxed">
+            Configurez des enveloppes budgétaires (ex: Alimentation 3000 MAD) pour ne jamais dépenser plus que ce que vous avez décidé.
           </p>
-          <Button className="gap-2 rounded-full px-8 h-12 shadow-md hover:shadow-lg transition-all" onClick={() => setOpen(true)}>
-            <Plus className="h-5 w-5" />
-            Créer votre premier budget
+          <Button className="gap-2 rounded-xl px-8 h-12 shadow-sm bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-all font-semibold" onClick={() => setOpen(true)}>
+            <Plus className="size-5" />
+            Créer mon premier budget
           </Button>
         </div>
       )}
