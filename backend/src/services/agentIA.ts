@@ -357,8 +357,8 @@ export class ServiceAgentIA {
 
 
   async genererConseils(prompt: string): Promise<{ reponse: string }> {
+    const systemInstruction = "Tu es un expert financier. Tu DOIS ABSOLUMENT RÉPONDRE EN FRANÇAIS QUEL QUE SOIT LE CONTEXTE. Sois précis, structuré et professionnel.";
     try {
-      const systemInstruction = "Tu es un expert financier. Tu DOIS ABSOLUMENT RÉPONDRE EN FRANÇAIS QUEL QUE SOIT LE CONTEXTE. Sois précis, structuré et professionnel.";
       if (this.provider === 'openai' && this.openai) {
         const completion = await this.openai.chat.completions.create({
           model: this.model,
@@ -386,9 +386,24 @@ export class ServiceAgentIA {
         return { reponse: result.response.text() || '' };
       }
       return { reponse: "" };
-    } catch (e) {
-      console.error("[ServiceAgentIA] Erreur genererConseils", e);
-      return { reponse: "Voici quelques conseils généraux: \n1. Suivez vos dépenses.\n2. Épargnez régulièrement." };
+    } catch (e: any) {
+      console.error("[ServiceAgentIA] Erreur genererConseils", e?.message || e);
+      
+      const msg = e?.message || '';
+      const isQuotaError = e?.status === 429 || e?.status === 403 || e?.status === 401 ||
+                           msg.includes('quota') || msg.includes('Quota') || msg.includes('billing') ||
+                           msg.includes('credit');
+      if (isQuotaError && this.provider === 'gemini' && process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_FALLBACK === 'true') {
+         console.warn('[ServiceAgentIA] ⚠️ Crédit Gemini épuisé dans genererConseils, basculement automatique vers Nemotron via OpenRouter');
+         try {
+           const response = await this.appelerNemotronViaOpenRouter([], prompt, systemInstruction);
+           return { reponse: response };
+         } catch (nemotronError) {
+           console.error("[ServiceAgentIA] Erreur Nemotron fallback dans genererConseils", nemotronError);
+         }
+      }
+
+      return { reponse: "**1. Suivez vos dépenses**\nPrenez l'habitude de catégoriser toutes vos transactions pour une meilleure visibilité de votre budget hebdomadaire.\n\n**2. Épargnez régulièrement**\nMême des petits montants peuvent générer un excellent retour sur investissement à long terme.\n\n> Notre IA est actuellement en maintenance ou en surcharge réseau, ce conseil est basé sur des normes génériques." };
     }
   }
 
@@ -2024,7 +2039,7 @@ Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de con
           model: 'nvidia/nemotron-3-nano-30b-a3b',
           messages: messages,
           temperature: 0.7,
-          max_tokens: 1024
+          max_tokens: 3000
         })
       });
 
