@@ -4,12 +4,10 @@ import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plus, Pencil, Trash2, Wallet, Target, TrendingDown, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Wallet, Target, AlertCircle} from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -412,7 +410,7 @@ export function BudgetClient() {
                 >
                   {/* Icône de catégorie ou Wallet générique */}
                   <div className={cn(
-                    "flex-shrink-0 h-14 w-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105",
+                    "shrink-0 h-14 w-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105",
                     isDepasse ? "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400" :
                     isAttention ? "bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400" :
                     "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400"
@@ -421,7 +419,7 @@ export function BudgetClient() {
                   </div>
 
                   {/* Info Titre */}
-                  <div className="sm:w-1/4 min-w-[180px]">
+                  <div className="sm:w-1/4 min-w-45">
                     <h3 className="text-lg font-bold tracking-tight mb-1">{b.nom}</h3>
                     <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
                       {b.categorie || "Toutes catégories"} 
@@ -431,7 +429,7 @@ export function BudgetClient() {
                   </div>
 
                   {/* Barre de Progression et Nombres */}
-                  <div className="flex-1 min-w-[200px]">
+                  <div className="flex-1 min-w-50">
                     <div className="flex items-end justify-between mb-2.5">
                       <div>
                         <span className="text-lg font-bold tabular-nums leading-none">
