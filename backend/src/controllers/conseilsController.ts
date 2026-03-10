@@ -73,9 +73,11 @@ Génère des insights sur:
 3. Comparaison avec le mois précédent
 4. Recommandations pour améliorer l'épargne
 5. Alertes sur dépenses inhabituelles
+
+IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
 `;
 
-    const resultat = await serviceAgentIA.traiterMessage(req.utilisateurId!, promptInsights);
+    const resultat = await serviceAgentIA.genererConseils(promptInsights);
 
     res.json({
       succes: true,
@@ -132,9 +134,11 @@ Top dépenses:
 ${topDepenses.map((t: any, i: number) => `${i + 1}. ${t.description}: ${t.montant} ${utilisateur?.devise || 'MAD'}`).join('\n')}
 
 Génère 5-7 recommandations actionnables et spécifiques pour réduire les dépenses.
+
+IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
 `;
 
-    const resultat = await serviceAgentIA.traiterMessage(req.utilisateurId!, prompt);
+    const resultat = await serviceAgentIA.genererConseils(prompt);
 
     res.json({
       succes: true,
@@ -182,9 +186,11 @@ Génère des recommandations pour:
 2. Atteindre les objectifs plus rapidement
 3. Optimiser la répartition de l'épargne
 4. Créer de nouveaux objectifs si nécessaire
+
+IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
 `;
 
-    const resultat = await serviceAgentIA.traiterMessage(req.utilisateurId!, prompt);
+    const resultat = await serviceAgentIA.genererConseils(prompt);
 
     res.json({
       succes: true,
@@ -203,49 +209,49 @@ Génère des recommandations pour:
 
 //detecter les dépenses inhabituelles
   static detecterDepensesInhabituelles = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const maintenant = new Date();
-    const debutMois = startOfMonth(maintenant);
-    const finMois = endOfMonth(maintenant);
-    const moisPrecedent = subMonths(maintenant, 1);
-
-    const depensesMois = await Transaction.find({
+    const depenses = await Transaction.find({
       utilisateurId: new mongoose.Types.ObjectId(req.utilisateurId),
-      type: 'depense',
-      date: { $gte: debutMois, $lte: finMois }
-    });
+      type: 'depense'
+    }).sort({ date: -1 });
 
-    const depensesPrecedentes = await Transaction.find({
-      utilisateurId: new mongoose.Types.ObjectId(req.utilisateurId),
-      type: 'depense',
-      date: {
-        $gte: startOfMonth(moisPrecedent),
-        $lte: endOfMonth(moisPrecedent)
-      }
-    });
-
-    const moyenneParCategorie: { [key: string]: number } = {};
-    depensesPrecedentes.forEach(t => {
-      moyenneParCategorie[t.categorie] = (moyenneParCategorie[t.categorie] || 0) + t.montant;
-    });
-
+    const statsParCategorie: { [key: string]: { total: number, count: number } } = {};
     const depensesInhabituelles: any[] = [];
-    depensesMois.forEach(t => {
-      const moyenne = moyenneParCategorie[t.categorie] || 0;
-      if (t.montant > moyenne * 1.5 && moyenne > 0) {
-        depensesInhabituelles.push({
-          transaction: t,
-          montant: t.montant,
-          moyenneMoisPrecedent: moyenne,
-          ecart: ((t.montant - moyenne) / moyenne) * 100
-        });
+
+    depenses.forEach(t => {
+      if (!statsParCategorie[t.categorie]) {
+        statsParCategorie[t.categorie] = { total: 0, count: 0 };
+      }
+      statsParCategorie[t.categorie].total += t.montant;
+      statsParCategorie[t.categorie].count += 1;
+    });
+
+    const ilYa30Jours = new Date();
+    ilYa30Jours.setDate(ilYa30Jours.getDate() - 30);
+    const depensesRecentes = depenses.filter(t => t.date >= ilYa30Jours);
+
+    depensesRecentes.forEach(t => {
+      const stats = statsParCategorie[t.categorie];
+      if (stats && stats.count > 1) {
+         const moyenneHorsCourante = (stats.total - t.montant) / Math.max(1, stats.count - 1);
+         
+         if (moyenneHorsCourante > 0 && t.montant > moyenneHorsCourante * 1.5 && t.montant > 50) {
+            depensesInhabituelles.push({
+               transaction: t,
+               montant: t.montant,
+               moyenneMoisPrecedent: moyenneHorsCourante,
+               ecart: ((t.montant - moyenneHorsCourante) / moyenneHorsCourante) * 100
+            });
+         }
       }
     });
+
+    const alertesTriees = depensesInhabituelles.sort((a, b) => b.ecart - a.ecart).slice(0, 10);
 
     res.json({
       succes: true,
       donnees: {
-        depensesInhabituelles: depensesInhabituelles.sort((a, b) => b.ecart - a.ecart),
-        nombreAlertes: depensesInhabituelles.length
+        depensesInhabituelles: alertesTriees,
+        nombreAlertes: alertesTriees.length
       }
     });
   });
@@ -282,9 +288,11 @@ Génère des conseils sur:
 3. Planification à long terme (1+ an)
 4. Gestion des objectifs multiples
 5. Création d'un fonds d'urgence
+
+IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
 `;
 
-    const resultat = await serviceAgentIA.traiterMessage(req.utilisateurId!, prompt);
+    const resultat = await serviceAgentIA.genererConseils(prompt);
 
     res.json({
       succes: true,
