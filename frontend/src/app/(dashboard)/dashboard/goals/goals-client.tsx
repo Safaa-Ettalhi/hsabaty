@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plus, Pencil, Trash2, ShieldCheck, Target, Rocket, CreditCard, ChevronRight, TrendingUp,Sparkles } from "lucide-react"
+import { Plus, Pencil, Trash2, ShieldCheck, Target, Rocket, CreditCard, ChevronRight, TrendingUp, Sparkles } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -76,20 +76,20 @@ function chargerObjectifs(setObjectifs: (o: Objectif[]) => void, setLoading: (l:
 function ProgressBar({ pourcentage, type }: { pourcentage: number, type: string }) {
   const pct = Math.min(100, Math.max(0, pourcentage))
 
-  let gradientClass = "bg-blue-500"
+  let gradientClass = "bg-linear-to-r from-blue-500 to-blue-600"
   let bgClass = "bg-blue-100 dark:bg-blue-950/40"
   let shadowClass = "shadow-[0_0_10px_rgba(59,130,246,0.3)]"
 
   if (pct >= 100) {
-    gradientClass = "bg-emerald-500"
+    gradientClass = "bg-linear-to-r from-emerald-400 to-emerald-500"
     bgClass = "bg-emerald-100 dark:bg-emerald-950/40"
     shadowClass = "shadow-[0_0_10px_rgba(16,185,129,0.3)]"
   } else if (type === "fonds_urgence") {
-    gradientClass = "bg-violet-500"
+    gradientClass = "bg-linear-to-r from-violet-500 to-violet-600"
     bgClass = "bg-violet-100 dark:bg-violet-950/40"
     shadowClass = "shadow-[0_0_10px_rgba(139,92,246,0.3)]"
   } else if (type === "remboursement") {
-    gradientClass = "bg-rose-500"
+    gradientClass = "bg-linear-to-r from-rose-400 to-rose-500"
     bgClass = "bg-rose-100 dark:bg-rose-950/40"
     shadowClass = "shadow-[0_0_10px_rgba(244,63,94,0.3)]"
   }
@@ -234,7 +234,7 @@ export function GoalsClient() {
         </div>
         <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ nom: "", montantCible: 0, dateLimite: "", type: "epargne", description: "" }) }}>
           <DialogTrigger asChild>
-            <Button className="gap-2 shadow-sm bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-all rounded-xl px-5 h-11" onClick={() => setEditing(null)}>
+            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 h-10" onClick={() => setEditing(null)}>
               <Plus className="size-4" />
               Nouveau Projet
             </Button>
@@ -283,7 +283,7 @@ export function GoalsClient() {
               </div>
               <DialogFooter className="pt-4 mt-2">
                 <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setOpen(false)}>Annuler</Button>
-                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 h-11">Lancer l&apos;objectif</Button>
+                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white h-11">Lancer l&apos;objectif</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -335,7 +335,7 @@ export function GoalsClient() {
               </div>
             <DialogFooter className="pt-4 mt-2">
               <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setEditing(null)}>Annuler</Button>
-              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 h-11">Enregistrer</Button>
+              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white h-11">Enregistrer</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -388,7 +388,7 @@ export function GoalsClient() {
                    Plus tard
                  </Button>
                  <Button
-                   className="rounded-xl w-full sm:w-auto bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 h-11 gap-1 font-semibold"
+                   className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white h-11 gap-1 font-semibold"
                    onClick={onContribution}
                    disabled={contributing || !contributionMontant || Number(contributionMontant) <= 0}
                  >
@@ -436,24 +436,35 @@ export function GoalsClient() {
         </div>
       ) : objectifs.length > 0 ? (
         <div className="space-y-6">
-          {/* Banner */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* KPI Dashboard */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
              <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-center">
-                 <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Masse Épargnée</p>
-                 <h3 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">{formatter.format(globalTotalActuel)}</h3>
+                 <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Cible Globale</p>
+                 <h3 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">{formatter.format(globalTotalCible)}</h3>
                  <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                   Progression de votre capital
+                   Somme de vos projets
                  </div>
               </div>
 
               <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-center">
                  <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
+                   <TrendingUp className="size-24" />
+                 </div>
+                 <p className="text-sm font-semibold text-emerald-700/80 dark:text-emerald-400/80 mb-1">Total Épargné</p>
+                 <h3 className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 tabular-nums">{formatter.format(globalTotalActuel)}</h3>
+                 <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Avancement en cours
+                 </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-6 shadow-sm text-white flex flex-col justify-center">
+                 <div className="absolute top-0 right-0 p-4 opacity-5">
                    <Target className="size-24" />
                  </div>
-                 <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Valeur Cible Globale</p>
-                 <h3 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">{formatter.format(globalTotalCible)}</h3>
+                 <p className="text-sm font-semibold text-zinc-300 mb-1">Reste à Financer</p>
+                 <h3 className="text-3xl font-extrabold tabular-nums tracking-tight text-white">{formatter.format(Math.max(0, globalTotalCible - globalTotalActuel))}</h3>
                  <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                   Somme de vos rêves réalisés
+                   Pour atteindre tous vos buts
                  </div>
               </div>
           </div>
@@ -523,7 +534,7 @@ export function GoalsClient() {
 
                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       {!estAcheve && (
-                        <Button size="icon" variant="ghost" className="h-10 w-10 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full" onClick={() => { setContributionObjectif(o); setContributionMontant("") }}>
+                        <Button size="icon" variant="ghost" className="h-10 w-10 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-full" onClick={() => { setContributionObjectif(o); setContributionMontant("") }}>
                           <Plus className="size-4" />
                         </Button>
                       )}
@@ -549,7 +560,7 @@ export function GoalsClient() {
           <p className="text-zinc-500 text-base max-w-md mx-auto mb-8 leading-relaxed">
             Définissez des objectifs d&apos;épargne clairs pour vos grands projets (voyages, maison, fonds de sécurité) et suivez votre progression.
           </p>
-          <Button className="gap-2 rounded-xl px-8 h-12 shadow-sm bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-all font-semibold" onClick={() => setOpen(true)}>
+          <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 h-12 font-semibold" onClick={() => setOpen(true)}>
             <Plus className="size-5" />
             Créer mon premier objectif
           </Button>
