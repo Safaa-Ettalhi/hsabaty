@@ -4,7 +4,7 @@ import { ServiceCalculsFinanciers } from '../services/calculsFinanciers';
 import { asyncHandler, ErreurApp } from '../middleware/gestionErreurs';
 import { AuthentifieRequest } from '../middleware/authentification';
 import mongoose from 'mongoose';
-import { addMonths, addYears } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from 'date-fns';
 
 const serviceCalculs = new ServiceCalculsFinanciers();
 
@@ -13,15 +13,19 @@ export class BudgetController {
   static creer = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const { nom, montant, categorie, periode } = req.body;
 
-    const dateDebut = new Date();
+    let dateDebut = new Date();
     let dateFin = new Date();
 
-    if (periode === 'mensuel') {
-      dateFin = addMonths(dateDebut, 1);
+    const maintenant = new Date();
+    if (periode === 'mensuel' || !periode) {
+      dateDebut = startOfMonth(maintenant);
+      dateFin = endOfMonth(maintenant);
     } else if (periode === 'trimestriel') {
-      dateFin = addMonths(dateDebut, 3);
+      dateDebut = startOfQuarter(maintenant);
+      dateFin = endOfQuarter(maintenant);
     } else if (periode === 'annuel') {
-      dateFin = addYears(dateDebut, 1);
+      dateDebut = startOfYear(maintenant);
+      dateFin = endOfYear(maintenant);
     }
 
     const budget = new Budget({
@@ -111,8 +115,22 @@ export class BudgetController {
     if (nom) budget.nom = nom;
     if (montant !== undefined) budget.montant = montant;
     if (categorie !== undefined) budget.categorie = categorie;
-    if (periode) budget.periode = periode;
     if (actif !== undefined) budget.actif = actif;
+    
+    if (periode && budget.periode !== periode) {
+      budget.periode = periode;
+      const maintenant = new Date();
+      if (periode === 'mensuel') {
+        budget.dateDebut = startOfMonth(maintenant);
+        budget.dateFin = endOfMonth(maintenant);
+      } else if (periode === 'trimestriel') {
+        budget.dateDebut = startOfQuarter(maintenant);
+        budget.dateFin = endOfQuarter(maintenant);
+      } else if (periode === 'annuel') {
+        budget.dateDebut = startOfYear(maintenant);
+        budget.dateFin = endOfYear(maintenant);
+      }
+    }
 
     budget.dateModification = new Date();
     await budget.save();
