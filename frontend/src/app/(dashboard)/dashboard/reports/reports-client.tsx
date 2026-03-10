@@ -5,10 +5,10 @@
 import { useEffect, useState } from "react"
 import { api, downloadFile } from "@/lib/api"
 import { toast } from "sonner"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { Download, Mail } from "lucide-react"
+import { Download, Mail, FileText, ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, Clock, SearchCode } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import {
   Select,
@@ -53,14 +53,11 @@ type EpargneData = {
 }
 
 const REPORT_TYPES = [
-  { value: "mensuel", label: "Rapport mensuel" },
-  { value: "depenses", label: "Rapport Dépenses" },
-  { value: "revenus", label: "Rapport Revenus" },
-  { value: "epargne", label: "Rapport Épargne" },
+  { value: "mensuel", label: "Synthèse Mensuelle" },
+  { value: "depenses", label: "Analyse Dépenses" },
+  { value: "revenus", label: "Analyse Revenus" },
+  { value: "epargne", label: "Analyse Épargne" },
 ] as const
-
-const chartCardClassName =
-  "border border-border dark:border-white/10 bg-background shadow-none transition-transform duration-200 ease-out hover:-translate-y-0.5"
 
 export function ReportsClient() {
   const [reportType, setReportType] = useState<string>("mensuel")
@@ -136,97 +133,88 @@ export function ReportsClient() {
   function renderContent() {
     if (loading) {
       return (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-35 w-full rounded-2xl" />)}
           </div>
-          <Skeleton className="h-100 w-full rounded-xl" />
+          <Skeleton className="h-100 w-full rounded-3xl" />
         </div>
       )
     }
-    if (!data) return <div className="text-muted-foreground text-sm flex items-center justify-center p-10 bg-muted/20 rounded-xl border border-dashed">Aucune donnée disponible pour cette période</div>
+
+    if (!data) {
+      return (
+        <div className="flex flex-col items-center justify-center p-16 text-center h-100 mt-4 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl">
+          <div className="size-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-5 border border-zinc-200 dark:border-zinc-700">
+             <SearchCode className="size-8 text-zinc-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Aucune donnée disponible</h3>
+          <p className="text-zinc-500 max-w-sm mx-auto text-sm leading-relaxed">
+            Il n&apos;y a eu aucun mouvement détecté sur cette période pour générer ce rapport ciblé.
+          </p>
+        </div>
+      )
+    }
 
     if (reportType === "mensuel" && "resume" in data) {
       const d = data as MensuelData
       return (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className={`${chartCardClassName} bg-linear-to-br from-green-50/50 to-green-100/20 dark:from-green-950/20 dark:to-transparent border-green-200/50 dark:border-green-900/50`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-green-700/80 dark:text-green-400/80 font-medium">Revenus</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-2xl font-bold tabular-nums text-green-700 dark:text-green-400">
-                    +{formatter.format(d.resume.revenus)}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <ArrowUpCircle className="size-20" />
+              </div>
+              <p className="text-sm font-semibold text-emerald-700/80 dark:text-emerald-400/80 mb-1">Revenus</p>
+              <h3 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatter.format(d.resume.revenus)}</h3>
+            </div>
 
-            <Card className={`${chartCardClassName} bg-linear-to-br from-red-50/50 to-red-100/20 dark:from-red-950/20 dark:to-transparent border-red-200/50 dark:border-red-900/50`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-red-700/80 dark:text-red-400/80 font-medium">Dépenses</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-2xl font-bold tabular-nums text-red-700 dark:text-red-400">
-                    -{formatter.format(d.resume.depenses)}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <ArrowDownCircle className="size-20" />
+              </div>
+              <p className="text-sm font-semibold text-rose-700/80 dark:text-rose-400/80 mb-1">Dépenses</p>
+              <h3 className="text-3xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">-{formatter.format(d.resume.depenses)}</h3>
+            </div>
 
-            <Card className={`${chartCardClassName} bg-linear-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-transparent border-primary/20`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-primary/80 font-medium">Épargne brute</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-2xl font-bold tabular-nums text-primary">
-                    {formatter.format(d.resume.epargne)}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
+              <p className="text-sm font-semibold text-zinc-300 mb-1">Épargne brute</p>
+              <h3 className="text-3xl font-bold text-white tabular-nums">{d.resume.epargne > 0 ? '+' : ''}{formatter.format(d.resume.epargne)}</h3>
+            </div>
 
-            <Card className={`${chartCardClassName} bg-linear-to-br from-blue-50/50 to-blue-100/20 dark:from-blue-950/20 dark:to-transparent border-blue-200/50 dark:border-blue-900/50`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-blue-700/80 dark:text-blue-400/80 font-medium">Taux d&apos;épargne</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-2xl font-bold tabular-nums text-blue-700 dark:text-blue-400">
-                    {d.resume.tauxEpargne.toFixed(1)}%
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm flex flex-col justify-center">
+              <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Taux d&apos;Épargne</p>
+              <h3 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{d.resume.tauxEpargne.toFixed(1)}%</h3>
+            </div>
           </div>
 
           {d.repartitionDepenses?.length ? (
-            <Card className={chartCardClassName}>
-              <CardHeader className="border-b bg-muted/20 pb-4">
-                <CardTitle className="text-base text-destructive">Top Dépenses du mois</CardTitle>
-                <CardDescription>
-                  Où votre argent est-il allé ? (Top 8 catégories)
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border">
-                  {d.repartitionDepenses.slice(0, 8).map((r, i) => (
-                    <div key={r.categorie} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 flex items-center justify-center font-bold text-xs">
-                          {i + 1}
-                        </div>
-                        <span className="font-medium">{r.categorie}</span>
+            <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm overflow-hidden">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-rose-600 dark:text-rose-400">Top Dépenses du mois</h3>
+                <p className="text-sm text-zinc-500">Où est passé votre argent ? (Aperçu des catégories les plus lourdes)</p>
+              </div>
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {d.repartitionDepenses.slice(0, 8).map((r, i) => (
+                  <div key={r.categorie} className="flex items-center justify-between py-4 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 px-4 -mx-4 transition-colors rounded-xl">
+                    <div className="flex items-center gap-4">
+                      <div className="h-8 w-8 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 flex items-center justify-center font-bold text-xs ring-1 ring-rose-100 dark:ring-rose-500/20">
+                        {i + 1}
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className="font-semibold tabular-nums text-foreground">
-                          {formatter.format(r.montant)}
-                        </span>
-                        <span className="text-xs text-muted-foreground font-medium bg-red-100 dark:bg-red-900/20 dark:text-red-400 px-2 py-0.5 rounded-full mt-1">
-                          {r.pourcentage.toFixed(1)} %
-                        </span>
-                      </div>
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">{r.categorie}</span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex flex-col items-end">
+                      <span className="font-bold tabular-nums text-foreground">
+                        {formatter.format(r.montant)}
+                      </span>
+                      <span className="text-xs text-rose-600 font-medium bg-rose-50 dark:bg-rose-900/30 dark:text-rose-400 px-2 py-0.5 rounded-full mt-1 border border-rose-100 dark:border-rose-800/50">
+                        {r.pourcentage.toFixed(1)} %
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       )
@@ -235,64 +223,49 @@ export function ReportsClient() {
     if (reportType === "depenses" && "totalDepenses" in data) {
       const d = data as DepensesData
       return (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-4">
           <div className="grid gap-4 sm:grid-cols-3">
-            <Card className={`${chartCardClassName} bg-linear-to-br from-red-50/50 to-red-100/20 dark:from-red-950/20 dark:to-transparent border-red-200/50 dark:border-red-900/50`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-red-700/80 dark:text-red-400/80 font-medium">Total dépenses</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-3xl font-bold tabular-nums text-red-700 dark:text-red-400">
-                    -{formatter.format(d.totalDepenses)}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+              <p className="text-sm font-semibold text-rose-700/80 dark:text-rose-400/80 mb-1">Total dépenses</p>
+              <h3 className="text-3xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">-{formatter.format(d.totalDepenses)}</h3>
+            </div>
 
-            <Card className={chartCardClassName}>
-              <CardHeader className="pb-2">
-                <CardDescription>Transactions</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-3xl font-bold tabular-nums">
-                    {d.nombreTransactions}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm flex flex-col justify-center">
+              <p className="text-sm font-semibold text-zinc-500 mb-1">Transactions Effectuées</p>
+              <h3 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{d.nombreTransactions}</h3>
+            </div>
 
-            <Card className={chartCardClassName}>
-              <CardHeader className="pb-2">
-                <CardDescription>Évolution vs période préc.</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className={`text-3xl font-bold tabular-nums ${(d.evolution || 0) > 0 ? "text-destructive" : "text-green-600 dark:text-green-400"}`}>
-                    {(d.evolution || 0) > 0 ? "+" : ""}{d.evolution?.toFixed(0) ?? 0} MAD
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
+              <p className="text-sm font-semibold text-zinc-300 mb-1">Évolution vs période préc.</p>
+              <h3 className={cn("text-3xl font-bold tabular-nums", (d.evolution || 0) > 0 ? "text-rose-400" : "text-emerald-400")}>
+                {(d.evolution || 0) > 0 ? "+" : ""}{d.evolution?.toFixed(0) ?? 0} MAD
+              </h3>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
+                {(d.evolution || 0) > 0 ? <TrendingUp className="size-16" /> : <TrendingDown className="size-16" />}
+              </div>
+            </div>
           </div>
 
           {d.repartitionParCategorie?.length ? (
-            <Card className={chartCardClassName}>
-              <CardHeader className="border-b bg-muted/20 pb-4">
-                <CardTitle className="text-base text-destructive">Catégories de Dépenses</CardTitle>
-                <CardDescription>Répartition complète sur la période ciblée</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border">
-                  {d.repartitionParCategorie.sort((a,b) => b.montant - a.montant).map((r: any) => (
-                    <div key={r.categorie} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="h-2 w-2 rounded-full bg-red-400"></div>
-                        <span className="font-medium">{r.categorie}</span>
-                      </div>
-                      <span className="font-semibold tabular-nums text-foreground">
-                        {formatter.format(r.montant)}
-                      </span>
+            <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm overflow-hidden">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-rose-600 dark:text-rose-400">Poids Catégoriel</h3>
+                <p className="text-sm text-zinc-500">Répartition complète de la période ciblée</p>
+              </div>
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {d.repartitionParCategorie.sort((a,b) => b.montant - a.montant).map((r: any) => (
+                  <div key={r.categorie} className="flex items-center justify-between py-3 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 px-4 -mx-4 transition-colors rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-rose-500"></div>
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-200 text-sm">{r.categorie}</span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <span className="font-bold tabular-nums text-foreground">
+                      {formatter.format(r.montant)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       )
@@ -301,47 +274,39 @@ export function ReportsClient() {
     if (reportType === "revenus" && "totalRevenus" in data) {
       const d = data as RevenusData
       return (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Card className={`${chartCardClassName} bg-linear-to-br from-green-50/50 to-green-100/20 dark:from-green-950/20 dark:to-transparent border-green-200/50 dark:border-green-900/50`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-green-700/80 dark:text-green-400/80 font-medium">Total revenus</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-3xl font-bold tabular-nums text-green-700 dark:text-green-400">
-                    +{formatter.format(d.totalRevenus)}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+              <p className="text-sm font-semibold text-emerald-700/80 dark:text-emerald-400/80 mb-1">Total Encaissé</p>
+              <h3 className="text-4xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatter.format(d.totalRevenus)}</h3>
+            </div>
           </div>
 
           {d.repartitionParSource?.length ? (
-            <Card className={chartCardClassName}>
-              <CardHeader className="border-b bg-muted/20 pb-4">
-                <CardTitle className="text-base text-green-600 dark:text-green-400">Sources de Revenus</CardTitle>
-                <CardDescription>La provenance de vos rentrées d&apos;argent</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y divide-border">
-                  {d.repartitionParSource.sort((a,b) => b.montant - a.montant).map((r) => (
-                    <div key={r.source} className="flex items-center justify-between px-6 py-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                        <span className="font-medium">{r.source}</span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="font-semibold tabular-nums text-foreground">
-                          {formatter.format(r.montant)}
-                        </span>
-                        <span className="text-xs text-muted-foreground font-medium bg-green-100 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full mt-1">
-                          {r.pourcentage.toFixed(1)} %
-                        </span>
-                      </div>
+            <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm overflow-hidden">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400">Sources de Revenus</h3>
+                <p className="text-sm text-zinc-500">La provenance de vos rentrées d&apos;argent</p>
+              </div>
+              <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                {d.repartitionParSource.sort((a,b) => b.montant - a.montant).map((r) => (
+                  <div key={r.source} className="flex items-center justify-between py-4 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 px-4 -mx-4 transition-colors rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-200 text-sm">{r.source}</span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex flex-col items-end">
+                      <span className="font-bold tabular-nums text-foreground">
+                        {formatter.format(r.montant)}
+                      </span>
+                      <span className="text-xs text-emerald-600 font-medium bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full mt-1 border border-emerald-100 dark:border-emerald-800/50">
+                        {r.pourcentage.toFixed(1)} %
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       )
@@ -350,41 +315,28 @@ export function ReportsClient() {
     if (reportType === "epargne" && "epargne" in data) {
       const d = data as EpargneData
       return (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Card className={`${chartCardClassName} bg-linear-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-transparent border-primary/20`}>
-             <CardHeader className="pb-2">
-               <CardDescription className="text-primary/80 font-medium">Montant épargné</CardDescription>
-               <div className="flex items-baseline justify-between gap-2">
-                 <CardTitle className="text-3xl font-bold tabular-nums text-primary">
-                   {formatter.format(d.epargne)}
-                 </CardTitle>
-               </div>
-             </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Wallet className="size-20" />
+              </div>
+              <p className="text-sm font-semibold text-zinc-300 mb-1">Montant Épargné</p>
+              <h3 className="text-3xl font-bold tabular-nums">{formatter.format(d.epargne)}</h3>
+            </div>
 
-            <Card className={`${chartCardClassName} bg-linear-to-br from-blue-50/50 to-blue-100/20 dark:from-blue-950/20 dark:to-transparent border-blue-200/50 dark:border-blue-900/50`}>
-             <CardHeader className="pb-2">
-               <CardDescription className="text-blue-700/80 dark:text-blue-400/80 font-medium">Taux d&apos;épargne</CardDescription>
-               <div className="flex items-baseline justify-between gap-2">
-                 <CardTitle className="text-3xl font-bold tabular-nums text-blue-700 dark:text-blue-400">
-                   {d.tauxEpargne.toFixed(1)} %
-                 </CardTitle>
-               </div>
-             </CardHeader>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+              <p className="text-sm font-semibold text-zinc-500 mb-1">Taux Fixé</p>
+              <h3 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{d.tauxEpargne.toFixed(1)} %</h3>
+            </div>
 
             {typeof d.evolution === "number" && (
-              <Card className={chartCardClassName}>
-                <CardHeader className="pb-2">
-                  <CardDescription>Évolution vs période préc.</CardDescription>
-                  <div className="flex items-baseline justify-between gap-2">
-                    <CardTitle className={`text-3xl font-bold tabular-nums ${(d.evolution || 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-                     {(d.evolution || 0) >= 0 ? "+" : ""}{d.evolution.toFixed(0)} MAD
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-              </Card>
+              <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+                <p className="text-sm font-semibold text-zinc-500 mb-1">Évolution vs période préc.</p>
+                <h3 className={cn("text-3xl font-bold tabular-nums", (d.evolution || 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                  {(d.evolution || 0) >= 0 ? "+" : ""}{d.evolution.toFixed(0)} MAD
+                </h3>
+              </div>
             )}
           </div>
         </div>
@@ -394,32 +346,33 @@ export function ReportsClient() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 pb-10">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+    <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
+      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-5 mb-2">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Rapports</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-             Génerez, analysez ou partagez vos performances financières historiques.
-          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Rapports</h1>
+          <p className="text-zinc-500 mt-1 block">Génerez, analysez ou partagez vos performances financières en un clic.</p>
         </div>
         
         {/* Barre de Filtres/Actions */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-muted/50 p-1.5 rounded-lg border">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm w-full sm:w-auto">
             <Select value={reportType} onValueChange={setReportType}>
-              <SelectTrigger className="w-45 bg-background border-none shadow-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="w-45 bg-transparent border-none shadow-none font-medium h-9 focus:ring-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
                 {REPORT_TYPES.map((t) => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="hidden sm:block w-px h-5 bg-border mx-1"></div>
+            <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800"></div>
             {reportType === "mensuel" ? (
-              <>
+              <div className="flex items-center gap-1 pr-1">
+                <Clock className="w-4 h-4 text-zinc-400 ml-1" />
                 <Select value={String(mois)} onValueChange={(v) => setMois(Number(v))}>
-                  <SelectTrigger className="w-32.5 bg-background border-none shadow-sm"><SelectValue placeholder="Mois" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="w-32 bg-transparent border-none shadow-none text-sm h-9 focus:ring-0"><SelectValue placeholder="Mois" /></SelectTrigger>
+                  <SelectContent className="rounded-xl">
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
                       <SelectItem key={m} value={String(m)}>
                         {new Date(2000, m - 1, 1).toLocaleString("fr-FR", { month: "long" })}
@@ -429,25 +382,25 @@ export function ReportsClient() {
                 </Select>
                 <Input
                   type="number"
-                  className="w-22.5 bg-background border-none shadow-sm"
+                  className="w-20 bg-transparent border-none shadow-none text-sm h-9 px-2 focus-visible:ring-0"
                   value={annee}
                   onChange={(e) => setAnnee(Number(e.target.value))}
                   min={2020}
                   max={2100}
                 />
-              </>
+              </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 pr-2">
                 <Input
                   type="date"
-                  className="w-35 bg-background border-none shadow-sm"
+                  className="w-32 bg-transparent border-none shadow-none text-xs h-9 focus-visible:ring-0 px-2"
                   value={dateDebut}
                   onChange={(e) => setDateDebut(e.target.value)}
                 />
-                <span className="text-muted-foreground text-xs font-medium">à</span>
+                <span className="text-zinc-300 dark:text-zinc-700">-</span>
                 <Input
                   type="date"
-                  className="w-35 bg-background border-none shadow-sm"
+                  className="w-32 bg-transparent border-none shadow-none text-xs h-9 focus-visible:ring-0 px-2"
                   value={dateFin}
                   onChange={(e) => setDateFin(e.target.value)}
                 />
@@ -455,12 +408,12 @@ export function ReportsClient() {
             )}
           </div>
           
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2 shadow-sm" onClick={handleExportPdf}>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="gap-2 shadow-sm rounded-xl h-12 flex-1 sm:flex-none border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900" onClick={handleExportPdf}>
               <Download className="w-4 h-4" />
               <span>PDF</span>
             </Button>
-            <Button className="gap-2 shadow-sm" onClick={() => setShareOpen(true)}>
+            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 flex-1 sm:flex-none" onClick={() => setShareOpen(true)}>
               <Mail className="w-4 h-4" />
               <span>Partager</span>
             </Button>
@@ -473,20 +426,27 @@ export function ReportsClient() {
       </div>
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent className="sm:max-w-md p-6">
-          <div className="flex flex-col gap-5">
+        <DialogContent className="sm:max-w-md p-6 rounded-3xl border-zinc-200 dark:border-zinc-800">
+          <div className="flex flex-col gap-6">
             <DialogHeader>
-              <DialogTitle className="text-lg">Partager le rapport</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Le rapport sera généré et envoyé instantanément en format PDF.
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
+                  <FileText className="size-6" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl">Partager ce rapport</DialogTitle>
+                </div>
+              </div>
+              <p className="text-sm text-zinc-500 leading-relaxed text-left">
+                Ce rapport sera instantanément généré sous un magnifique format PDF et envoyé sur l&apos;adresse email de votre choix. Idéal pour un expert-comptable.
               </p>
             </DialogHeader>
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <p className="font-semibold text-sm flex items-center gap-2">
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4">
+              <p className="font-semibold text-sm flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
                 {REPORT_TYPES.find((t) => t.value === reportType)?.label ?? "Rapport"}
               </p>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Période : {reportType === "mensuel"
+              <p className="mt-1 text-sm text-zinc-500">
+                Période couverte : {reportType === "mensuel"
                   ? new Date(annee, mois - 1, 1).toLocaleString("fr-FR", {
                       month: "long",
                       year: "numeric",
@@ -499,31 +459,31 @@ export function ReportsClient() {
               </p>
             </div>
             <Field>
-              <FieldLabel className="text-sm font-medium mb-1.5">Email du destinataire</FieldLabel>
+              <FieldLabel className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Email destinataire</FieldLabel>
               <Input
                 type="email"
                 placeholder="expert-comptable@entreprise.com"
                 value={shareEmail}
                 onChange={(e) => setShareEmail(e.target.value)}
-                className="h-10"
+                className="h-12 rounded-xl text-base px-4"
               />
             </Field>
-            <DialogFooter className="mt-2 flex gap-2">
+            <DialogFooter className="mt-2 flex gap-3">
               <Button
                 type="button"
-                variant="outline"
-                className="w-full sm:w-auto"
+                variant="ghost"
+                className="w-full sm:w-auto h-12 rounded-xl font-medium"
                 onClick={() => setShareOpen(false)}
                 disabled={sharing}
               >
                 Annuler
               </Button>
               <Button
-                className="w-full sm:w-auto min-w-30"
+                className="w-full sm:w-auto min-w-32 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold shadow-md"
                 onClick={handleShareEmail}
                 disabled={sharing || !shareEmail.trim()}
               >
-                {sharing ? "Envoi en cours…" : "Envoyer"}
+                {sharing ? "Envoi sécurisé..." : "Envoyer le PDF"}
               </Button>
             </DialogFooter>
           </div>
