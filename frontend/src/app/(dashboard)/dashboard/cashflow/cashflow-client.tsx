@@ -5,12 +5,12 @@
 import * as React from "react"
 import { useEffect, useState } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Cell, LabelList } from "recharts"
-import { ArrowDownRight, ArrowUpRight, Wallet } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle, Wallet, CalendarDays, BarChart3 } from "lucide-react"
 
 import { api } from "@/lib/api"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 import {
   ChartContainer,
   ChartTooltip,
@@ -36,9 +36,6 @@ const depensesChartConfig = {
   },
 } satisfies ChartConfig
 
-const chartCardClassName =
-  "border border-border dark:border-white/10 bg-background shadow-none transition-transform duration-200 ease-out hover:-translate-y-0.5"
-
 export function CashflowClient() {
   const [data, setData] = useState<FluxData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,7 +51,7 @@ export function CashflowClient() {
     if (dateFin) params.set("dateFin", dateFin)
     
     api
-      .get<FluxData>(`/api/rapports/flux-tresorerie${params.toString() ? `?${params}` : ""}`)
+      .get<FluxData>(`/api/rapports/flux-tresorerie${params.toString() ? '?' + params : ""}`)
       .then((res) => {
         if (res.succes && res.donnees) {
           setData(res.donnees)
@@ -72,15 +69,18 @@ export function CashflowClient() {
 
   const totalRevenus = data?.sources?.reduce((s, x) => s + x.montant, 0) ?? 0
   const totalDepenses = data?.categories?.reduce((s, x) => s + x.montant, 0) ?? 0
-
-  const opacities = [0.9, 0.75, 0.6, 0.45, 0.3, 0.2]
   
+  // Emerald scale
+  const emeraldOpacities = [0.95, 0.8, 0.65, 0.5, 0.35, 0.2]
+  // Rose scale
+  const roseOpacities = [0.95, 0.8, 0.65, 0.5, 0.35, 0.2]
+
   const revenusData = (data?.sources ?? [])
     .sort((a, b) => b.montant - a.montant)
     .map((s, idx) => ({
       label: s.nom,
       montant: s.montant,
-      fill: `rgba(83, 58, 253, ${opacities[idx % opacities.length]})`,
+      fill: `rgba(16, 185, 129, ${emeraldOpacities[idx % emeraldOpacities.length]})`, // emerald-500
     }))
 
   const depensesData = (data?.categories ?? [])
@@ -88,124 +88,118 @@ export function CashflowClient() {
     .map((c, idx) => ({
       label: c.nom,
       montant: c.montant,
-      fill: `rgba(239, 68, 68, ${opacities[idx % opacities.length]})`,
+      fill: `rgba(244, 63, 94, ${roseOpacities[idx % roseOpacities.length]})`, // rose-500
     }))
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 pb-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
+      
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Flux de trésorerie</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Analyse détaillée de vos entrées et sorties pour la période.
-          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Trésorerie</h1>
+          <p className="text-zinc-500 mt-1 block">Visualisez la provenance et la destination de chaque centime.</p>
         </div>
-        <div className="flex items-center gap-2">
+        
+        <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-2 py-1.5 shadow-sm">
+          <CalendarDays className="size-4 text-zinc-400 ml-1" />
           <Input
             type="date"
-            className="w-35 text-sm h-9"
+            className="h-8 border-none shadow-none text-xs w-30 focus-visible:ring-0"
             value={dateDebut}
             onChange={(e) => setDateDebut(e.target.value)}
+            title="Date début"
           />
-          <span className="text-muted-foreground">-</span>
+          <span className="text-zinc-300">-</span>
           <Input
             type="date"
-            className="w-35 text-sm h-9"
+            className="h-8 border-none shadow-none text-xs w-30 focus-visible:ring-0"
             value={dateFin}
             onChange={(e) => setDateFin(e.target.value)}
+            title="Date fin"
           />
         </div>
       </div>
 
       {errorMsg && (
-        <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md font-medium">
-          Détail pour le développeur: {errorMsg}
+        <div className="bg-rose-50 border border-rose-200 text-rose-600 text-sm p-4 rounded-xl font-medium shadow-sm">
+          Erreur: {errorMsg}
         </div>
       )}
 
       {loading ? (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-2">
           <div className="grid gap-4 sm:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+              <Skeleton key={i} className="h-32 w-full rounded-2xl" />
             ))}
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Skeleton className="h-96 w-full rounded-xl" />
-            <Skeleton className="h-96 w-full rounded-xl" />
+            <Skeleton className="h-100 w-full rounded-3xl" />
+            <Skeleton className="h-100 w-full rounded-3xl" />
           </div>
         </div>
       ) : !data ? (
-        <div className="bg-muted/50 flex h-64 items-center justify-center rounded-lg text-muted-foreground text-sm">
-          Auncune donnée disponible
+        <div className="flex flex-col items-center justify-center p-16 text-center h-100 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl">
+          <div className="size-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-5 border border-zinc-200 dark:border-zinc-700">
+             <BarChart3 className="size-8 text-zinc-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Aucune donnée disponible</h3>
+          <p className="text-zinc-500 max-w-sm mx-auto text-sm leading-relaxed">
+            Il n&apos;y a eu aucun mouvement détecté sur cette période. Modifiez les dates pour voir votre analyse.
+          </p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {/* Section KPI Cards */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className={`${chartCardClassName} bg-linear-to-br from-green-50/50 to-green-100/20 dark:from-green-950/20 dark:to-transparent border-green-200/50 dark:border-green-900/50`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-green-700/80 dark:text-green-400/80 font-medium">Total entrées</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-3xl font-bold tabular-nums text-green-700 dark:text-green-400">
-                    +{formatter.format(totalRevenus)}
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-1 text-xs">
-                <p className="text-muted-foreground">Somme de toutes vos sources de revenus</p>
-              </CardContent>
-            </Card>
+        <div className="space-y-6 mt-2">
+          
+          {/* KPI DASHBOARD */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <ArrowUpCircle className="size-24" />
+              </div>
+              <p className="text-sm font-medium text-emerald-700/80 dark:text-emerald-400/80 mb-1">Masse Entrante</p>
+              <h3 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">+{formatter.format(totalRevenus)}</h3>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 border border-white"></span> Totalité de vos sources
+              </div>
+            </div>
+            
+            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <ArrowDownCircle className="size-24" />
+              </div>
+              <p className="text-sm font-medium text-rose-700/80 dark:text-rose-400/80 mb-1">Masse Sortante</p>
+              <h3 className="text-3xl font-bold text-rose-600 dark:text-rose-400">-{formatter.format(totalDepenses)}</h3>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-rose-500 border border-white"></span> Totalité de vos dépenses
+              </div>
+            </div>
 
-            <Card className={`${chartCardClassName} bg-linear-to-br from-red-50/50 to-red-100/20 dark:from-red-950/20 dark:to-transparent border-red-200/50 dark:border-red-900/50`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-red-700/80 dark:text-red-400/80 font-medium">Total sorties</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-3xl font-bold tabular-nums text-red-700 dark:text-red-400">
-                    -{formatter.format(totalDepenses)}
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
-                    <ArrowDownRight className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-1 text-xs">
-                <p className="text-muted-foreground">Somme de toutes vos dépenses</p>
-              </CardContent>
-            </Card>
-
-            <Card className={`${chartCardClassName} bg-linear-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-transparent border-primary/20`}>
-              <CardHeader className="pb-2">
-                <CardDescription className="text-primary/80 font-medium">Épargne nette</CardDescription>
-                <div className="flex items-baseline justify-between gap-2">
-                  <CardTitle className="text-3xl font-bold tabular-nums text-primary">
-                    {formatter.format(data.epargne)}
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Wallet className="h-4 w-4 text-primary" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-1 text-xs">
-                <p className="text-muted-foreground">Votre capacité de financement sur la période</p>
-              </CardContent>
-            </Card>
+            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Wallet className="size-24" />
+              </div>
+              <p className="text-sm font-medium text-zinc-300 mb-1">Épargne Nette Périodique</p>
+              <h3 className="text-3xl font-bold text-white">{data.epargne > 0 ? '+' : ''}{formatter.format(data.epargne)}</h3>
+              <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+                <span className={cn("w-2 h-2 rounded-full", data.epargne >= 0 ? "bg-emerald-400" : "bg-rose-400")}></span> 
+                {data.epargne >= 0 ? 'Capacité de financement dégagée' : 'Déficit sur la période'}
+              </div>
+            </div>
           </div>
 
-          {/* Graphiques détaillés */}
+          {/* CHARTS CONTAINER */}
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Graphique Revenus */}
-            <Card className={chartCardClassName}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base text-green-600 dark:text-green-400">Détail des entrées</CardTitle>
-                <CardDescription>
-                  Vos sources de revenus par ordre d&apos;importance.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            
+            {/* INCOMES CHART */}
+            <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm overflow-hidden flex flex-col">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-emerald-600 dark:text-emerald-400">Origine des Fonds</h3>
+                <p className="text-sm text-zinc-500">Répartition par source de revenus, classée par importance.</p>
+              </div>
+              
+              <div className="flex-1">
                 {revenusData.length > 0 ? (
                   <ChartContainer
                     config={revenusChartConfig}
@@ -215,24 +209,21 @@ export function CashflowClient() {
                       accessibilityLayer
                       data={revenusData}
                       layout="vertical"
-                      margin={{ left: 0, right: 16 }}
+                      margin={{ left: 0, right: 30 }}
                     >
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
-                      <XAxis 
-                        type="number" 
-                        hide 
-                      />
+                      <CartesianGrid vertical={false} horizontal={true} strokeDasharray="3 3" opacity={0.15} />
+                      <XAxis type="number" hide />
                       <YAxis
                         type="category"
                         dataKey="label"
-                        width={130}
+                        width={110}
                         tickLine={false}
                         axisLine={false}
                         tickMargin={10}
-                        className="text-sm font-medium fill-foreground"
+                        className="text-xs font-semibold fill-zinc-600 dark:fill-zinc-300"
                       />
                       <ChartTooltip
-                        cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                        cursor={{ fill: 'rgba(16, 185, 129, 0.05)' }}
                         content={<ChartTooltipContent 
                           indicator="dot"
                           formatter={(value) => [formatter.format(Number(value)), "Montant"]}
@@ -242,7 +233,7 @@ export function CashflowClient() {
                         dataKey="montant"
                         layout="vertical"
                         radius={[0, 6, 6, 0]}
-                        barSize={32}
+                        barSize={24}
                       >
                         {revenusData.map((entry, index) => (
                           <Cell key={`cell-rev-${index}`} fill={entry.fill} />
@@ -251,28 +242,27 @@ export function CashflowClient() {
                           dataKey="montant" 
                           position="right" 
                           formatter={(val: number) => formatter.format(val)}
-                          className="fill-muted-foreground text-xs font-medium"
+                          className="fill-zinc-400 dark:fill-zinc-500 text-[11px] font-bold"
                         />
                       </Bar>
                     </BarChart>
                   </ChartContainer>
                 ) : (
-                  <div className="bg-muted/40 flex h-75 items-center justify-center rounded-lg text-sm text-muted-foreground">
-                    Aucune source de revenus
+                  <div className="bg-zinc-50 dark:bg-zinc-800/50 flex h-75 items-center justify-center rounded-2xl text-sm font-medium text-zinc-400 border border-zinc-100 dark:border-zinc-800">
+                    Aucune entrée
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Graphique Dépenses */}
-            <Card className={chartCardClassName}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base text-destructive">Détail des sorties</CardTitle>
-                <CardDescription>
-                  Vos catégories de dépenses par ordre d&apos;importance.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+            {/* EXPENSES CHART */}
+            <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200/80 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm overflow-hidden flex flex-col">
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-rose-600 dark:text-rose-400">Destination des Fonds</h3>
+                <p className="text-sm text-zinc-500">Répartition par catégorie de dépenses, classée par poids.</p>
+              </div>
+              
+              <div className="flex-1">
                 {depensesData.length > 0 ? (
                   <ChartContainer
                     config={depensesChartConfig}
@@ -282,24 +272,21 @@ export function CashflowClient() {
                       accessibilityLayer
                       data={depensesData}
                       layout="vertical"
-                      margin={{ left: 0, right: 16 }}
+                      margin={{ left: 0, right: 30 }}
                     >
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
-                      <XAxis 
-                        type="number" 
-                        hide 
-                      />
+                      <CartesianGrid vertical={false} horizontal={true} strokeDasharray="3 3" opacity={0.15} />
+                      <XAxis type="number" hide />
                       <YAxis
                         type="category"
                         dataKey="label"
-                        width={130}
+                        width={110}
                         tickLine={false}
                         axisLine={false}
                         tickMargin={10}
-                        className="text-sm font-medium fill-foreground"
+                        className="text-xs font-semibold fill-zinc-600 dark:fill-zinc-300 capitalize"
                       />
                       <ChartTooltip
-                        cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                        cursor={{ fill: 'rgba(244, 63, 94, 0.05)' }}
                         content={<ChartTooltipContent 
                           indicator="dot"
                           formatter={(value) => [formatter.format(Number(value)), "Montant"]}
@@ -309,7 +296,7 @@ export function CashflowClient() {
                         dataKey="montant"
                         layout="vertical"
                         radius={[0, 6, 6, 0]}
-                        barSize={32}
+                        barSize={24}
                       >
                         {depensesData.map((entry, index) => (
                           <Cell key={`cell-dep-${index}`} fill={entry.fill} />
@@ -318,18 +305,19 @@ export function CashflowClient() {
                           dataKey="montant" 
                           position="right" 
                           formatter={(val: number) => formatter.format(val)}
-                          className="fill-muted-foreground text-xs font-medium"
+                          className="fill-zinc-400 dark:fill-zinc-500 text-[11px] font-bold"
                         />
                       </Bar>
                     </BarChart>
                   </ChartContainer>
                 ) : (
-                  <div className="bg-muted/40 flex h-75 items-center justify-center rounded-lg text-sm text-muted-foreground">
-                    Aucune dépense
+                  <div className="bg-zinc-50 dark:bg-zinc-800/50 flex h-75 items-center justify-center rounded-2xl text-sm font-medium text-zinc-400 border border-zinc-100 dark:border-zinc-800">
+                    Aucune sortie
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
