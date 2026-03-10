@@ -196,7 +196,7 @@ export class ServiceCalculsFinanciers {
       utilisateurId: budget.utilisateurId,
       type: 'depense',
       date: { $gte: budget.dateDebut, $lte: budget.dateFin },
-      ...(budget.categorie && { categorie: budget.categorie })
+      ...(budget.categorie && { categorie: { $regex: new RegExp('^' + budget.categorie + '$', 'i') } })
     });
 
     const montantUtilise = transactions.reduce((sum, t) => sum + t.montant, 0);
