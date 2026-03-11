@@ -20,7 +20,7 @@ const uploadAudio = multer({
 export class AgentIAController {
 //envoyer un message à l'agent IA
   static envoyerMessage = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const { message } = req.body;
+    const { message, conversationId } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       throw new ErreurApp('Le message est requis', 400);
@@ -28,14 +28,16 @@ export class AgentIAController {
 
     const resultat = await serviceAgentIA.traiterMessage(
       req.utilisateurId!,
-      message.trim()
+      message.trim(),
+      conversationId
     );
 
     res.json({
       succes: true,
       donnees: {
         reponse: resultat.reponse,
-        action: resultat.action
+        action: resultat.action,
+        conversationId: resultat.conversationId
       }
     });
   });
@@ -44,15 +46,54 @@ export class AgentIAController {
   static obtenirHistorique = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const { Conversation } = await import('../models/Conversation');
     
-    const conversation = await Conversation.findOne({
+    const conversations = await Conversation.find({
       utilisateurId: req.utilisateurId
-    }).sort({ dateModification: -1 });
+    }).sort({ dateModification: -1 }).select('_id titre dateModification dateCreation messages');
+
+    const donneesRetour: any = {
+      conversations: conversations || [],
+      messages: conversations.length > 0 ? conversations[0].messages : []
+    };
+
+    res.json({
+      succes: true,
+      donnees: donneesRetour
+    });
+  });
+
+  static obtenirConversation = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
+    const { Conversation } = await import('../models/Conversation');
+    const { id } = req.params;
+
+    const conversation = await Conversation.findOne({
+      _id: id,
+      utilisateurId: req.utilisateurId
+    });
+
+    if (!conversation) {
+      throw new ErreurApp('Conversation non trouvée', 404);
+    }
 
     res.json({
       succes: true,
       donnees: {
-        messages: conversation?.messages || []
+        conversation
       }
+    });
+  });
+
+  static supprimerConversation = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
+    const { Conversation } = await import('../models/Conversation');
+    const { id } = req.params;
+
+    await Conversation.findOneAndDelete({
+      _id: id,
+      utilisateurId: req.utilisateurId
+    });
+
+    res.json({
+      succes: true,
+      message: 'Conversation supprimée'
     });
   });
 
@@ -81,17 +122,20 @@ export class AgentIAController {
       if (!req.file?.buffer) {
         throw new ErreurApp('Fichier audio requis (champ "audio")', 400);
       }
+      const { conversationId } = req.body;
       const resultat = await serviceAgentIA.traiterMessageVocal(
         req.utilisateurId!,
         req.file.buffer,
-        req.file.originalname
+        req.file.originalname,
+        conversationId
       );
       res.json({
         succes: true,
         donnees: {
           reponse: resultat.reponse,
           action: resultat.action,
-          transcription: resultat.transcription
+          transcription: resultat.transcription,
+          conversationId: resultat.conversationId
         }
       });
     })
