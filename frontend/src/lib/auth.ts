@@ -10,7 +10,6 @@ type BackendUser = {
   email: string
   nom: string
   prenom?: string
-  devise?: string
 }
 
 function toFrontendUser(u: BackendUser): MockUser {
@@ -48,8 +47,7 @@ export async function loginApi(
 export async function signupApi(
   name: string,
   email: string,
-  password: string,
-  devise = "MAD"
+  password: string
 ): Promise<
   | { success: true; user: MockUser; token: string }
   | { success: false; error: string }
@@ -64,7 +62,6 @@ export async function signupApi(
       motDePasse: password,
       nom,
       prenom,
-      devise,
     }
   )
   if (!res.succes || !res.donnees) {
