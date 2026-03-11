@@ -25,7 +25,7 @@ const SECTIONS = [
     href: "/dashboard/notifications",
     icon: IconNotification,
     title: "Notifications",
-    description: "Alertes email, navigateur et langue",
+    description: "Alertes email et navigateur",
   },
 ] as const
 
