@@ -57,8 +57,9 @@ export class ServiceAgentIA {
 // traiter un message utilisateur et générer une réponse avec actions
   async traiterMessage(
     utilisateurId: string,
-    messageUtilisateur: string
-  ): Promise<{ reponse: string; action?: any }> {
+    messageUtilisateur: string,
+    conversationId?: string
+  ): Promise<{ reponse: string; action?: any; conversationId?: string }> {
     const langue = this.detecterLangue(messageUtilisateur);
     const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
     (contexte as any).langue = langue;
@@ -84,14 +85,15 @@ export class ServiceAgentIA {
 
       if (actionDirecte) {
         const reponseDirecte = this.genererReponseDepuisAction(actionDirecte, contexte);
-        await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseDirecte, actionDirecte);
-        return { reponse: reponseDirecte, action: actionDirecte };
+        const newConvId = await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseDirecte, actionDirecte, conversationId);
+        return { reponse: reponseDirecte, action: actionDirecte, conversationId: newConvId };
       }
     }
 
-    const conversation = await Conversation.findOne({ utilisateurId })
-      .sort({ dateModification: -1 })
-      .limit(1);
+    let conversation = null;
+    if (conversationId && mongoose.Types.ObjectId.isValid(conversationId)) {
+      conversation = await Conversation.findOne({ _id: conversationId, utilisateurId });
+    }
 
     const messagesHistorique = conversation?.messages.slice(-10) || [];
 
@@ -293,8 +295,8 @@ export class ServiceAgentIA {
         if (intentionCreation && intentionCreation.parametres) {
           const actionBudget = await this.executerAction(utilisateurId, 'creer_budget', intentionCreation.parametres);
           const reponseBudget = this.genererReponseDepuisAction(actionBudget, contexte);
-          await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseBudget, actionBudget);
-          return { reponse: reponseBudget, action: actionBudget };
+          const newConvId = await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseBudget, actionBudget, conversationId);
+          return { reponse: reponseBudget, action: actionBudget, conversationId: newConvId };
         }
       }
 
@@ -304,9 +306,9 @@ export class ServiceAgentIA {
           : 'Comment puis-je vous aider avec vos finances ?';
       }
 
-      await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action);
+      const newConvId = await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action, conversationId);
 
-      return { reponse: reponseIA, action };
+      return { reponse: reponseIA, action, conversationId: newConvId };
     } catch (error: any) {
       console.error('Erreur lors du traitement du message:', error);
       const msg = error?.message || '';
@@ -325,11 +327,12 @@ export class ServiceAgentIA {
           try {
             const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
             const promptSystem = this.construirePromptSystem(contexte);
-            const conversation = await Conversation.findOne({ utilisateurId })
-              .sort({ dateModification: -1 })
-              .limit(1);
+            let conversationFallback = null;
+            if (conversationId && mongoose.Types.ObjectId.isValid(conversationId)) {
+              conversationFallback = await Conversation.findOne({ _id: conversationId, utilisateurId });
+            }
             
-            const messagesHistorique = conversation?.messages.slice(-10).map((msg: any) => ({
+            const messagesHistorique = conversationFallback?.messages.slice(-10).map((msg: any) => ({
               role: msg.role,
               contenu: msg.contenu
             })) || [];
@@ -355,8 +358,8 @@ export class ServiceAgentIA {
               }
             }
             
-            await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action);
-            return { reponse: reponseIA, action };
+            const newConvId = await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action, conversationId);
+            return { reponse: reponseIA, action, conversationId: newConvId };
           } catch (nemotronError: any) {
             console.error('[ServiceAgentIA] ❌ Erreur Nemotron, utilisation de la détection d\'intention:', nemotronError.message);
           }
@@ -378,13 +381,13 @@ export class ServiceAgentIA {
             reponseIA = 'Comment puis-je vous aider avec vos finances ?';
           }
 
-          await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action);
-          return { reponse: reponseIA, action };
+          const newConvId = await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action, conversationId);
+          return { reponse: reponseIA, action, conversationId: newConvId };
         } catch (fallbackError: any) {
           console.error('Erreur lors du fallback:', fallbackError);
           const reponseParDefaut = 'Je comprends votre message. Le service IA est temporairement indisponible, mais votre demande a été enregistrée.';
-          await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseParDefaut);
-          return { reponse: reponseParDefaut };
+          const newConvId = await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseParDefaut, undefined, conversationId);
+          return { reponse: reponseParDefaut, conversationId: newConvId };
         }
       }
 
@@ -479,12 +482,12 @@ export class ServiceAgentIA {
   }
 
  //traiter un message vocal : transcription puis réponse IA
-  async traiterMessageVocal(utilisateurId: string, bufferAudio: Buffer, nomFichier?: string): Promise<{ reponse: string; action?: any; transcription: string }> {
+  async traiterMessageVocal(utilisateurId: string, bufferAudio: Buffer, nomFichier?: string, conversationId?: string): Promise<{ reponse: string; action?: any; transcription: string; conversationId?: string }> {
     const transcription = await this.transcrireAudio(bufferAudio, nomFichier);
     if (!transcription.trim()) {
       return { reponse: 'Je n\'ai pas pu comprendre l\'audio. Pouvez-vous réessayer ou taper votre message ?', transcription: '' };
     }
-    const resultat = await this.traiterMessage(utilisateurId, transcription);
+    const resultat = await this.traiterMessage(utilisateurId, transcription, conversationId);
     return { ...resultat, transcription };
   }
 
@@ -1154,14 +1157,20 @@ STYLE
     utilisateurId: string,
     messageUtilisateur: string,
     reponseIA: string,
-    action?: any
-  ): Promise<void> {
-    let conversation = await Conversation.findOne({ utilisateurId })
-      .sort({ dateModification: -1 });
+    action?: any,
+    conversationId?: string
+  ): Promise<string> {
+    let conversation = null;
+
+    if (conversationId && mongoose.Types.ObjectId.isValid(conversationId)) {
+      conversation = await Conversation.findOne({ _id: conversationId, utilisateurId });
+    }
 
     if (!conversation) {
+      const charLimit = 40;
       conversation = new Conversation({
         utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+        titre: messageUtilisateur.substring(0, charLimit) + (messageUtilisateur.length > charLimit ? '...' : ''),
         messages: []
       });
     }
@@ -1171,7 +1180,7 @@ STYLE
     }
 
     if (!reponseIA || reponseIA.trim().length === 0) {
-      reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+      reponseIA = 'Comment puis-je vous aider avec vos finances ?';
     }
 
     conversation.messages.push({
@@ -1189,6 +1198,7 @@ STYLE
 
     conversation.dateModification = new Date();
     await conversation.save();
+    return conversation._id.toString();
   }
 
 //catégoriser une transaction
