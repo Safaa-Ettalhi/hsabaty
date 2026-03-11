@@ -6,12 +6,6 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -28,16 +22,13 @@ import {
 import {
   IconSend,
   IconPlus,
-  IconMicrophone,
-  IconPhoto,
-  IconFile,
   IconChartBar,
   IconCoin,
   IconFileText,
   IconMessages,
 } from "@tabler/icons-react"
-import { getStoredUser, getStoredToken, USER_UPDATED_EVENT, type MockUser } from "@/lib/auth-mock"
-import { api, getApiUrl } from "@/lib/api"
+import { getStoredUser, USER_UPDATED_EVENT, type MockUser } from "@/lib/auth-mock"
+import { api } from "@/lib/api"
 import { toast } from "sonner"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -67,8 +58,6 @@ export function ChatPanel() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [userName, setUserName] = useState("")
-  const [attachments, setAttachments] = useState<{ name: string; type: string; file?: File }[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -148,44 +137,9 @@ export function ChatPanel() {
 
   async function sendMessage(text: string) {
     const trimmed = text.trim()
-    const audioFile = attachments.find((a) => a.type.startsWith("audio/"))?.file
-    const hasAudioOnly = attachments.length === 1 && audioFile && !trimmed
-    if ((!trimmed && !hasAudioOnly) || isLoading) return
-
-    if (hasAudioOnly && audioFile) {
-      setAttachments([])
-      setMessages((prev) => [...prev, { role: "user", content: "Message vocal" }])
-      setIsLoading(true)
-      const formData = new FormData()
-      formData.append("audio", audioFile)
-      const token = getStoredToken()
-      try {
-        const res = await fetch(`${getApiUrl()}/api/agent-ia/voice`, {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          credentials: "include",
-          body: formData,
-        })
-        const data = await res.json()
-        setIsLoading(false)
-        if (data.succes && data.donnees?.reponse) {
-          if (data.donnees.conversationId) setCurrentConversationId(data.donnees.conversationId)
-          setMessages((prev) => [...prev, { role: "assistant", content: data.donnees.reponse }])
-          loadConversations()
-        } else {
-          setMessages((prev) => [...prev, { role: "assistant", content: data.message || "Erreur message vocal." }])
-          toast.error(data.message)
-        }
-      } catch {
-        setIsLoading(false)
-        setMessages((prev) => [...prev, { role: "assistant", content: "Erreur de connexion." }])
-        toast.error("Erreur de connexion")
-      }
-      return
-    }
+    if (!trimmed || isLoading) return
 
     setInput("")
-    setAttachments([])
     setMessages((prev) => [...prev, { role: "user", content: trimmed }])
     setIsLoading(true)
     const res = await api.post<{ reponse: string; action?: unknown; conversationId?: string }>("/api/agent-ia/message", { message: trimmed, conversationId: currentConversationId })
@@ -205,8 +159,7 @@ export function ChatPanel() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (input.trim()) sendMessage(input)
-    else if (attachments.length === 1 && attachments[0].type.startsWith("audio/")) sendMessage("")
+    sendMessage(input)
   }
 
   function handleSuggestion(label: string) {
@@ -216,30 +169,8 @@ export function ChatPanel() {
   function handleNewChat() {
     setMessages([])
     setInput("")
-    setAttachments([])
     setCurrentConversationId(null)
     setIsMobileSidebarOpen(false)
-  }
-
-  function handleAttach(type: "file" | "image" | "audio") {
-    if (!fileInputRef.current) return
-    const accept =
-      type === "image"
-        ? "image/*"
-        : type === "audio"
-          ? "audio/*"
-          : "*"
-    fileInputRef.current.accept = accept
-    fileInputRef.current.click()
-  }
-
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files
-    if (!files?.length) return
-    const next = Array.from(files).map((f) => ({ name: f.name, type: f.type, file: f }))
-    setAttachments((prev) => [...prev, ...next])
-    toast.success(`${next.length} fichier(s) ajouté(s)`)
-    e.target.value = ""
   }
 
   const hasMessages = messages.length > 0
@@ -247,54 +178,7 @@ export function ChatPanel() {
 
   const inputBar = (
     <form onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
-      {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-3 pt-2">
-          {attachments.map((a, i) => (
-            <span
-              key={i}
-              className="rounded-lg bg-muted border px-2.5 py-1 text-xs font-medium text-foreground shadow-sm flex items-center gap-1.5"
-            >
-              <IconFile className="size-3.5 opacity-70" />
-              {a.name}
-            </span>
-          ))}
-        </div>
-      )}
       <div className="relative flex items-end gap-2 rounded-2xl border border-input bg-background/60 shadow-md backdrop-blur-md p-2 focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200 dark:bg-muted/10">
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          multiple
-          onChange={onFileChange}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            >
-              <IconPlus className="size-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" side="top" className="min-w-45 rounded-xl">
-            <DropdownMenuItem onClick={() => handleAttach("file")} className="rounded-lg cursor-pointer">
-              <IconFile className="size-4 mr-2" />
-              Fichiers
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAttach("image")} className="rounded-lg cursor-pointer">
-              <IconPhoto className="size-4 mr-2" />
-              Images
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAttach("audio")} className="rounded-lg cursor-pointer">
-              <IconMicrophone className="size-4 mr-2" />
-              Audio
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         <textarea
           value={input}
           onChange={(e) => {
@@ -319,19 +203,10 @@ export function ChatPanel() {
 
         <div className="flex shrink-0 items-center gap-1 pr-1 pb-1">
           <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/50 transition-colors"
-            title="Saisie vocale"
-          >
-            <IconMicrophone className="size-4" />
-          </Button>
-          <Button
             type="submit"
             size="icon"
             className="h-8 w-8 rounded-lg bg-primary/90 text-primary-foreground hover:bg-primary shadow-sm transition-transform active:scale-95"
-            disabled={(!input.trim() && !attachments.some((a) => a.type.startsWith("audio/"))) || isLoading}
+            disabled={!input.trim() || isLoading}
           >
             <IconSend className="size-4 -ml-0.5" />
           </Button>
