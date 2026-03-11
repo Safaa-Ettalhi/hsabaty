@@ -13,7 +13,6 @@ export interface IUtilisateur extends Document {
   preferences: {
     notificationsEmail: boolean;
     notificationsPush: boolean;
-    langue: string;
   };
   comparerMotDePasse(motDePasse: string): Promise<boolean>;
 }
@@ -64,11 +63,6 @@ const utilisateurSchema = new Schema<IUtilisateur>({
     notificationsPush: {
       type: Boolean,
       default: true
-    },
-    langue: {
-      type: String,
-      default: 'fr',
-      enum: ['fr', 'ar', 'en']
     }
   }
 }, {

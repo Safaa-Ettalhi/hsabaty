@@ -116,7 +116,7 @@ export class AuthController {
     }
     const obj = utilisateur.toObject();
     if (!obj.preferences) {
-      obj.preferences = { notificationsEmail: true, notificationsPush: true, langue: 'fr' };
+      obj.preferences = { notificationsEmail: true, notificationsPush: true };
     }
     res.json({
       succes: true,
@@ -134,10 +134,9 @@ export class AuthController {
     if (nom !== undefined) utilisateur.nom = nom;
     if (prenom !== undefined) utilisateur.prenom = prenom;
     if (preferences) {
-      utilisateur.preferences = utilisateur.preferences || { notificationsEmail: true, notificationsPush: true, langue: 'fr' };
+      utilisateur.preferences = utilisateur.preferences || { notificationsEmail: true, notificationsPush: true };
       if (preferences.notificationsEmail !== undefined) utilisateur.preferences.notificationsEmail = preferences.notificationsEmail;
       if (preferences.notificationsPush !== undefined) utilisateur.preferences.notificationsPush = preferences.notificationsPush;
-      if (preferences.langue) utilisateur.preferences.langue = preferences.langue;
     }
     await utilisateur.save();
     const obj = utilisateur.toObject();
