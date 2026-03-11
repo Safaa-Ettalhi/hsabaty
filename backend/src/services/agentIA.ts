@@ -646,6 +646,42 @@ TYPES D'ACTIONS DISPONIBLES:
 11. "conseils" - Demande de conseils financiers
    parametres: {}
 
+12. "supprimer_budget_par_nom" - Supprimer un budget par son nom (PAS besoin d'ID!)
+   parametres: { "nom": string, "categorie": string (optionnel) }
+   UTILISE CE TYPE quand l'utilisateur veut supprimer un budget.
+   Exemples: "supprime le budget alimentation", "msa7 budget dyal makla", "delete the food budget"
+
+13. "modifier_budget_par_nom" - Modifier un budget par son nom (PAS besoin d'ID!)
+   parametres: { "nom": string, "nouveauMontant": number (optionnel), "nouveauNom": string (optionnel), "nouvelleCategorie": string (optionnel), "nouvellePeriode": "mensuel"|"trimestriel"|"annuel" (optionnel) }
+   UTILISE CE TYPE quand l'utilisateur veut modifier un budget existant.
+   Exemples: "augmente le budget shopping à 3000dh", "bdel budget alimentation l 5000", "change food budget to 2000"
+
+14. "supprimer_objectif_par_nom" - Supprimer un objectif par son nom (PAS besoin d'ID!)
+   parametres: { "nom": string }
+   UTILISE CE TYPE quand l'utilisateur veut supprimer un objectif.
+   Exemples: "supprime l'objectif vacances", "msa7 objectif dyal dar", "delete the car goal"
+
+15. "modifier_objectif_par_nom" - Modifier un objectif par son nom (PAS besoin d'ID!)
+   parametres: { "nom": string, "nouveauMontantCible": number (optionnel), "nouveauMontantActuel": number (optionnel), "nouveauNom": string (optionnel), "nouvelleDateLimite": "ISO string" (optionnel), "nouveauType": "epargne"|"remboursement"|"fonds_urgence"|"projet" (optionnel) }
+   UTILISE CE TYPE quand l'utilisateur veut modifier un objectif existant.
+   Exemples: "change l'objectif voiture à 200000dh", "bdel objectif dar l 500000", "update car goal to 150000"
+
+16. "supprimer_recurrente_par_nom" - Supprimer une transaction récurrente par son nom/description (PAS besoin d'ID!)
+   parametres: { "nom": string, "categorie": string (optionnel) }
+   UTILISE CE TYPE quand l'utilisateur veut supprimer une transaction récurrente/abonnement.
+   Exemples: "supprime l'abonnement Netflix", "msa7 liya Netflix", "cancel the gym subscription"
+
+17. "modifier_recurrente_par_nom" - Modifier une transaction récurrente par son nom/description (PAS besoin d'ID!)
+   parametres: { "nom": string, "nouveauMontant": number (optionnel), "nouvelleDescription": string (optionnel), "nouvelleCategorie": string (optionnel), "nouvelleFrequence": "hebdomadaire"|"mensuel"|"trimestriel"|"annuel" (optionnel), "nouveauType": "depense"|"revenu" (optionnel) }
+   UTILISE CE TYPE quand l'utilisateur veut modifier une transaction récurrente.
+   Exemples: "change Netflix à 70dh", "bdel abonnement gym l 300", "update rent to 5000"
+
+18. "consulter_objectifs" - Voir les objectifs financiers
+   parametres: {}
+
+19. "consulter_budgets" - Voir les budgets
+   parametres: {}
+
 EXEMPLES COMPLETS:
 
 Message: "lbr7 khsaaart 1000dh f shoping"
@@ -704,6 +740,75 @@ Message: "bdel montant dyal zabda l 120dh"
 Réponse: ✅ Montant de la transaction "zabda" modifié à 120 MAD ! ✏️
 <<<ACTION>>>
 {"type":"modifier_par_description","parametres":{"description":"zabda","nouveauMontant":120}}
+<<<END_ACTION>>>
+
+Message: "bghit budget 3000dh f makla o budget 2000dh f transport"
+Réponse: ✅ 2 budgets créés :
+- Budget Alimentation : 3000 MAD/mensuel 🍽️
+- Budget Transport : 2000 MAD/mensuel 🚗
+<<<ACTION>>>
+{"type":"creer_budget","parametres":{"nom":"Budget Alimentation","montant":3000,"categorie":"Alimentation","periode":"mensuel"}}
+<<<END_ACTION>>>
+<<<ACTION>>>
+{"type":"creer_budget","parametres":{"nom":"Budget Transport","montant":2000,"categorie":"Transport","periode":"mensuel"}}
+<<<END_ACTION>>>
+
+Message: "supprime le budget alimentation"
+Réponse: ✅ Budget "Alimentation" supprimé ! 🗑️
+<<<ACTION>>>
+{"type":"supprimer_budget_par_nom","parametres":{"nom":"alimentation"}}
+<<<END_ACTION>>>
+
+Message: "augmente le budget shopping à 5000dh"
+Réponse: ✅ Budget "Shopping" modifié à 5000 MAD ! ✏️
+<<<ACTION>>>
+{"type":"modifier_budget_par_nom","parametres":{"nom":"shopping","nouveauMontant":5000}}
+<<<END_ACTION>>>
+
+Message: "bghit nsejel objectif dyal tomobil 200000dh o objectif dyal dar 500000dh"
+Réponse: ✅ 2 objectifs créés :
+- Voiture : 200 000 MAD 🚗
+- Maison : 500 000 MAD 🏠
+<<<ACTION>>>
+{"type":"creer_objectif","parametres":{"nom":"Voiture","montantCible":200000,"dateLimite":"${new Date(new Date().setFullYear(new Date().getFullYear() + 2)).toISOString()}","type":"epargne"}}
+<<<END_ACTION>>>
+<<<ACTION>>>
+{"type":"creer_objectif","parametres":{"nom":"Maison","montantCible":500000,"dateLimite":"${new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString()}","type":"epargne"}}
+<<<END_ACTION>>>
+
+Message: "msa7 objectif dyal tomobil"
+Réponse: ✅ Objectif "Voiture" supprimé ! 🗑️
+<<<ACTION>>>
+{"type":"supprimer_objectif_par_nom","parametres":{"nom":"voiture"}}
+<<<END_ACTION>>>
+
+Message: "bdel objectif dar l 600000dh"
+Réponse: ✅ Objectif "Maison" modifié à 600 000 MAD ! ✏️
+<<<ACTION>>>
+{"type":"modifier_objectif_par_nom","parametres":{"nom":"dar","nouveauMontantCible":600000}}
+<<<END_ACTION>>>
+
+Message: "ajoute abonnement Netflix 70dh par mois o gym 300dh par mois"
+Réponse: ✅ 2 transactions récurrentes créées :
+- Netflix : 70 MAD/mensuel 📺
+- Gym : 300 MAD/mensuel 💪
+<<<ACTION>>>
+{"type":"creer_transaction_recurrente","parametres":{"nom":"Netflix","montant":70,"type":"depense","categorie":"Divertissement","description":"Netflix","frequence":"mensuel"}}
+<<<END_ACTION>>>
+<<<ACTION>>>
+{"type":"creer_transaction_recurrente","parametres":{"nom":"Gym","montant":300,"type":"depense","categorie":"Santé","description":"Abonnement Gym","frequence":"mensuel"}}
+<<<END_ACTION>>>
+
+Message: "supprime l'abonnement Netflix"
+Réponse: ✅ Transaction récurrente "Netflix" supprimée ! 🗑️
+<<<ACTION>>>
+{"type":"supprimer_recurrente_par_nom","parametres":{"nom":"Netflix"}}
+<<<END_ACTION>>>
+
+Message: "change l'abonnement gym à 350dh"
+Réponse: ✅ Abonnement Gym modifié à 350 MAD ! ✏️
+<<<ACTION>>>
+{"type":"modifier_recurrente_par_nom","parametres":{"nom":"gym","nouveauMontant":350}}
 <<<END_ACTION>>>
 
 ═══════════════════════════════════════
@@ -1308,6 +1413,243 @@ STYLE
           nombre: budgetsAvecStats.length,
           budgets: budgetsAvecStats
         };
+
+      case 'supprimer_budget_par_nom': {
+        const filtreBudgetSupp: any = {
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          actif: true
+        };
+        if (parametres.nom) {
+          filtreBudgetSupp.nom = { $regex: parametres.nom, $options: 'i' };
+        }
+        if (parametres.categorie) {
+          filtreBudgetSupp.categorie = { $regex: parametres.categorie, $options: 'i' };
+        }
+        const budgetASupprimer = await Budget.findOne(filtreBudgetSupp).sort({ dateCreation: -1 });
+        if (!budgetASupprimer) {
+          return {
+            type: 'erreur',
+            message: `Aucun budget trouvé correspondant à "${parametres.nom || parametres.categorie || 'votre recherche'}".`
+          };
+        }
+        const detailsBudgetSupp = {
+          id: budgetASupprimer._id.toString(),
+          nom: budgetASupprimer.nom,
+          montant: budgetASupprimer.montant,
+          categorie: budgetASupprimer.categorie,
+          periode: budgetASupprimer.periode
+        };
+        await Budget.findByIdAndDelete(budgetASupprimer._id);
+        return {
+          type: 'budget_supprime',
+          details: detailsBudgetSupp,
+          message: `Budget supprimé: "${detailsBudgetSupp.nom}" (${detailsBudgetSupp.montant} MAD/${detailsBudgetSupp.periode})`
+        };
+      }
+
+      case 'modifier_budget_par_nom': {
+        const filtreBudgetMod: any = {
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          actif: true
+        };
+        if (parametres.nom) {
+          filtreBudgetMod.nom = { $regex: parametres.nom, $options: 'i' };
+        }
+        if (parametres.categorie) {
+          filtreBudgetMod.categorie = { $regex: parametres.categorie, $options: 'i' };
+        }
+        const budgetAModifier = await Budget.findOne(filtreBudgetMod).sort({ dateCreation: -1 });
+        if (!budgetAModifier) {
+          return {
+            type: 'erreur',
+            message: `Aucun budget trouvé correspondant à "${parametres.nom || parametres.categorie || 'votre recherche'}".`
+          };
+        }
+        const modsBudget: string[] = [];
+        if (parametres.nouveauMontant !== undefined) {
+          budgetAModifier.montant = parametres.nouveauMontant;
+          modsBudget.push(`montant: ${parametres.nouveauMontant}`);
+        }
+        if (parametres.nouveauNom) {
+          budgetAModifier.nom = parametres.nouveauNom;
+          modsBudget.push(`nom: ${parametres.nouveauNom}`);
+        }
+        if (parametres.nouvelleCategorie) {
+          budgetAModifier.categorie = parametres.nouvelleCategorie;
+          modsBudget.push(`catégorie: ${parametres.nouvelleCategorie}`);
+        }
+        if (parametres.nouvellePeriode) {
+          budgetAModifier.periode = parametres.nouvellePeriode;
+          modsBudget.push(`période: ${parametres.nouvellePeriode}`);
+        }
+        budgetAModifier.dateModification = new Date();
+        await budgetAModifier.save();
+        return {
+          type: 'budget_modifie',
+          details: budgetAModifier,
+          modifications: modsBudget,
+          message: `Budget "${budgetAModifier.nom}" modifié: ${modsBudget.join(', ')}`
+        };
+      }
+      case 'supprimer_objectif_par_nom': {
+        const filtreObjSupp: any = {
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          actif: true
+        };
+        if (parametres.nom) {
+          filtreObjSupp.nom = { $regex: parametres.nom, $options: 'i' };
+        }
+        const objectifASupprimer = await Objectif.findOne(filtreObjSupp).sort({ dateCreation: -1 });
+        if (!objectifASupprimer) {
+          return {
+            type: 'erreur',
+            message: `Aucun objectif trouvé correspondant à "${parametres.nom || 'votre recherche'}".`
+          };
+        }
+        const detailsObjSupp = {
+          id: objectifASupprimer._id.toString(),
+          nom: objectifASupprimer.nom,
+          montantCible: objectifASupprimer.montantCible,
+          montantActuel: objectifASupprimer.montantActuel,
+          type: objectifASupprimer.type
+        };
+        await Objectif.findByIdAndDelete(objectifASupprimer._id);
+        return {
+          type: 'objectif_supprime',
+          details: detailsObjSupp,
+          message: `Objectif supprimé: "${detailsObjSupp.nom}" (${detailsObjSupp.montantCible} MAD)`
+        };
+      }
+
+      case 'modifier_objectif_par_nom': {
+        const filtreObjMod: any = {
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          actif: true
+        };
+        if (parametres.nom) {
+          filtreObjMod.nom = { $regex: parametres.nom, $options: 'i' };
+        }
+        const objectifAModifier = await Objectif.findOne(filtreObjMod).sort({ dateCreation: -1 });
+        if (!objectifAModifier) {
+          return {
+            type: 'erreur',
+            message: `Aucun objectif trouvé correspondant à "${parametres.nom || 'votre recherche'}".`
+          };
+        }
+        const modsObjectif: string[] = [];
+        if (parametres.nouveauMontantCible !== undefined) {
+          objectifAModifier.montantCible = parametres.nouveauMontantCible;
+          modsObjectif.push(`montant cible: ${parametres.nouveauMontantCible}`);
+        }
+        if (parametres.nouveauMontantActuel !== undefined) {
+          objectifAModifier.montantActuel = parametres.nouveauMontantActuel;
+          modsObjectif.push(`montant actuel: ${parametres.nouveauMontantActuel}`);
+        }
+        if (parametres.nouveauNom) {
+          objectifAModifier.nom = parametres.nouveauNom;
+          modsObjectif.push(`nom: ${parametres.nouveauNom}`);
+        }
+        if (parametres.nouvelleDateLimite) {
+          objectifAModifier.dateLimite = new Date(parametres.nouvelleDateLimite);
+          modsObjectif.push(`date limite: ${parametres.nouvelleDateLimite}`);
+        }
+        if (parametres.nouveauType) {
+          objectifAModifier.type = parametres.nouveauType;
+          modsObjectif.push(`type: ${parametres.nouveauType}`);
+        }
+        objectifAModifier.dateModification = new Date();
+        await objectifAModifier.save();
+        return {
+          type: 'objectif_modifie',
+          details: objectifAModifier,
+          modifications: modsObjectif,
+          message: `Objectif "${objectifAModifier.nom}" modifié: ${modsObjectif.join(', ')}`
+        };
+      }
+      case 'supprimer_recurrente_par_nom': {
+        const { TransactionRecurrente: TRSupp } = await import('../models/TransactionRecurrente');
+        const filtreRecSupp: any = {
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          actif: true
+        };
+        if (parametres.nom || parametres.description) {
+          filtreRecSupp.description = { $regex: parametres.nom || parametres.description, $options: 'i' };
+        }
+        if (parametres.categorie) {
+          filtreRecSupp.categorie = { $regex: parametres.categorie, $options: 'i' };
+        }
+        const recurrenteASupprimer = await TRSupp.findOne(filtreRecSupp).sort({ dateCreation: -1 });
+        if (!recurrenteASupprimer) {
+          return {
+            type: 'erreur',
+            message: `Aucune transaction récurrente trouvée correspondant à "${parametres.nom || parametres.description || 'votre recherche'}".`
+          };
+        }
+        const detailsRecSupp = {
+          id: recurrenteASupprimer._id.toString(),
+          description: recurrenteASupprimer.description,
+          montant: recurrenteASupprimer.montant,
+          type: recurrenteASupprimer.type,
+          categorie: recurrenteASupprimer.categorie,
+          frequence: recurrenteASupprimer.frequence
+        };
+        await TRSupp.findByIdAndDelete(recurrenteASupprimer._id);
+        return {
+          type: 'recurrente_supprimee',
+          details: detailsRecSupp,
+          message: `Transaction récurrente supprimée: "${detailsRecSupp.description}" (${detailsRecSupp.montant} MAD/${detailsRecSupp.frequence})`
+        };
+      }
+
+      case 'modifier_recurrente_par_nom': {
+        const { TransactionRecurrente: TRMod } = await import('../models/TransactionRecurrente');
+        const filtreRecMod: any = {
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          actif: true
+        };
+        if (parametres.nom || parametres.description) {
+          filtreRecMod.description = { $regex: parametres.nom || parametres.description, $options: 'i' };
+        }
+        if (parametres.categorie) {
+          filtreRecMod.categorie = { $regex: parametres.categorie, $options: 'i' };
+        }
+        const recurrenteAModifier = await TRMod.findOne(filtreRecMod).sort({ dateCreation: -1 });
+        if (!recurrenteAModifier) {
+          return {
+            type: 'erreur',
+            message: `Aucune transaction récurrente trouvée correspondant à "${parametres.nom || parametres.description || 'votre recherche'}".`
+          };
+        }
+        const modsRecurrente: string[] = [];
+        if (parametres.nouveauMontant !== undefined) {
+          recurrenteAModifier.montant = parametres.nouveauMontant;
+          modsRecurrente.push(`montant: ${parametres.nouveauMontant}`);
+        }
+        if (parametres.nouvelleDescription) {
+          recurrenteAModifier.description = parametres.nouvelleDescription;
+          modsRecurrente.push(`description: ${parametres.nouvelleDescription}`);
+        }
+        if (parametres.nouvelleCategorie) {
+          recurrenteAModifier.categorie = parametres.nouvelleCategorie;
+          modsRecurrente.push(`catégorie: ${parametres.nouvelleCategorie}`);
+        }
+        if (parametres.nouvelleFrequence) {
+          recurrenteAModifier.frequence = parametres.nouvelleFrequence;
+          modsRecurrente.push(`fréquence: ${parametres.nouvelleFrequence}`);
+        }
+        if (parametres.nouveauType) {
+          recurrenteAModifier.type = parametres.nouveauType;
+          modsRecurrente.push(`type: ${parametres.nouveauType}`);
+        }
+        recurrenteAModifier.dateModification = new Date();
+        await recurrenteAModifier.save();
+        return {
+          type: 'recurrente_modifiee',
+          details: recurrenteAModifier,
+          modifications: modsRecurrente,
+          message: `Transaction récurrente "${recurrenteAModifier.description}" modifiée: ${modsRecurrente.join(', ')}`
+        };
+      }
 
       default:
         return null;
@@ -2152,6 +2494,48 @@ STYLE
           `✅ تم إنشاء عملية متكررة بنجاح: ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`
         );
       }
+
+      case 'budget_supprime':
+        return t(
+          `✅ ${action.message || 'Budget supprimé avec succès.'}`,
+          `✅ Budget deleted successfully. ${action.message || ''}`,
+          `✅ تم حذف الميزانية بنجاح. ${action.message || ''}`
+        );
+
+      case 'budget_modifie':
+        return t(
+          `✅ ${action.message || 'Budget modifié avec succès.'}`,
+          `✅ Budget updated successfully. ${action.message || ''}`,
+          `✅ تم تعديل الميزانية بنجاح. ${action.message || ''}`
+        );
+
+      case 'objectif_supprime':
+        return t(
+          `✅ ${action.message || 'Objectif supprimé avec succès.'}`,
+          `✅ Goal deleted successfully. ${action.message || ''}`,
+          `✅ تم حذف الهدف بنجاح. ${action.message || ''}`
+        );
+
+      case 'objectif_modifie':
+        return t(
+          `✅ ${action.message || 'Objectif modifié avec succès.'}`,
+          `✅ Goal updated successfully. ${action.message || ''}`,
+          `✅ تم تعديل الهدف بنجاح. ${action.message || ''}`
+        );
+
+      case 'recurrente_supprimee':
+        return t(
+          `✅ ${action.message || 'Transaction récurrente supprimée avec succès.'}`,
+          `✅ Recurring transaction deleted successfully. ${action.message || ''}`,
+          `✅ تم حذف العملية المتكررة بنجاح. ${action.message || ''}`
+        );
+
+      case 'recurrente_modifiee':
+        return t(
+          `✅ ${action.message || 'Transaction récurrente modifiée avec succès.'}`,
+          `✅ Recurring transaction updated successfully. ${action.message || ''}`,
+          `✅ تم تعديل العملية المتكررة بنجاح. ${action.message || ''}`
+        );
 
       case 'statistiques': {
         const stats = action.donnees;
