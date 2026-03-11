@@ -138,7 +138,8 @@ export const objectifContributionSchema = z.object({
 
 export const agentIAMessageSchema = z.object({
   body: z.object({
-    message: z.string().min(1, 'Le message est requis').max(4000, 'Message trop long').trim()
+    message: z.string().min(1, 'Le message est requis').max(4000, 'Message trop long').trim(),
+    conversationId: z.string().nullable().optional()
   })
 });
 
