@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useRef, useEffect } from "react"
@@ -9,6 +11,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   IconSend,
   IconPlus,
@@ -40,6 +50,9 @@ const SUGGESTIONS = [
 
 export function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>([])
+  const [conversations, setConversations] = useState<any[]>([])
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null)
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [userName, setUserName] = useState("")
@@ -62,18 +75,60 @@ export function ChatPanel() {
     return () => window.removeEventListener(USER_UPDATED_EVENT, handler)
   }, [])
 
-  useEffect(() => {
-    api.get<{ messages: Array<{ role: string; contenu: string }> }>("/api/agent-ia/historique").then((res) => {
-      if (res.succes && res.donnees?.messages?.length) {
-        setMessages(
-          res.donnees.messages.map((m) => ({
-            role: m.role === "utilisateur" ? "user" : "assistant",
-            content: m.contenu,
-          }))
-        )
+  const loadConversations = () => {
+    api.get<{ conversations: any[]; messages: Array<{ role: string; contenu: string }> }>("/api/agent-ia/historique").then((res) => {
+      if (res.succes && res.donnees) {
+        setConversations(res.donnees.conversations || [])
+        if (!currentConversationId && res.donnees.conversations?.length > 0 && res.donnees.messages?.length > 0) {
+          setCurrentConversationId(res.donnees.conversations[0]._id)
+          setMessages(
+            res.donnees.messages.map((m) => ({
+              role: m.role === "utilisateur" ? "user" : "assistant",
+              content: m.contenu,
+            }))
+          )
+        }
       }
     })
+  }
+
+  useEffect(() => {
+    loadConversations()
   }, [])
+
+  const loadConversation = async (id: string) => {
+    const res = await api.get<{ conversation: any }>(`/api/agent-ia/conversation/${id}`)
+    if (res.succes && res.donnees?.conversation) {
+      setCurrentConversationId(id)
+      setMessages(
+        res.donnees.conversation.messages.map((m: any) => ({
+          role: m.role === "utilisateur" ? "user" : "assistant",
+          content: m.contenu,
+        }))
+      )
+    } else {
+      toast.error("Impossible de charger la conversation")
+    }
+  }
+
+  const promptDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setConversationToDelete(id)
+  }
+
+  const confirmDelete = async () => {
+    if (!conversationToDelete) return
+    const id = conversationToDelete
+    const res = await api.delete(`/api/agent-ia/conversation/${id}`)
+    if (res.succes) {
+      toast.success("Conversation supprimée")
+      setConversations((prev) => prev.filter((c) => c._id !== id))
+      if (currentConversationId === id) {
+        handleNewChat()
+      }
+    }
+    setConversationToDelete(null)
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -102,7 +157,9 @@ export function ChatPanel() {
         const data = await res.json()
         setIsLoading(false)
         if (data.succes && data.donnees?.reponse) {
+          if (data.donnees.conversationId) setCurrentConversationId(data.donnees.conversationId)
           setMessages((prev) => [...prev, { role: "assistant", content: data.donnees.reponse }])
+          loadConversations()
         } else {
           setMessages((prev) => [...prev, { role: "assistant", content: data.message || "Erreur message vocal." }])
           toast.error(data.message)
@@ -119,10 +176,12 @@ export function ChatPanel() {
     setAttachments([])
     setMessages((prev) => [...prev, { role: "user", content: trimmed }])
     setIsLoading(true)
-    const res = await api.post<{ reponse: string; action?: unknown }>("/api/agent-ia/message", { message: trimmed })
+    const res = await api.post<{ reponse: string; action?: unknown; conversationId?: string }>("/api/agent-ia/message", { message: trimmed, conversationId: currentConversationId })
     setIsLoading(false)
     if (res.succes && res.donnees) {
+      if (res.donnees.conversationId) setCurrentConversationId(res.donnees.conversationId)
       setMessages((prev) => [...prev, { role: "assistant", content: res.donnees.reponse }])
+      loadConversations()
     } else {
       setMessages((prev) => [
         ...prev,
@@ -146,6 +205,7 @@ export function ChatPanel() {
     setMessages([])
     setInput("")
     setAttachments([])
+    setCurrentConversationId(null)
   }
 
   function handleAttach(type: "file" | "image" | "audio") {
@@ -261,9 +321,36 @@ export function ChatPanel() {
   )
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 bg-background">
+    <div className="flex flex-1 h-full overflow-hidden bg-background">
+      {/* Sidebar Historique */}
+      <div className="w-64 border-r hidden md:flex flex-col bg-muted/20">
+        <div className="p-4 border-b shrink-0">
+           <Button className="w-full flex gap-2 justify-start font-medium" variant="default" onClick={handleNewChat}>
+             <IconPlus className="size-4" />
+             Nouvelle conversation
+           </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+           <div className="text-xs font-semibold text-muted-foreground mb-3 px-2 uppercase py-1">Historique</div>
+           {conversations.length === 0 && (
+             <p className="text-xs text-muted-foreground px-2">Aucune conversation passée</p>
+           )}
+           {conversations.map(c => (
+             <div key={c._id} className={cn("group flex items-center justify-between rounded-md transition-colors", currentConversationId === c._id ? "bg-accent" : "hover:bg-accent/50")}>
+               <Button variant="ghost" onClick={() => loadConversation(c._id)} className="flex-1 justify-start text-left truncate font-normal px-3 h-9 data-[state=open]:bg-accent">
+                 <div className="truncate text-sm opacity-90">{c.titre || "Session IA"}</div>
+               </Button>
+               <Button onClick={(e) => promptDelete(c._id, e)} variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100 transition-opacity mr-1 text-muted-foreground hover:text-destructive shrink-0">
+                 <IconPlus className="size-3.5 rotate-45" />
+               </Button>
+             </div>
+           ))}
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col min-h-0 relative bg-background">
       {hasMessages && (
-        <div className="flex shrink-0 items-center border-b px-4 py-2 lg:px-6">
+        <div className="flex shrink-0 items-center justify-between border-b px-4 py-2 lg:px-6 md:hidden">
           <Button
             variant="ghost"
             size="sm"
@@ -353,6 +440,22 @@ export function ChatPanel() {
           <div className="mx-auto max-w-3xl">{inputBar}</div>
         </div>
       )}
+      </div>
+      
+      <Dialog open={!!conversationToDelete} onOpenChange={(open) => !open && setConversationToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer cette conversation ?</DialogTitle>
+            <DialogDescription>
+              Cette action est irréversible. L&apos;historique de cette conversation sera définitivement supprimé pour votre compte.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConversationToDelete(null)}>Annuler</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Supprimer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
