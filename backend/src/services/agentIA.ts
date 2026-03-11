@@ -157,15 +157,9 @@ export class ServiceAgentIA {
         // Try to parse structured action from LLM response first (smart approach)
         const actionParsee = this.extraireActionDepuisReponse(reponseIA);
         if (actionParsee) {
-          reponseIA = actionParsee.texte;
-          try {
-            action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
-            if (action) {
-              reponseIA = this.genererReponseDepuisAction(action, contexte);
-            }
-          } catch (e) {
-            console.error('[ServiceAgentIA] Erreur exécution action Claude:', e);
-          }
+          const batchResult = await this.executerActionsBatch(utilisateurId, actionParsee, contexte);
+          reponseIA = batchResult.reponseIA;
+          action = batchResult.action;
         }
         // Fallback to regex detection only if LLM didn't provide an action
         if (!action) {
@@ -195,16 +189,9 @@ export class ServiceAgentIA {
           // Primary: parse structured JSON action from LLM response (the smart way)
           const actionParsee = this.extraireActionDepuisReponse(reponseIA);
           if (actionParsee) {
-            reponseIA = actionParsee.texte;
-            try {
-              action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
-              if (action) {
-                reponseIA = this.genererReponseDepuisAction(action, contexte);
-              }
-            } catch (e) {
-              console.error('[ServiceAgentIA] Erreur exécution action Gemini:', e);
-              // Keep the LLM text response even if action execution fails
-            }
+            const batchResult = await this.executerActionsBatch(utilisateurId, actionParsee, contexte);
+            reponseIA = batchResult.reponseIA;
+            action = batchResult.action;
           }
 
           // Fallback: regex-based detection only if LLM didn't include an action block
@@ -244,11 +231,9 @@ export class ServiceAgentIA {
               // Try LLM-parsed action first
               const actionParsee = this.extraireActionDepuisReponse(reponseIA);
               if (actionParsee) {
-                reponseIA = actionParsee.texte;
-                try {
-                  action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
-                  if (action) reponseIA = this.genererReponseDepuisAction(action, contexte);
-                } catch (e) { console.error('[ServiceAgentIA] Erreur action Nemotron:', e); }
+                const batchResult = await this.executerActionsBatch(utilisateurId, actionParsee, contexte);
+                reponseIA = batchResult.reponseIA;
+                action = batchResult.action;
               }
               // Fallback to regex
               if (!action) {
@@ -343,11 +328,9 @@ export class ServiceAgentIA {
             // Try LLM-parsed action first
             const actionParsee = this.extraireActionDepuisReponse(reponseIA);
             if (actionParsee) {
-              reponseIA = actionParsee.texte;
-              try {
-                action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
-                if (action) reponseIA = this.genererReponseDepuisAction(action, contexte);
-              } catch (e) { console.error('[ServiceAgentIA] Erreur action Nemotron (catch):', e); }
+              const batchResult = await this.executerActionsBatch(utilisateurId, actionParsee, contexte);
+              reponseIA = batchResult.reponseIA;
+              action = batchResult.action;
             }
             // Fallback to regex
             if (!action) {
@@ -492,22 +475,72 @@ export class ServiceAgentIA {
   }
 
   private extraireActionDepuisReponse(reponseIA: string): { texte: string; action: any } | null {
-    const actionMatch = reponseIA.match(/<<<ACTION>>>\s*([\s\S]*?)\s*<<<END_ACTION>>>/);
-    if (!actionMatch) return null;
+    // Extract ALL action blocks from the response (supports multiple actions)
+    const actionBlocks = [...reponseIA.matchAll(/<<<ACTION>>>\s*([\s\S]*?)\s*<<<END_ACTION>>>/g)];
+    if (actionBlocks.length === 0) return null;
 
-    try {
-      const actionJson = JSON.parse(actionMatch[1].trim());
-      const texte = reponseIA
-        .replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/g, '')
-        .trim();
-      
-      if (actionJson && actionJson.type) {
-        return { texte, action: actionJson };
+    const texte = reponseIA
+      .replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/g, '')
+      .trim();
+
+    const actions: any[] = [];
+    for (const match of actionBlocks) {
+      try {
+        const actionJson = JSON.parse(match[1].trim());
+        if (actionJson && actionJson.type) {
+          actions.push(actionJson);
+        }
+      } catch (e) {
+        console.error('[ServiceAgentIA] Erreur parsing action JSON depuis LLM:', e);
       }
-    } catch (e) {
-      console.error('[ServiceAgentIA] Erreur parsing action JSON depuis LLM:', e);
     }
-    return null;
+
+    if (actions.length === 0) return null;
+    if (actions.length === 1) {
+      return { texte, action: actions[0] };
+    }
+    // Multiple actions: wrap them in a batch
+    return { texte, action: { type: 'batch', actions } };
+  }
+
+  // Execute a batch of actions (or a single one)
+  private async executerActionsBatch(utilisateurId: string, actionParsee: { texte: string; action: any }, contexte: any): Promise<{ reponseIA: string; action: any }> {
+    if (actionParsee.action.type === 'batch') {
+      const resultats: any[] = [];
+      const reponses: string[] = [];
+      for (const act of actionParsee.action.actions) {
+        try {
+          const resultat = await this.executerAction(utilisateurId, act.type, act.parametres || {});
+          if (resultat) {
+            resultats.push(resultat);
+            reponses.push(this.genererReponseDepuisAction(resultat, contexte));
+          }
+        } catch (e) {
+          console.error('[ServiceAgentIA] Erreur exécution action batch:', e);
+        }
+      }
+      if (resultats.length > 0) {
+        return {
+          reponseIA: reponses.join('\n'),
+          action: { type: 'batch', resultats }
+        };
+      }
+      return { reponseIA: actionParsee.texte, action: null };
+    } else {
+      // Single action
+      try {
+        const action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
+        if (action) {
+          return {
+            reponseIA: this.genererReponseDepuisAction(action, contexte),
+            action
+          };
+        }
+      } catch (e) {
+        console.error('[ServiceAgentIA] Erreur exécution action:', e);
+      }
+      return { reponseIA: actionParsee.texte, action: null };
+    }
   }
 
 //construire le prompt système pour l'agent IA
@@ -562,7 +595,11 @@ MAIS NE TE LIMITE PAS À CES EXEMPLES. Comprends le SENS quel que soit le dialec
 Quand tu détectes une action financière dans le message (dépense, revenu, budget, objectif, etc.),
 tu DOIS inclure un bloc JSON structuré dans ta réponse, encadré par les marqueurs <<<ACTION>>> et <<<END_ACTION>>>.
 
-FORMAT OBLIGATOIRE:
+⚠️ ACTIONS MULTIPLES: Si l'utilisateur mentionne PLUSIEURS achats/dépenses/revenus dans UN SEUL message,
+tu DOIS créer UN BLOC <<<ACTION>>>...<<<END_ACTION>>> SÉPARÉ pour CHAQUE item.
+Exemple: "chrit zabda b 100dh o zit b 70dh" = 2 blocs ACTION (un pour zabda, un pour zit).
+
+FORMAT OBLIGATOIRE (pour CHAQUE action):
 <<<ACTION>>>
 {
   "type": "nom_de_action",
@@ -590,13 +627,23 @@ TYPES D'ACTIONS DISPONIBLES:
 6. "rechercher_transactions" - Consulter l'historique
    parametres: { "description": string, "categorie": string, "type": "revenu"|"depense", "limite": number }
 
-7. "statistiques" - Demande de résumé/bilan financier
+7. "supprimer_par_description" - Supprimer une transaction par sa description/montant (PAS besoin d'ID!)
+   parametres: { "description": string, "montant": number (optionnel), "categorie": string (optionnel) }
+   UTILISE CE TYPE quand l'utilisateur veut supprimer une transaction. Tu n'as PAS besoin de chercher d'abord.
+   Exemples: "supprime la transaction du beurre", "msa7 transaction dyal zabda", "delete the butter purchase"
+
+8. "modifier_par_description" - Modifier une transaction par sa description (PAS besoin d'ID!)
+   parametres: { "description": string, "ancienMontant": number (optionnel), "nouveauMontant": number (optionnel), "nouvelleCategorie": string (optionnel), "nouvelleDescription": string (optionnel) }
+   UTILISE CE TYPE quand l'utilisateur veut corriger une transaction.
+   Exemples: "change le prix du beurre à 120dh", "bdel montant dyal zabda l 120"
+
+9. "statistiques" - Demande de résumé/bilan financier
    parametres: {}
 
-8. "analyser_habitudes" - Analyse des habitudes de dépenses
+10. "analyser_habitudes" - Analyse des habitudes de dépenses
    parametres: {}
 
-9. "conseils" - Demande de conseils financiers
+11. "conseils" - Demande de conseils financiers
    parametres: {}
 
 EXEMPLES COMPLETS:
@@ -617,6 +664,46 @@ Message: "maine 500 rupees kharch kiye khane pe"
 Réponse: ✅ 500 MAD ka kharcha Alimentation mein record ho gaya! 🍽️
 <<<ACTION>>>
 {"type":"ajouter_transaction","parametres":{"montant":500,"type":"depense","categorie":"Alimentation","description":"Khana","date":"${new Date().toISOString()}"}}
+<<<END_ACTION>>>
+
+Message: "chrit kilo zabda b 100dh o bido dzite b 70dh"
+Réponse: ✅ 2 transactions enregistrées :
+- Kilo zabda : 100 MAD (Alimentation) 🧈
+- Bido dzite : 70 MAD (Alimentation) 🫒
+<<<ACTION>>>
+{"type":"ajouter_transaction","parametres":{"montant":100,"type":"depense","categorie":"Alimentation","description":"Kilo zabda (beurre)","date":"${new Date().toISOString()}"}}
+<<<END_ACTION>>>
+<<<ACTION>>>
+{"type":"ajouter_transaction","parametres":{"montant":70,"type":"depense","categorie":"Alimentation","description":"Bido dzite (huile)","date":"${new Date().toISOString()}"}}
+<<<END_ACTION>>>
+
+Message: "j'ai acheté un kilo beurre à 111dh et 5L d'huile à 76dh"
+Réponse: ✅ 2 transactions enregistrées :
+- 1 kg beurre : 111 MAD (Alimentation) 🧈
+- 5L huile : 76 MAD (Alimentation) 🫒
+<<<ACTION>>>
+{"type":"ajouter_transaction","parametres":{"montant":111,"type":"depense","categorie":"Alimentation","description":"1 kg beurre","date":"${new Date().toISOString()}"}}
+<<<END_ACTION>>>
+<<<ACTION>>>
+{"type":"ajouter_transaction","parametres":{"montant":76,"type":"depense","categorie":"Alimentation","description":"5L huile","date":"${new Date().toISOString()}"}}
+<<<END_ACTION>>>
+
+Message: "msa7 liya transaction dyal Kilo Beurre de vache"
+Réponse: ✅ Transaction "Kilo Beurre de vache" supprimée ! 🗑️
+<<<ACTION>>>
+{"type":"supprimer_par_description","parametres":{"description":"Kilo Beurre de vache"}}
+<<<END_ACTION>>>
+
+Message: "supprime la dépense du taxi"
+Réponse: ✅ Transaction du taxi supprimée ! 🗑️
+<<<ACTION>>>
+{"type":"supprimer_par_description","parametres":{"description":"taxi"}}
+<<<END_ACTION>>>
+
+Message: "bdel montant dyal zabda l 120dh"
+Réponse: ✅ Montant de la transaction "zabda" modifié à 120 MAD ! ✏️
+<<<ACTION>>>
+{"type":"modifier_par_description","parametres":{"description":"zabda","nouveauMontant":120}}
 <<<END_ACTION>>>
 
 ═══════════════════════════════════════
@@ -649,7 +736,10 @@ STYLE
 - Adapte le ton à la langue de l'utilisateur (darija = décontracté, formel = formel)
 - Félicite les bonnes habitudes, alerte subtilement sur les excès
 
-⚠️ RAPPEL FINAL: INCLUS TOUJOURS LE BLOC <<<ACTION>>>...<<<END_ACTION>>> quand tu détectes une action financière. C'est OBLIGATOIRE. Sans ce bloc, l'action ne sera pas exécutée.
+⚠️ RAPPEL FINAL:
+- INCLUS TOUJOURS le bloc <<<ACTION>>>...<<<END_ACTION>>> quand tu détectes une action financière. C'est OBLIGATOIRE. Sans ce bloc, l'action ne sera pas exécutée.
+- Si PLUSIEURS achats/dépenses/revenus dans un même message → PLUSIEURS blocs ACTION séparés, un par item.
+- Associe le BON montant au BON item. Ne mélange PAS les prix.
     `}
 
 //obtenir le contexte financier de l'utilisateur
@@ -998,6 +1088,78 @@ STYLE
           details: detailsAvantSuppression,
           message: `Transaction supprimée avec succès: "${detailsAvantSuppression.description}" (${detailsAvantSuppression.montant} ${devise})`
         };
+
+      case 'supprimer_par_description': {
+        const filtreSupp: any = { utilisateurId: new mongoose.Types.ObjectId(utilisateurId) };
+        if (parametres.description) {
+          filtreSupp.description = { $regex: parametres.description, $options: 'i' };
+        }
+        if (parametres.montant) {
+          filtreSupp.montant = parametres.montant;
+        }
+        if (parametres.categorie) {
+          filtreSupp.categorie = parametres.categorie;
+        }
+        const transASupprimer2 = await Transaction.findOne(filtreSupp).sort({ date: -1 });
+        if (!transASupprimer2) {
+          return {
+            type: 'erreur',
+            message: `Aucune transaction trouvée correspondant à "${parametres.description || 'votre recherche'}".`
+          };
+        }
+        const detailsSuppression = {
+          id: transASupprimer2._id.toString(),
+          description: transASupprimer2.description,
+          montant: transASupprimer2.montant,
+          type: transASupprimer2.type,
+          categorie: transASupprimer2.categorie,
+          date: transASupprimer2.date
+        };
+        await Transaction.findByIdAndDelete(transASupprimer2._id);
+        return {
+          type: 'transaction_supprimee',
+          details: detailsSuppression,
+          message: `Transaction supprimée: "${detailsSuppression.description}" (${detailsSuppression.montant} MAD)`
+        };
+      }
+
+      case 'modifier_par_description': {
+        const filtreMod: any = { utilisateurId: new mongoose.Types.ObjectId(utilisateurId) };
+        if (parametres.description) {
+          filtreMod.description = { $regex: parametres.description, $options: 'i' };
+        }
+        if (parametres.ancienMontant) {
+          filtreMod.montant = parametres.ancienMontant;
+        }
+        const transAModifier2 = await Transaction.findOne(filtreMod).sort({ date: -1 });
+        if (!transAModifier2) {
+          return {
+            type: 'erreur',
+            message: `Aucune transaction trouvée correspondant à "${parametres.description || 'votre recherche'}".`
+          };
+        }
+        const modsEffectuees: string[] = [];
+        if (parametres.nouveauMontant !== undefined) {
+          transAModifier2.montant = parametres.nouveauMontant;
+          modsEffectuees.push(`montant: ${parametres.nouveauMontant}`);
+        }
+        if (parametres.nouvelleCategorie) {
+          transAModifier2.categorie = parametres.nouvelleCategorie;
+          modsEffectuees.push(`catégorie: ${parametres.nouvelleCategorie}`);
+        }
+        if (parametres.nouvelleDescription) {
+          transAModifier2.description = parametres.nouvelleDescription;
+          modsEffectuees.push(`description: ${parametres.nouvelleDescription}`);
+        }
+        transAModifier2.dateModification = new Date();
+        await transAModifier2.save();
+        return {
+          type: 'transaction_modifiee',
+          details: transAModifier2,
+          modifications: modsEffectuees,
+          message: `Transaction modifiée: ${modsEffectuees.join(', ')}`
+        };
+      }
 
       case 'creer_budget':
         const dateDebut = new Date();
