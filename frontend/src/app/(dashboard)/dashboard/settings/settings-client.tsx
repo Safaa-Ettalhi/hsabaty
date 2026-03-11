@@ -19,7 +19,7 @@ const SECTIONS = [
     href: "/dashboard/compte",
     icon: IconUserCircle,
     title: "Compte",
-    description: "Nom, prénom et email",
+    description: "Prénom, email et mot de passe",
   },
   {
     href: "/dashboard/notifications",
