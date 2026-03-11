@@ -13,34 +13,17 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Controller } from "react-hook-form"
 
 type Utilisateur = {
   _id: string
   email: string
   nom: string
   prenom?: string
-  devise: string
 }
-
-const deviseOptions = [
-  { value: "MAD", label: "MAD (Dirham)" },
-  { value: "EUR", label: "EUR" },
-  { value: "USD", label: "USD" },
-  { value: "GBP", label: "GBP" },
-] as const
 
 const profilSchema = z.object({
   nom: z.string().min(1, "Requis").max(100).trim(),
   prenom: z.string().max(100).trim().optional(),
-  devise: z.enum(["MAD", "EUR", "USD", "GBP"]),
 })
 
 type ProfilFormValues = z.infer<typeof profilSchema>
@@ -57,7 +40,6 @@ export function CompteClient() {
     defaultValues: {
       nom: "",
       prenom: "",
-      devise: "MAD",
     },
   })
 
@@ -71,7 +53,6 @@ export function CompteClient() {
           form.reset({
             nom: u.nom,
             prenom: u.prenom ?? "",
-            devise: u.devise as ProfilFormValues["devise"],
           })
         }
       })
@@ -83,7 +64,6 @@ export function CompteClient() {
     const res = await api.put<{ utilisateur: Utilisateur }>("/api/auth/moi", {
       nom: data.nom,
       ...(data.prenom !== undefined ? { prenom: data.prenom || null } : {}),
-      devise: data.devise,
     })
     setSaving(false)
     if (res.succes) {
@@ -119,7 +99,7 @@ export function CompteClient() {
       <div className="space-y-3">
         <h1 className="text-xl font-semibold md:text-2xl">Mon compte</h1>
         <p className="text-sm text-muted-foreground">
-          Gérez vos informations personnelles et la devise utilisée dans l’application.
+          Gérez vos informations personnelles dans l’application.
         </p>
         <div className="flex items-center gap-3 rounded-lg border bg-card/60 px-3 py-2.5 shadow-sm">
           <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
@@ -131,16 +111,13 @@ export function CompteClient() {
             </p>
             <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
           </div>
-          <div className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-            Devise&nbsp;:&nbsp;{user?.devise ?? "MAD"}
-          </div>
         </div>
       </div>
 
       <Card className="shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Informations du profil</CardTitle>
-          <CardDescription>Modifiez votre nom, prénom et devise principale.</CardDescription>
+          <CardDescription>Modifiez votre nom et prénom.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -164,34 +141,6 @@ export function CompteClient() {
                     L’email ne peut pas être modifié ici.
                   </p>
                 </Field>
-              </div>
-
-              <div className="space-y-4 border-t pt-4 md:border-l md:border-t-0 md:pl-4">
-                <Field>
-                  <FieldLabel>Devise</FieldLabel>
-                  <Controller
-                    control={form.control}
-                    name="devise"
-                    render={({ field }) => (
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger className="h-9 w-full max-w-50">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {deviseOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </Field>
-                <p className="text-xs text-muted-foreground">
-                  La devise est utilisée pour l’affichage des montants dans les tableaux, graphiques et
-                  rapports.
-                </p>
               </div>
             </div>
 

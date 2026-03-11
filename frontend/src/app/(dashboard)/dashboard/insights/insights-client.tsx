@@ -56,7 +56,7 @@ export function InsightsClient() {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex flex-col items-center justify-center p-16 text-center h-100 border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 rounded-3xl">
+        <div className="flex flex-col items-center justify-center p-16 text-center min-h-100 border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 rounded-3xl">
            <div className="relative flex items-center justify-center mb-6">
              <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl animate-pulse"></div>
              <div className="size-20 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center relative shadow-sm border border-blue-100 dark:border-blue-500/20">
@@ -74,7 +74,7 @@ export function InsightsClient() {
     if (tabConfig.key === "depensesInhabituelles" && current?.list) {
       if (!current.list.length) {
         return (
-          <div className="flex flex-col items-center justify-center p-16 text-center h-100 border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 rounded-3xl">
+          <div className="flex flex-col items-center justify-center p-16 text-center min-h-100 border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 rounded-3xl">
              <div className="size-16 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mb-5 border border-emerald-100 dark:border-emerald-900/30">
                 <Sparkles className="size-8 text-emerald-600 dark:text-emerald-400" />
              </div>
@@ -323,7 +323,7 @@ export function InsightsClient() {
     }
 
     return (
-      <div className="flex flex-col items-center justify-center p-16 text-center h-100 border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 rounded-3xl">
+      <div className="flex flex-col items-center justify-center p-16 text-center min-h-100 border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 rounded-3xl">
          <div className="size-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-5 border border-zinc-200 dark:border-zinc-700">
             <Zap className="size-8 text-zinc-400" />
          </div>
@@ -337,7 +337,7 @@ export function InsightsClient() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2 shrink-0">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-3">
             Conseils &amp; Insights
@@ -350,7 +350,7 @@ export function InsightsClient() {
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar">
+      <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar shrink-0">
         <div className="flex gap-2 min-w-max">
           {TABS.map((t) => {
             const isActive = activeTab === t.value
@@ -373,7 +373,7 @@ export function InsightsClient() {
         </div>
       </div>
 
-      <div className="mt-2">
+      <div className="mt-2 shrink-0">
         {renderContent()}
       </div>
     </div>

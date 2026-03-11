@@ -18,16 +18,14 @@ type Metriques = {
   tauxEpargne: number
 }
 
-function formatMontant(value: number, devise: string) {
-  return new Intl.NumberFormat("fr-MA", { maximumFractionDigits: 0 }).format(value) + " " + devise
+function formatMontant(value: number) {
+  return new Intl.NumberFormat("fr-MA", { maximumFractionDigits: 0 }).format(value)
 }
 
 export function SectionCards({
   metriques,
-  devise = "MAD",
 }: {
   metriques?: Metriques | null
-  devise?: string
 }) {
   const solde = metriques?.solde ?? 0
   const revenus = metriques?.revenus ?? 0
@@ -40,7 +38,7 @@ export function SectionCards({
         <CardHeader>
           <CardDescription>Solde total</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {formatMontant(solde, devise)}
+            {formatMontant(solde)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
@@ -57,7 +55,7 @@ export function SectionCards({
         <CardHeader>
           <CardDescription>Revenus</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {formatMontant(revenus, devise)}
+            {formatMontant(revenus)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
@@ -74,7 +72,7 @@ export function SectionCards({
         <CardHeader>
           <CardDescription>Dépenses</CardDescription>
           <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-            {formatMontant(depenses, devise)}
+            {formatMontant(depenses)}
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
