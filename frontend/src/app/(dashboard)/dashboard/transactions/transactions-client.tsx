@@ -332,7 +332,7 @@ export function TransactionsClient() {
       </div>
 
       {/* FILTERS & LIST */}
-      <div className="flex flex-col rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 shadow-sm overflow-hidden">
+      <div className="flex flex-col rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 shadow-sm ">
         
         {/* PREMIUM FILTER BAR */}
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
