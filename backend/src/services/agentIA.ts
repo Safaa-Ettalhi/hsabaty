@@ -442,38 +442,6 @@ export class ServiceAgentIA {
     }
   }
 
-//transcrire un fichier audio en texte
-  async transcrireAudio(bufferAudio: Buffer, nomFichier = 'audio.webm'): Promise<string> {
-    if (!this.openai) {
-      throw new Error('La transcription vocale nécessite OpenAI (IA_PROVIDER=openai)');
-    }
-    const fs = await import('fs');
-    const path = await import('path');
-    const os = await import('os');
-    const tmpPath = path.join(os.tmpdir(), `hssabaty_${Date.now()}_${path.basename(nomFichier)}`);
-    try {
-      fs.writeFileSync(tmpPath, bufferAudio);
-      const stream = fs.createReadStream(tmpPath) as any;
-      const transcription = await this.openai.audio.transcriptions.create({
-        file: stream,
-        model: 'whisper-1'
-      });
-      return transcription.text || '';
-    } finally {
-      try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
-    }
-  }
-
- //traiter un message vocal : transcription puis réponse IA
-  async traiterMessageVocal(utilisateurId: string, bufferAudio: Buffer, nomFichier?: string, conversationId?: string): Promise<{ reponse: string; action?: any; transcription: string; conversationId?: string }> {
-    const transcription = await this.transcrireAudio(bufferAudio, nomFichier);
-    if (!transcription.trim()) {
-      return { reponse: 'Je n\'ai pas pu comprendre l\'audio. Pouvez-vous réessayer ou taper votre message ?', transcription: '' };
-    }
-    const resultat = await this.traiterMessage(utilisateurId, transcription, conversationId);
-    return { ...resultat, transcription };
-  }
-
   private extraireActionDepuisReponse(reponseIA: string): { texte: string; action: any } | null {
     // Extract ALL action blocks from the response (supports multiple actions)
     const actionBlocks = [...reponseIA.matchAll(/<<<ACTION>>>\s*([\s\S]*?)\s*<<<END_ACTION>>>/g)];
