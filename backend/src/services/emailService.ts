@@ -64,12 +64,13 @@ export class EmailService {
 //envoyer un rapport par email
   static async envoyerRapport(
     email: string,
+    nomUtilisateur: string,
     rapportPDF: Buffer,
     typeRapport: string
   ): Promise<void> {
     const sujet = `Votre rapport ${typeRapport} - Hssabaty`;
     const contenu = `
-      <h2>Bonjour ,</h2>
+      <h2>Bonjour ${nomUtilisateur},</h2>
       <p>Veuillez trouver ci-joint votre rapport ${typeRapport} généré le ${new Date().toLocaleDateString('fr-FR')}.</p>
       <p>Cordialement,<br>L'équipe Hssabaty</p>
     `;
