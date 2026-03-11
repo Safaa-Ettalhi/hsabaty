@@ -6,7 +6,6 @@ export interface IUtilisateur extends Document {
   motDePasse: string;
   nom: string;
   prenom?: string;
-  devise: string;
   dateCreation: Date;
   derniereConnexion?: Date;
   resetPasswordToken?: string;
@@ -41,12 +40,6 @@ const utilisateurSchema = new Schema<IUtilisateur>({
   prenom: {
     type: String,
     trim: true
-  },
-  devise: {
-    type: String,
-    default: 'MAD',
-    enum: ['MAD', 'EUR', 'USD', 'GBP'],
-    uppercase: true
   },
   dateCreation: {
     type: Date,

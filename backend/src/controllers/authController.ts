@@ -10,7 +10,7 @@ export class AuthController {
 
 //inscription d'un utilisateur
   static inscrire = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
-    const { email, motDePasse, nom, prenom, devise } = req.body;
+    const { email, motDePasse, nom, prenom } = req.body;
 
     const utilisateurExistant = await Utilisateur.findOne({ email });
     if (utilisateurExistant) {
@@ -20,8 +20,7 @@ export class AuthController {
       email,
       motDePasse,
       nom,
-      prenom,
-      devise: devise || 'MAD'
+      prenom
     });
 
     await nouvelUtilisateur.save();
@@ -42,8 +41,7 @@ export class AuthController {
           id: nouvelUtilisateur._id,
           email: nouvelUtilisateur.email,
           nom: nouvelUtilisateur.nom,
-          prenom: nouvelUtilisateur.prenom,
-          devise: nouvelUtilisateur.devise
+          prenom: nouvelUtilisateur.prenom
         },
         token
       }
@@ -82,8 +80,7 @@ export class AuthController {
           id: utilisateur._id,
           email: utilisateur.email,
           nom: utilisateur.nom,
-          prenom: utilisateur.prenom,
-          devise: utilisateur.devise
+          prenom: utilisateur.prenom
         },
         token
       }
@@ -123,14 +120,13 @@ export class AuthController {
 
   // modifier le profil
   static modifierProfil = asyncHandler(async (req: AuthentifieRequest, res: Response, _next: NextFunction) => {
-    const { nom, prenom, devise, preferences } = req.body;
+    const { nom, prenom, preferences } = req.body;
     const utilisateur = await Utilisateur.findById(req.utilisateurId);
     if (!utilisateur) {
       throw new ErreurApp('Utilisateur non trouvé', 404);
     }
     if (nom !== undefined) utilisateur.nom = nom;
     if (prenom !== undefined) utilisateur.prenom = prenom;
-    if (devise) utilisateur.devise = devise;
     if (preferences) {
       utilisateur.preferences = utilisateur.preferences || { notificationsEmail: true, notificationsPush: true, langue: 'fr' };
       if (preferences.notificationsEmail !== undefined) utilisateur.preferences.notificationsEmail = preferences.notificationsEmail;

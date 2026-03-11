@@ -4,7 +4,6 @@ import { ServiceCalculsFinanciers } from '../services/calculsFinanciers';
 import { Transaction } from '../models/Transaction';
 import { Budget } from '../models/Budget';
 import { Objectif } from '../models/Objectif';
-import { Utilisateur } from '../models/Utilisateur';
 import { asyncHandler } from '../middleware/gestionErreurs';
 import { AuthentifieRequest } from '../middleware/authentification';
 import mongoose from 'mongoose';
@@ -17,8 +16,7 @@ export class ConseilsController {
 
 //conseils et insights financiers
   static obtenirInsights = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const utilisateur = await Utilisateur.findById(req.utilisateurId);
-    if (!utilisateur) {
+    if (!req.utilisateurId) {
       throw new Error('Utilisateur non trouvé');
     }
 
@@ -56,13 +54,13 @@ export class ConseilsController {
     const promptInsights = `
 Analyse les finances suivantes et génère des insights personnalisés:
 
-Revenus ce mois: ${revenusMois} ${utilisateur.devise}
-Dépenses ce mois: ${depensesMois} ${utilisateur.devise}
-Revenus mois précédent: ${revenusPrecedents} ${utilisateur.devise}
-Dépenses mois précédent: ${depensesPrecedentes} ${utilisateur.devise}
+Revenus ce mois: ${revenusMois}
+Dépenses ce mois: ${depensesMois}
+Revenus mois précédent: ${revenusPrecedents}
+Dépenses mois précédent: ${depensesPrecedentes}
 
 Top catégories de dépenses:
-${repartition.slice(0, 5).map((r: any) => `- ${r.categorie}: ${r.montant} ${utilisateur.devise} (${r.pourcentage.toFixed(2)}%)`).join('\n')}
+${repartition.slice(0, 5).map((r: any) => `- ${r.categorie}: ${r.montant} (${r.pourcentage.toFixed(2)}%)`).join('\n')}
 
 Budgets actifs: ${budgets.length}
 Objectifs actifs: ${objectifs.length}
@@ -74,7 +72,7 @@ Génère des insights sur:
 4. Recommandations pour améliorer l'épargne
 5. Alertes sur dépenses inhabituelles
 
-IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
+IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS ET UTILISE LE DIRHAM MAROCAIN (MAD ou DH) POUR TOUS LES MONTANTS.
 `;
 
     const resultat = await serviceAgentIA.genererConseils(promptInsights);
@@ -120,22 +118,21 @@ IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
     const repartition = await serviceCalculs.obtenirRepartitionDepenses(req.utilisateurId!, dateDebut, dateFin);
     const topDepenses = await serviceCalculs.obtenirTopDepenses(req.utilisateurId!, dateDebut, dateFin, 10);
 
-    const utilisateur = await Utilisateur.findById(req.utilisateurId);
 
     const prompt = `
 Analyse les dépenses suivantes et génère des recommandations concrètes pour réduire les dépenses:
 
-Total dépenses: ${depenses} ${utilisateur?.devise || 'MAD'}
+Total dépenses: ${depenses}
 
 Répartition par catégorie:
-${repartition.map((r: any) => `- ${r.categorie}: ${r.montant} ${utilisateur?.devise || 'MAD'} (${r.pourcentage.toFixed(2)}%)`).join('\n')}
+${repartition.map((r: any) => `- ${r.categorie}: ${r.montant} (${r.pourcentage.toFixed(2)}%)`).join('\n')}
 
 Top dépenses:
-${topDepenses.map((t: any, i: number) => `${i + 1}. ${t.description}: ${t.montant} ${utilisateur?.devise || 'MAD'}`).join('\n')}
+${topDepenses.map((t: any, i: number) => `${i + 1}. ${t.description}: ${t.montant}`).join('\n')}
 
 Génère 5-7 recommandations actionnables et spécifiques pour réduire les dépenses.
 
-IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
+IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS ET UTILISE LE DIRHAM MAROCAIN (MAD ou DH) POUR TOUS LES MONTANTS.
 `;
 
     const resultat = await serviceAgentIA.genererConseils(prompt);
@@ -168,18 +165,17 @@ IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
       actif: true
     });
 
-    const utilisateur = await Utilisateur.findById(req.utilisateurId);
 
     const prompt = `
 Analyse la situation d'épargne suivante et génère des recommandations pour optimiser l'épargne:
 
-Revenus mensuels: ${revenus} ${utilisateur?.devise || 'MAD'}
-Dépenses mensuelles: ${depenses} ${utilisateur?.devise || 'MAD'}
-Épargne mensuelle: ${revenus - depenses} ${utilisateur?.devise || 'MAD'}
+Revenus mensuels: ${revenus}
+Dépenses mensuelles: ${depenses}
+Épargne mensuelle: ${revenus - depenses}
 Taux d'épargne actuel: ${tauxEpargne.toFixed(2)}%
 
 Objectifs d'épargne actifs: ${objectifs.length}
-${objectifs.map((o: any) => `- ${o.nom}: ${o.montantActuel}/${o.montantCible} ${utilisateur?.devise || 'MAD'}`).join('\n')}
+${objectifs.map((o: any) => `- ${o.nom}: ${o.montantActuel}/${o.montantCible}`).join('\n')}
 
 Génère des recommandations pour:
 1. Augmenter le taux d'épargne
@@ -187,7 +183,7 @@ Génère des recommandations pour:
 3. Optimiser la répartition de l'épargne
 4. Créer de nouveaux objectifs si nécessaire
 
-IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
+IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS ET UTILISE LE DIRHAM MAROCAIN (MAD ou DH) POUR TOUS LES MONTANTS.
 `;
 
     const resultat = await serviceAgentIA.genererConseils(prompt);
@@ -258,7 +254,6 @@ IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
 
 //conseils de planification financière
   static obtenirConseilsPlanification = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const utilisateur = await Utilisateur.findById(req.utilisateurId);
     const solde = await serviceCalculs.calculerSolde(req.utilisateurId!);
     const objectifs = await Objectif.find({
       utilisateurId: new mongoose.Types.ObjectId(req.utilisateurId),
@@ -274,13 +269,13 @@ IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
     const prompt = `
 Fournis des conseils de planification financière personnalisés basés sur:
 
-Solde actuel: ${solde} ${utilisateur?.devise || 'MAD'}
-Revenus mensuels: ${revenusMois} ${utilisateur?.devise || 'MAD'}
-Dépenses mensuelles: ${depensesMois} ${utilisateur?.devise || 'MAD'}
-Épargne mensuelle: ${revenusMois - depensesMois} ${utilisateur?.devise || 'MAD'}
+Solde actuel: ${solde}
+Revenus mensuels: ${revenusMois}
+Dépenses mensuelles: ${depensesMois}
+Épargne mensuelle: ${revenusMois - depensesMois}
 
 Objectifs actifs: ${objectifs.length}
-${objectifs.map((o: any) => `- ${o.nom}: ${o.montantCible} ${utilisateur?.devise || 'MAD'} d'ici ${o.dateLimite.toLocaleDateString('fr-FR')}`).join('\n')}
+${objectifs.map((o: any) => `- ${o.nom}: ${o.montantCible} d'ici ${o.dateLimite.toLocaleDateString('fr-FR')}`).join('\n')}
 
 Génère des conseils sur:
 1. Planification à court terme (1-3 mois)
@@ -289,7 +284,7 @@ Génère des conseils sur:
 4. Gestion des objectifs multiples
 5. Création d'un fonds d'urgence
 
-IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS.
+IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS ET UTILISE LE DIRHAM MAROCAIN (MAD ou DH) POUR TOUS LES MONTANTS.
 `;
 
     const resultat = await serviceAgentIA.genererConseils(prompt);

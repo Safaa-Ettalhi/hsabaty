@@ -392,7 +392,7 @@ export class ServiceAgentIA {
 
 
   async genererConseils(prompt: string): Promise<{ reponse: string }> {
-    const systemInstruction = "Tu es un expert financier. Tu DOIS ABSOLUMENT RÉPONDRE EN FRANÇAIS QUEL QUE SOIT LE CONTEXTE. Sois précis, structuré et professionnel.";
+    const systemInstruction = "Tu es un expert financier. Tu DOIS ABSOLUMENT RÉPONDRE EN FRANÇAIS QUEL QUE SOIT LE CONTEXTE. Sois précis, structuré et professionnel. UTILISE TOUJOURS LE DIRHAM MAROCAIN (MAD ou DH) POUR LES MONTANTS, NE JAMAIS UTILISER L'EURO (€) OU LE DOLLAR ($).";
     try {
       if (this.provider === 'openai' && this.openai) {
         const completion = await this.openai.chat.completions.create({
@@ -528,9 +528,9 @@ Tu comprends TOUTES les langues: français, anglais, arabe classique, darija mar
 Langue détectée: ${descriptionLangue}
 
 CONTEXTE UTILISATEUR:
-- Solde: ${contexte.solde || 0} ${contexte.devise || 'MAD'}
-- Revenus ce mois: ${contexte.revenusMois || 0} ${contexte.devise || 'MAD'}
-- Dépenses ce mois: ${contexte.depensesMois || 0} ${contexte.devise || 'MAD'}
+- Solde: ${contexte.solde || 0}
+- Revenus ce mois: ${contexte.revenusMois || 0}
+- Dépenses ce mois: ${contexte.depensesMois || 0}
 - Budgets actifs: ${contexte.budgetsActifs || 0}
 - Objectifs actifs: ${contexte.objectifsActifs || 0}
 
@@ -858,7 +858,7 @@ STYLE
       depensesMois,
       budgetsActifs,
       objectifsActifs,
-      devise: 'MAD'
+      
     };
   }
 
@@ -1151,15 +1151,12 @@ STYLE
           utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
         });
 
-        // Obtenir la devise de l'utilisateur
-        const { Utilisateur } = await import('../models/Utilisateur');
-        const utilisateur = await Utilisateur.findById(utilisateurId);
-        const devise = utilisateur?.devise || 'MAD';
+        // Obtenir l'utilisateur si besoin (inutile maintenant)
 
         return {
           type: 'transaction_supprimee',
           details: detailsAvantSuppression,
-          message: `Transaction supprimée avec succès: "${detailsAvantSuppression.description}" (${detailsAvantSuppression.montant} ${devise})`
+          message: `Transaction supprimée avec succès: "${detailsAvantSuppression.description}" (${detailsAvantSuppression.montant})`
         };
 
       case 'supprimer_par_description': {
@@ -2361,7 +2358,7 @@ STYLE
   private genererReponseDepuisAction(action: any, contexte: any): string {
     if (!action) return 'Action effectuée avec succès.';
 
-    const devise = contexte.devise || 'MAD';
+    
     const langue: 'fr' | 'en' | 'ar' = (contexte && (contexte as any).langue) || 'fr';
 
     const t = (fr: string, en: string, ar?: string) => {
@@ -2374,9 +2371,9 @@ STYLE
       case 'transaction_ajoutee': {
         const trans = action.details;
         return t(
-          `✅ Transaction ajoutée avec succès : ${trans.description} - ${trans.montant} ${devise} (${trans.categorie})`,
-          `✅ Transaction added successfully: ${trans.description} - ${trans.montant} ${devise} (${trans.categorie})`,
-          `✅ تم إضافة العملية بنجاح: ${trans.description} - ${trans.montant} ${devise} (${trans.categorie})`
+          `✅ Transaction ajoutée avec succès : ${trans.description} - ${trans.montant} (${trans.categorie})`,
+          `✅ Transaction added successfully: ${trans.description} - ${trans.montant} (${trans.categorie})`,
+          `✅ تم إضافة العملية بنجاح: ${trans.description} - ${trans.montant} (${trans.categorie})`
         );
       }
 
@@ -2404,7 +2401,7 @@ STYLE
         }
         const listeTrans = action.transactions
           .slice(0, 3)
-          .map((tItem: any) => `${tItem.description}: ${tItem.montant} ${devise}`)
+          .map((tItem: any) => `${tItem.description}: ${tItem.montant}`)
           .join(', ');
         return t(
           `J'ai trouvé ${action.nombre} transaction(s). ${listeTrans}`,
@@ -2415,9 +2412,9 @@ STYLE
       case 'budget_cree': {
         const budget = action.details;
         return t(
-          `✅ Budget créé avec succès : ${budget.nom} - ${budget.montant} ${devise}/${budget.periode}`,
-          `✅ Budget created successfully: ${budget.nom} - ${budget.montant} ${devise}/${budget.periode}`,
-          `✅ تم إنشاء الميزانية بنجاح: ${budget.nom} - ${budget.montant} ${devise}/${budget.periode}`
+          `✅ Budget créé avec succès : ${budget.nom} - ${budget.montant}/${budget.periode}`,
+          `✅ Budget created successfully: ${budget.nom} - ${budget.montant}/${budget.periode}`,
+          `✅ تم إنشاء الميزانية بنجاح: ${budget.nom} - ${budget.montant}/${budget.periode}`
         );
       }
 
@@ -2430,36 +2427,36 @@ STYLE
           );
         }
         return t(
-          `Vous avez ${action.nombre} budget(s) actif(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant} ${devise}`).join(', ')}`,
-          `You have ${action.nombre} active budget(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant} ${devise}`).join(', ')}`,
-          `لديك ${action.nombre} ميزانية نشِطة. ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant} ${devise}`).join(', ')}`
+          `Vous avez ${action.nombre} budget(s) actif(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant}`).join(', ')}`,
+          `You have ${action.nombre} active budget(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant}`).join(', ')}`,
+          `لديك ${action.nombre} ميزانية نشِطة. ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant}`).join(', ')}`
         );
 
       case 'objectif_cree': {
         const obj = action.details;
         const dateStr = new Date(obj.dateLimite).toLocaleDateString('fr-FR');
         return t(
-          `✅ Objectif créé avec succès : ${obj.nom} - ${obj.montantCible} ${devise} d'ici ${dateStr}`,
-          `✅ Goal created successfully: ${obj.nom} - ${obj.montantCible} ${devise} by ${dateStr}`,
-          `✅ تم إنشاء الهدف بنجاح: ${obj.nom} - ${obj.montantCible} ${devise} قبل ${dateStr}`
+          `✅ Objectif créé avec succès : ${obj.nom} - ${obj.montantCible} d'ici ${dateStr}`,
+          `✅ Goal created successfully: ${obj.nom} - ${obj.montantCible} by ${dateStr}`,
+          `✅ تم إنشاء الهدف بنجاح: ${obj.nom} - ${obj.montantCible} قبل ${dateStr}`
         );
       }
 
       case 'investissement_cree': {
         const inv = action.details;
         return t(
-          `✅ Investissement créé avec succès : ${inv.nom} - ${inv.montantInvesti} ${devise} (${inv.type})`,
-          `✅ Investment created successfully: ${inv.nom} - ${inv.montantInvesti} ${devise} (${inv.type})`,
-          `✅ تم إنشاء الاستثمار بنجاح: ${inv.nom} - ${inv.montantInvesti} ${devise} (${inv.type})`
+          `✅ Investissement créé avec succès : ${inv.nom} - ${inv.montantInvesti} (${inv.type})`,
+          `✅ Investment created successfully: ${inv.nom} - ${inv.montantInvesti} (${inv.type})`,
+          `✅ تم إنشاء الاستثمار بنجاح: ${inv.nom} - ${inv.montantInvesti} (${inv.type})`
         );
       }
 
       case 'transaction_recurrente_creee': {
         const tr = action.details;
         return t(
-          `✅ Transaction récurrente créée avec succès : ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`,
-          `✅ Recurring transaction created successfully: ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`,
-          `✅ تم إنشاء عملية متكررة بنجاح: ${tr.description} - ${tr.montant} ${devise}/${tr.frequence}`
+          `✅ Transaction récurrente créée avec succès : ${tr.description} - ${tr.montant}/${tr.frequence}`,
+          `✅ Recurring transaction created successfully: ${tr.description} - ${tr.montant}/${tr.frequence}`,
+          `✅ تم إنشاء عملية متكررة بنجاح: ${tr.description} - ${tr.montant}/${tr.frequence}`
         );
       }
 
@@ -2508,9 +2505,9 @@ STYLE
       case 'statistiques': {
         const stats = action.donnees;
         return t(
-          `📊 Votre solde actuel est de ${stats.solde} ${devise}. Ce mois : ${stats.revenus} ${devise} de revenus, ${stats.depenses} ${devise} de dépenses. Taux d'épargne : ${stats.tauxEpargne.toFixed(1)}%`,
-          `📊 Your current balance is ${stats.solde} ${devise}. This month: ${stats.revenus} ${devise} income, ${stats.depenses} ${devise} expenses. Savings rate: ${stats.tauxEpargne.toFixed(1)}%`,
-          `📊 رصيدك الحالي هو ${stats.solde} ${devise}. هذا الشهر: ${stats.revenus} ${devise} دخل، ${stats.depenses} ${devise} مصاريف. نسبة الادخار: ${stats.tauxEpargne.toFixed(1)}%`
+          `📊 Votre solde actuel est de ${stats.solde}. Ce mois : ${stats.revenus} de revenus, ${stats.depenses} de dépenses. Taux d'épargne : ${stats.tauxEpargne.toFixed(1)}%`,
+          `📊 Your current balance is ${stats.solde}. This month: ${stats.revenus} income, ${stats.depenses} expenses. Savings rate: ${stats.tauxEpargne.toFixed(1)}%`,
+          `📊 رصيدك الحالي هو ${stats.solde}. هذا الشهر: ${stats.revenus} دخل، ${stats.depenses} مصاريف. نسبة الادخار: ${stats.tauxEpargne.toFixed(1)}%`
         );
       }
 
@@ -2525,9 +2522,9 @@ STYLE
         const objectifsDetails = action.objectifs.map((o: any) => {
           const montantRestant = o.montantCible - o.montantActuel;
           return {
-            fr: `\n• ${o.nom}: ${o.montantActuel} ${devise} / ${o.montantCible} ${devise} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Reste: ${montantRestant} ${devise} | Mensuel requis: ${o.progression.montantMensuelRequis.toFixed(0)} ${devise}`,
-            en: `\n• ${o.nom}: ${o.montantActuel} ${devise} / ${o.montantCible} ${devise} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Remaining: ${montantRestant} ${devise} | Required per month: ${o.progression.montantMensuelRequis.toFixed(0)} ${devise}`,
-            ar: `\n• ${o.nom}: ${o.montantActuel} ${devise} / ${o.montantCible} ${devise} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  المتبقي: ${montantRestant} ${devise} | المطلوب شهرياً: ${o.progression.montantMensuelRequis.toFixed(0)} ${devise}`
+            fr: `\n• ${o.nom}: ${o.montantActuel} / ${o.montantCible} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Reste: ${montantRestant} | Mensuel requis: ${o.progression.montantMensuelRequis.toFixed(0)}`,
+            en: `\n• ${o.nom}: ${o.montantActuel} / ${o.montantCible} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Remaining: ${montantRestant} | Required per month: ${o.progression.montantMensuelRequis.toFixed(0)}`,
+            ar: `\n• ${o.nom}: ${o.montantActuel} / ${o.montantCible} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  المتبقي: ${montantRestant} | المطلوب شهرياً: ${o.progression.montantMensuelRequis.toFixed(0)}`
           };
         });
         const objectifsTexte = objectifsDetails
@@ -2552,7 +2549,7 @@ STYLE
           : t('ce mois', 'this month', 'هذا الشهر');
         const categoriesList = action.categories
           .map((cat: any, index: number) =>
-            `${index + 1}. ${cat.categorie}: ${cat.montant.toFixed(2)} ${devise} (${cat.pourcentage.toFixed(1)}%)`
+            `${index + 1}. ${cat.categorie}: ${cat.montant.toFixed(2)} (${cat.pourcentage.toFixed(1)}%)`
           )
           .join('\n');
         return t(

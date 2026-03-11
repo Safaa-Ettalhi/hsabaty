@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-const deviseEnum = z.enum(['MAD', 'EUR', 'USD', 'GBP']);
 const typeTransaction = z.enum(['revenu', 'depense']);
 const periodeBudget = z.enum(['mensuel', 'trimestriel', 'annuel']);
 const typeObjectif = z.enum(['epargne', 'remboursement', 'fonds_urgence', 'projet']);
@@ -11,8 +10,7 @@ export const authInscriptionSchema = z.object({
     email: z.string().email('Email invalide').max(255),
     motDePasse: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères').max(128),
     nom: z.string().min(1, 'Le nom est requis').max(100).trim(),
-    prenom: z.string().max(100).trim().optional(),
-    devise: deviseEnum.optional().default('MAD')
+    prenom: z.string().max(100).trim().optional()
   })
 });
 
@@ -40,7 +38,6 @@ export const authProfilModifierSchema = z.object({
   body: z.object({
     nom: z.string().min(1, 'Le nom est requis').max(100).trim().optional(),
     prenom: z.string().max(100).trim().optional().nullable(),
-    devise: deviseEnum.optional(),
     preferences: z.object({
       notificationsEmail: z.boolean().optional(),
       notificationsPush: z.boolean().optional(),
