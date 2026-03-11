@@ -19,14 +19,14 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { loginSchema, type LoginInput } from "@/lib/validations/auth"
 import { loginApi } from "@/lib/auth"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
+import { getRememberedEmail, getRememberMe } from "@/lib/auth-mock"
 
 export function LoginForm({
   className,
@@ -43,6 +43,17 @@ export function LoginForm({
       rememberMe: false,
     },
   })
+  useEffect(() => {
+    const savedEmail = getRememberedEmail()
+    const savedRememberMe = getRememberMe()
+    if (savedRememberMe) {
+      form.reset({
+        email: savedEmail,
+        password: "",
+        rememberMe: true,
+      })
+    }
+  }, [form])
 
   async function onSubmit(data: LoginInput) {
     setSubmitError(null)

@@ -50,7 +50,7 @@ export class AuthController {
 
 //connexion d'un utilisateur
   static connecter = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
-    const { email, motDePasse } = req.body;
+    const { email, motDePasse, seSouvenirDeMoi } = req.body;
 
     const utilisateur = await Utilisateur.findOne({ email });
     if (!utilisateur) {
@@ -66,6 +66,12 @@ export class AuthController {
     await utilisateur.save();
 
     (req.session as any).utilisateurId = utilisateur._id.toString();
+    
+    if (seSouvenirDeMoi) {
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+    } else {
+      (req.session.cookie as any).maxAge = undefined; 
+    }
 
     const token = JWTService.genererToken(
       utilisateur._id.toString(),

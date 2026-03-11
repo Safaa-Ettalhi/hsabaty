@@ -27,7 +27,7 @@ export async function loginApi(
 > {
   const res = await api.post<{ utilisateur: BackendUser; token: string }>(
     "/api/auth/connecter",
-    { email, motDePasse: password }
+    { email, motDePasse: password, seSouvenirDeMoi: rememberMe }
   )
   if (!res.succes || !res.donnees) {
     return {

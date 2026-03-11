@@ -1,6 +1,7 @@
 const AUTH_TOKEN_KEY = "hssabaty_token"
 const REMEMBER_ME_KEY = "hssabaty_remember_me"
 const USER_KEY = "hssabaty_user"
+const REMEMBERED_EMAIL_KEY = "hssabaty_remembered_email"
 
 export const USER_UPDATED_EVENT = "hssabaty:user-updated" as const
 
@@ -13,6 +14,11 @@ export type MockUser = {
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null
   return sessionStorage.getItem(AUTH_TOKEN_KEY) ?? localStorage.getItem(AUTH_TOKEN_KEY)
+}
+
+export function getRememberedEmail(): string {
+  if (typeof window === "undefined") return ""
+  return localStorage.getItem(REMEMBERED_EMAIL_KEY) || ""
 }
 
 export function getRememberMe(): boolean {
@@ -28,6 +34,7 @@ export function setSession(token: string, user: MockUser, rememberMe: boolean) {
     localStorage.setItem(REMEMBER_ME_KEY, "true")
     localStorage.setItem(AUTH_TOKEN_KEY, token)
     localStorage.setItem(USER_KEY, JSON.stringify(user))
+    localStorage.setItem(REMEMBERED_EMAIL_KEY, user.email)
   } else {
     localStorage.removeItem(REMEMBER_ME_KEY)
     localStorage.removeItem(AUTH_TOKEN_KEY)
@@ -76,11 +83,11 @@ export function isAuthenticated(): boolean {
   return !!token
 }
 
-/** Demo credentials for testing the dashboard until backend API is implemented */
+
 export const DEMO_EMAIL = "demo@hssabty.com"
 export const DEMO_PASSWORD = "demo123"
 
-/** Mock login: only accepts demo credentials. Replace with real API call when backend is ready. */
+
 export function mockLogin(
   email: string,
   password: string,
