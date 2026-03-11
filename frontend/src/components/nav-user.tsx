@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  IconCreditCard,
   IconDotsVertical,
   IconLogout,
   IconNotification,
@@ -105,12 +104,6 @@ export function NavUser({
                 <Link href="/dashboard/compte">
                   <IconUserCircle />
                   Compte
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/facturation">
-                  <IconCreditCard />
-                  Facturation
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

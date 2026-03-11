@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import {
   IconUserCircle,
   IconNotification,
-  IconCreditCard,
   IconSettings,
   IconChevronRight,
   IconLogout,
@@ -27,12 +26,6 @@ const SECTIONS = [
     icon: IconNotification,
     title: "Notifications",
     description: "Alertes email, navigateur et langue",
-  },
-  {
-    href: "/dashboard/facturation",
-    icon: IconCreditCard,
-    title: "Facturation",
-    description: "Moyens de paiement et factures",
   },
 ] as const
 
@@ -68,7 +61,7 @@ export function SettingsClient() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Sections du compte</CardTitle>
             <CardDescription>
-              Accédez aux différentes parties de votre profil et de la facturation.
+              Accédez aux différentes parties de votre profil et de vos préférences.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">

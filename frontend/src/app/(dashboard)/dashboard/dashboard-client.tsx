@@ -41,6 +41,14 @@ import {
 } from "@/components/ui/chart"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
+import { 
+  IconArrowUpRight, 
+  IconArrowDownRight, 
+  IconWallet, 
+  IconPigMoney,
+  IconTrendingUp,
+  IconReceipt2
+} from "@tabler/icons-react"
 
 const soldeAreaChartConfig = {
   solde: {
@@ -533,58 +541,82 @@ export function DashboardClient() {
         </div>
       )}
       {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card Revenus */}
-        <Card className="border border-border dark:border-white/10 bg-background shadow-none transition-transform duration-200 ease-out hover:-translate-y-0.5">
-          <CardHeader className="pb-2">
-            <CardDescription>Revenus de ce mois</CardDescription>
-            <div className="flex items-baseline justify-between gap-2">
-              <CardTitle className="text-2xl tabular-nums">{revenusFormatter.format(metriques?.revenus || 0)}</CardTitle>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Card Solde */}
+        <div className="group relative overflow-hidden rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-linear-to-br from-white to-zinc-50/50 dark:from-zinc-900/50 dark:to-zinc-950/20 p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
+          <div className="absolute -right-6 -top-6 size-32 opacity-20 blur-2xl rounded-full bg-blue-500 transition-opacity group-hover:opacity-30" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center border border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm">
+                <IconWallet className="size-6" />
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-1 text-xs">
-            <p className="text-muted-foreground">Totalisé depuis le début du mois</p>
-          </CardContent>
-        </Card>
+            <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Solde actuel</p>
+            <h3 className="text-3xl font-black text-zinc-900 dark:text-zinc-100 tabular-nums tracking-tight">
+              {revenusFormatter.format(metriques?.solde || 0)}
+            </h3>
+            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 mt-2 flex items-center gap-1.5">
+              La totalité de vos fonds disponibles
+            </p>
+          </div>
+        </div>
+
+        {/* Card Revenus */}
+        <div className="group relative overflow-hidden rounded-3xl border border-emerald-200/60 dark:border-emerald-900/30 bg-linear-to-br from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-zinc-900/50 p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
+          <div className="absolute -right-6 -top-6 size-32 opacity-20 blur-2xl rounded-full bg-emerald-500 transition-opacity group-hover:opacity-30" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="size-12 rounded-2xl bg-emerald-100/80 dark:bg-emerald-500/20 flex items-center justify-center border border-emerald-200 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-400 shadow-sm">
+                <IconTrendingUp className="size-6" />
+              </div>
+            </div>
+            <p className="text-sm font-semibold text-emerald-700/80 dark:text-emerald-400/80 mb-1">Revenus (Mois)</p>
+            <h3 className="text-3xl font-black text-emerald-900 dark:text-emerald-50 tabular-nums tracking-tight">
+              {revenusFormatter.format(metriques?.revenus || 0)}
+            </h3>
+            <p className="text-xs font-medium text-emerald-600/60 dark:text-emerald-400/60 mt-2 flex items-center gap-1.5">
+              <IconArrowUpRight className="size-3.5" /> Totalisé depuis le début du mois
+            </p>
+          </div>
+        </div>
 
         {/* Card Dépenses */}
-        <Card className="border border-border dark:border-white/10 bg-background shadow-none transition-transform duration-200 ease-out hover:-translate-y-0.5">
-          <CardHeader className="pb-2">
-            <CardDescription>Dépenses de ce mois</CardDescription>
-            <div className="flex items-baseline justify-between gap-2">
-              <CardTitle className="text-2xl tabular-nums">{revenusFormatter.format(metriques?.depenses || 0)}</CardTitle>
+        <div className="group relative overflow-hidden rounded-3xl border border-rose-200/60 dark:border-rose-900/30 bg-linear-to-br from-rose-50/50 to-white dark:from-rose-950/20 dark:to-zinc-900/50 p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
+          <div className="absolute -right-6 -top-6 size-32 opacity-20 blur-2xl rounded-full bg-rose-500 transition-opacity group-hover:opacity-30" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="size-12 rounded-2xl bg-rose-100/80 dark:bg-rose-500/20 flex items-center justify-center border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 shadow-sm">
+                <IconReceipt2 className="size-6" />
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-1 text-xs">
-            <p className="text-muted-foreground">Sorties d&apos;argent sur la période</p>
-          </CardContent>
-        </Card>
-
-        {/* Card Solde */}
-        <Card className="border border-border dark:border-white/10 bg-background shadow-none transition-transform duration-200 ease-out hover:-translate-y-0.5">
-          <CardHeader className="pb-2">
-            <CardDescription>Solde actuel</CardDescription>
-            <div className="flex items-baseline justify-between gap-2">
-              <CardTitle className="text-2xl tabular-nums">{revenusFormatter.format(metriques?.solde || 0)}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1 text-xs">
-            <p className="text-muted-foreground">La totalité de vos fonds disponibles</p>
-          </CardContent>
-        </Card>
+            <p className="text-sm font-semibold text-rose-700/80 dark:text-rose-400/80 mb-1">Dépenses (Mois)</p>
+            <h3 className="text-3xl font-black text-rose-900 dark:text-rose-50 tabular-nums tracking-tight">
+              {revenusFormatter.format(metriques?.depenses || 0)}
+            </h3>
+            <p className="text-xs font-medium text-rose-600/60 dark:text-rose-400/60 mt-2 flex items-center gap-1.5">
+              <IconArrowDownRight className="size-3.5" /> Sorties d&apos;argent sur la période
+            </p>
+          </div>
+        </div>
 
         {/* Card Taux Epargne */}
-        <Card className="border border-border dark:border-white/10 bg-background shadow-none transition-transform duration-200 ease-out hover:-translate-y-0.5">
-          <CardHeader className="pb-2">
-            <CardDescription>Taux d&apos;épargne (Mois)</CardDescription>
-            <div className="flex items-baseline justify-between gap-2">
-              <CardTitle className="text-2xl tabular-nums">{(metriques?.tauxEpargne || 0).toFixed(1)}%</CardTitle>
+        <div className="group relative overflow-hidden rounded-3xl border border-violet-200/60 dark:border-violet-900/30 bg-linear-to-br from-violet-50/50 to-white dark:from-violet-950/20 dark:to-zinc-900/50 p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
+          <div className="absolute -right-6 -top-6 size-32 opacity-20 blur-2xl rounded-full bg-violet-500 transition-opacity group-hover:opacity-30" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="size-12 rounded-2xl bg-violet-100/80 dark:bg-violet-500/20 flex items-center justify-center border border-violet-200 dark:border-violet-800/50 text-violet-600 dark:text-violet-400 shadow-sm">
+                <IconPigMoney className="size-6" />
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-1 text-xs">
-            <p className="text-muted-foreground">Pourcentage de vos revenus conservés</p>
-          </CardContent>
-        </Card>
+            <p className="text-sm font-semibold text-violet-700/80 dark:text-violet-400/80 mb-1">Taux d&apos;épargne</p>
+            <h3 className="text-3xl font-black text-violet-900 dark:text-violet-50 tabular-nums tracking-tight">
+              {(metriques?.tauxEpargne || 0).toFixed(1)}%
+            </h3>
+            <p className="text-xs font-medium text-violet-600/60 dark:text-violet-400/60 mt-2 flex items-center gap-1.5">
+              Pourcentage de vos revenus conservés
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
