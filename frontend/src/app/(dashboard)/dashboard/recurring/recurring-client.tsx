@@ -370,7 +370,7 @@ export function RecurringClient() {
       </div>
 
       {/* RECURRING LIST */}
-      <Card className="border-border/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white dark:bg-zinc-900/50 rounded-3xl overflow-hidden mt-2">
+      <Card className="border-border/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white dark:bg-zinc-900/50 rounded-3xl  mt-2">
         <CardContent className="p-0">
           {loading ? (
             <div className="p-8 space-y-4">
