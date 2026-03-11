@@ -12,6 +12,7 @@ export interface IMessage {
 
 export interface IConversation extends Document {
   utilisateurId: mongoose.Types.ObjectId;
+  titre?: string;
   messages: IMessage[];
   contexte: {
     dernierSolde?: number;
@@ -51,6 +52,10 @@ const conversationSchema = new Schema<IConversation>({
     ref: 'Utilisateur',
     required: true,
     index: true
+  },
+  titre: {
+    type: String,
+    required: false
   },
   messages: [messageSchema],
   contexte: {
