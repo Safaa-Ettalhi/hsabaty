@@ -46,6 +46,14 @@ export const authProfilModifierSchema = z.object({
   }).refine(data => Object.keys(data).length > 0, { message: 'Au moins un champ à modifier est requis' })
 });
 
+export const authModifierMotDePasseSchema = z.object({
+  body: z.object({
+    ancienMotDePasse: z.string().min(1, 'L\'ancien mot de passe est requis'),
+    nouveauMotDePasse: z.string().min(8, 'Le nouveau mot de passe doit contenir au moins 8 caractères').max(128)
+  })
+});
+
+
 export const transactionCreerSchema = z.object({
   body: z.object({
     montant: z.number().positive('Le montant doit être positif').finite(),

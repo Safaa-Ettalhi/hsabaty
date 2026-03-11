@@ -142,6 +142,29 @@ export class AuthController {
       donnees: { utilisateur: obj }
     });
   });
+  
+  // modifier le mot de passe
+  static modifierMotDePasse = asyncHandler(async (req: AuthentifieRequest, res: Response, _next: NextFunction) => {
+    const { ancienMotDePasse, nouveauMotDePasse } = req.body;
+    const utilisateur = await Utilisateur.findById(req.utilisateurId);
+    if (!utilisateur) {
+      throw new ErreurApp('Utilisateur non trouvé', 404);
+    }
+    
+    const motDePasseValide = await utilisateur.comparerMotDePasse(ancienMotDePasse);
+    if (!motDePasseValide) {
+      throw new ErreurApp('L\'ancien mot de passe est incorrect', 400);
+    }
+
+    utilisateur.motDePasse = nouveauMotDePasse;
+    await utilisateur.save();
+
+    res.json({
+      succes: true,
+      message: 'Mot de passe mis à jour avec succès'
+    });
+  });
+
 
   /** Mot de passe oublié  */
   static demanderReinitialisation = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
