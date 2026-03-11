@@ -152,11 +152,27 @@ export class ServiceAgentIA {
           ? message.content[0].text 
           : '';
 
-        const intention = this.detecterIntention(messageUtilisateur);
-        if (intention) {
-          action = await this.executerActionDetectee(utilisateurId, intention);
-          if (action) {
-            reponseIA = this.genererReponseDepuisAction(action, contexte);
+        // Try to parse structured action from LLM response first (smart approach)
+        const actionParsee = this.extraireActionDepuisReponse(reponseIA);
+        if (actionParsee) {
+          reponseIA = actionParsee.texte;
+          try {
+            action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
+            if (action) {
+              reponseIA = this.genererReponseDepuisAction(action, contexte);
+            }
+          } catch (e) {
+            console.error('[ServiceAgentIA] Erreur exécution action Claude:', e);
+          }
+        }
+        // Fallback to regex detection only if LLM didn't provide an action
+        if (!action) {
+          const intention = this.detecterIntention(messageUtilisateur);
+          if (intention) {
+            action = await this.executerActionDetectee(utilisateurId, intention);
+            if (action) {
+              reponseIA = this.genererReponseDepuisAction(action, contexte);
+            }
           }
         }
       } else if (this.provider === 'gemini' && this.gemini) {
@@ -174,26 +190,38 @@ export class ServiceAgentIA {
           const response = result.response;
           reponseIA = response.text() || '';
 
-          if (!reponseIA || reponseIA.trim().length === 0) {
-            const intention = this.detecterIntention(messageUtilisateur);
-            if (intention) {
-              action = await this.executerActionDetectee(utilisateurId, intention);
+          // Primary: parse structured JSON action from LLM response (the smart way)
+          const actionParsee = this.extraireActionDepuisReponse(reponseIA);
+          if (actionParsee) {
+            reponseIA = actionParsee.texte;
+            try {
+              action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
               if (action) {
                 reponseIA = this.genererReponseDepuisAction(action, contexte);
-              } else {
-                reponseIA = 'Je traite votre demande...';
               }
-            } else {
-              reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+            } catch (e) {
+              console.error('[ServiceAgentIA] Erreur exécution action Gemini:', e);
+              // Keep the LLM text response even if action execution fails
             }
           }
-          const intention = this.detecterIntention(messageUtilisateur);
-          if (intention) {
-            const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
-            if (actionDetectee) {
-              action = actionDetectee;
-              reponseIA = this.genererReponseDepuisAction(action, contexte);
+
+          // Fallback: regex-based detection only if LLM didn't include an action block
+          if (!action) {
+            const intention = this.detecterIntention(messageUtilisateur);
+            if (intention) {
+              const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
+              if (actionDetectee) {
+                action = actionDetectee;
+                reponseIA = this.genererReponseDepuisAction(action, contexte);
+              }
             }
+          }
+
+          // Final fallback: if no response at all
+          if (!reponseIA || reponseIA.trim().length === 0) {
+            reponseIA = action
+              ? this.genererReponseDepuisAction(action, contexte)
+              : 'Comment puis-je vous aider avec vos finances ?';
           }
         } catch (geminiError: any) {
           const errorMessage = geminiError?.message || '';
@@ -211,12 +239,24 @@ export class ServiceAgentIA {
             console.warn(`[ServiceAgentIA] ⚠️ Crédit Gemini épuisé (${errorStatus}), basculement vers Nemotron 3 Nano 30B A3B`);
             try {
               reponseIA = await this.appelerNemotronViaOpenRouter(messagesHistorique, messageUtilisateur, promptSystem);
-              const intention = this.detecterIntention(messageUtilisateur);
-              if (intention) {
-                const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
-                if (actionDetectee) {
-                  action = actionDetectee;
-                  reponseIA = this.genererReponseDepuisAction(action, contexte);
+              // Try LLM-parsed action first
+              const actionParsee = this.extraireActionDepuisReponse(reponseIA);
+              if (actionParsee) {
+                reponseIA = actionParsee.texte;
+                try {
+                  action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
+                  if (action) reponseIA = this.genererReponseDepuisAction(action, contexte);
+                } catch (e) { console.error('[ServiceAgentIA] Erreur action Nemotron:', e); }
+              }
+              // Fallback to regex
+              if (!action) {
+                const intention = this.detecterIntention(messageUtilisateur);
+                if (intention) {
+                  const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
+                  if (actionDetectee) {
+                    action = actionDetectee;
+                    reponseIA = this.genererReponseDepuisAction(action, contexte);
+                  }
                 }
               }
             } catch (nemotronError: any) {
@@ -228,7 +268,7 @@ export class ServiceAgentIA {
                   ? this.genererReponseDepuisAction(action, contexte)
                   : 'Je traite votre demande. Veuillez patienter...';
               } else {
-                reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+                reponseIA = 'Comment puis-je vous aider avec vos finances ?';
               }
             }
           } else {
@@ -240,7 +280,7 @@ export class ServiceAgentIA {
                 ? this.genererReponseDepuisAction(action, contexte)
                 : 'Je traite votre demande. Veuillez patienter...';
             } else {
-              reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+              reponseIA = 'Comment puis-je vous aider avec vos finances ?';
             }
           }
         }
@@ -261,7 +301,7 @@ export class ServiceAgentIA {
       if (!reponseIA || reponseIA.trim().length === 0) {
         reponseIA = action
           ? this.genererReponseDepuisAction(action, contexte)
-          : 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+          : 'Comment puis-je vous aider avec vos finances ?';
       }
 
       await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action);
@@ -295,14 +335,23 @@ export class ServiceAgentIA {
             })) || [];
             
             let reponseIA = await this.appelerNemotronViaOpenRouter(messagesHistorique, messageUtilisateur, promptSystem);
-            
-            const intention = this.detecterIntention(messageUtilisateur);
             let action: any = null;
             
-            if (intention) {
-              action = await this.executerActionDetectee(utilisateurId, intention);
-              if (action) {
-                reponseIA = this.genererReponseDepuisAction(action, contexte);
+            // Try LLM-parsed action first
+            const actionParsee = this.extraireActionDepuisReponse(reponseIA);
+            if (actionParsee) {
+              reponseIA = actionParsee.texte;
+              try {
+                action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
+                if (action) reponseIA = this.genererReponseDepuisAction(action, contexte);
+              } catch (e) { console.error('[ServiceAgentIA] Erreur action Nemotron (catch):', e); }
+            }
+            // Fallback to regex
+            if (!action) {
+              const intention = this.detecterIntention(messageUtilisateur);
+              if (intention) {
+                action = await this.executerActionDetectee(utilisateurId, intention);
+                if (action) reponseIA = this.genererReponseDepuisAction(action, contexte);
               }
             }
             
@@ -324,9 +373,9 @@ export class ServiceAgentIA {
             action = await this.executerActionDetectee(utilisateurId, intention);
             reponseIA = action 
               ? this.genererReponseDepuisAction(action, contexte)
-              : 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+              : 'Comment puis-je vous aider avec vos finances ?';
           } else {
-            reponseIA = 'Je comprends votre message. Comment puis-je vous aider avec vos finances ?';
+            reponseIA = 'Comment puis-je vous aider avec vos finances ?';
           }
 
           await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseIA, action);
@@ -439,177 +488,166 @@ export class ServiceAgentIA {
     return { ...resultat, transcription };
   }
 
+  private extraireActionDepuisReponse(reponseIA: string): { texte: string; action: any } | null {
+    const actionMatch = reponseIA.match(/<<<ACTION>>>\s*([\s\S]*?)\s*<<<END_ACTION>>>/);
+    if (!actionMatch) return null;
+
+    try {
+      const actionJson = JSON.parse(actionMatch[1].trim());
+      const texte = reponseIA
+        .replace(/<<<ACTION>>>[\s\S]*?<<<END_ACTION>>>/g, '')
+        .trim();
+      
+      if (actionJson && actionJson.type) {
+        return { texte, action: actionJson };
+      }
+    } catch (e) {
+      console.error('[ServiceAgentIA] Erreur parsing action JSON depuis LLM:', e);
+    }
+    return null;
+  }
+
 //construire le prompt système pour l'agent IA
   private construirePromptSystem(contexte: any): string {
     const langue = (contexte && (contexte as any).langue) || 'fr';
     const descriptionLangue = langue === 'en'
       ? 'anglais'
-      : langue === 'ar'
-        ? 'arabe (dialecte marocain simple)'
+      : langue === 'ar' || langue === 'darija'
+        ? 'arabe (dialecte marocain / darija)'
         : 'français';
 
-    return `Tu es Hssabaty, un assistant IA intelligent et bienveillant pour la gestion financière personnelle.
+    return `
+Tu es Hssabaty, assistant IA de gestion financière personnelle.
 
-Ton rôle est d'aider les utilisateurs à gérer leurs finances de manière simple et conversationnelle.
+LANGUE: Réponds TOUJOURS dans la langue du dernier message de l'utilisateur.
+Tu comprends TOUTES les langues: français, anglais, arabe classique, darija marocaine (en lettres arabes OU latines/franco-arabe), hindi, espagnol, etc.
+Langue détectée: ${descriptionLangue}
 
-LANGUE DE RÉPONSE:
-- L'utilisateur peut parler français, anglais ou arabe (dialecte marocain).
-- Le dernier message est en: ${descriptionLangue}.
-- Tu dois TOUJOURS répondre dans la même langue que le DERNIER message de l'utilisateur. 
-- Si le message est en français, réponds en français.
-- S'il est en anglais, réponds en anglais.
-- S'il est en arabe/darija, réponds en arabe clair et simple.
-
-⚠️ IMPORTANT - UTILISATION AUTOMATIQUE DES FONCTIONS:
-Tu DOIS automatiquement utiliser les fonctions disponibles lorsque l'utilisateur demande une action. Ne demande JAMAIS à l'utilisateur de confirmer, exécute directement l'action.
-
-CONTEXTE ACTUEL DE L'UTILISATEUR:
-- Solde actuel: ${contexte.solde || 0} ${contexte.devise || 'MAD'}
+CONTEXTE UTILISATEUR:
+- Solde: ${contexte.solde || 0} ${contexte.devise || 'MAD'}
 - Revenus ce mois: ${contexte.revenusMois || 0} ${contexte.devise || 'MAD'}
 - Dépenses ce mois: ${contexte.depensesMois || 0} ${contexte.devise || 'MAD'}
 - Budgets actifs: ${contexte.budgetsActifs || 0}
 - Objectifs actifs: ${contexte.objectifsActifs || 0}
 
-RÈGLES D'UTILISATION DES FONCTIONS:
+═══════════════════════════════════════════════════════════════
+⚠️ RÈGLE CRITIQUE N°1 - COMPRENDRE TOUTE LANGUE / TODA LENGUA / हर भाषा
+═══════════════════════════════════════════════════════════════
 
-1. AJOUTER UNE TRANSACTION:
-   Quand l'utilisateur dit: "J'ai dépensé X", "Ajoute X", "J'ai payé X", "Reçu X", "Gagné X"
-   → Utilise IMMÉDIATEMENT la fonction "ajouter_transaction"
-   Exemples:
-   - "J'ai dépensé 150 MAD au restaurant hier" → ajouter_transaction(type="depense", montant=150, categorie="Alimentation", description="Restaurant", date="hier")
-   - "Ajoute mon salaire de 10000 MAD reçu aujourd'hui" → ajouter_transaction(type="revenu", montant=10000, categorie="Salaire", description="Salaire", date="aujourd'hui")
-   - "J'ai payé 500 MAD pour l'électricité" → ajouter_transaction(type="depense", montant=500, categorie="Logement", description="Électricité")
+Tu es MULTILINGUE. Tu DOIS comprendre le SENS du message, PAS les mots exacts.
+Exemples de messages qui signifient TOUS "j'ai dépensé 1000 MAD en shopping":
+- FR: "j'ai dépensé 1000dh en shopping"
+- EN: "I spent 1000 dirhams shopping"
+- Darija latin: "khsart 1000dh f shoping", "khlest 1000 f lmrjane", "srift 1000dh"
+- Darija arabe: "صرفت 1000 درهم فالشوبينغ"
+- Hindi: "maine 1000 dirham shopping mein kharch kiye"
+- Espagnol: "gasté 1000dh en compras"
+- N'importe quel mélange: "lbr7 khsaaart 1000dh f shoping"
 
-2. MODIFIER UNE TRANSACTION:
-   Quand l'utilisateur dit: "Modifie", "Change", "Corrige", "Mets à jour"
-   → Utilise d'abord "rechercher_transactions" pour trouver la transaction, puis "modifier_transaction"
-   Exemples:
-   - "Modifie la transaction de 150 MAD au restaurant, mets 200 MAD" → rechercher_transactions puis modifier_transaction
-   - "Change la catégorie de ma dernière dépense" → rechercher_transactions puis modifier_transaction
+"lbr7" = "lbar7" = "lbareh" = hier/yesterday
+"khsart"/"khsaaart"/"khsert"/"khlest"/"srift"/"dfe3t" = j'ai dépensé/payé
+"f"/"fi"/"fel" = dans/en/at
+"chrit" = j'ai acheté
+"dkhel liya"/"jani"/"khlessouni" = j'ai reçu (revenu)
 
-3. SUPPRIMER UNE TRANSACTION:
-   Quand l'utilisateur dit: "Supprime", "Efface", "Retire", "Enlève"
-   → Utilise d'abord "rechercher_transactions" pour trouver la transaction, puis "supprimer_transaction"
-   Exemples:
-   - "Supprime ma dépense d'hier au restaurant" → rechercher_transactions puis supprimer_transaction
-   - "Efface la transaction de 500 MAD" → rechercher_transactions puis supprimer_transaction
+MAIS NE TE LIMITE PAS À CES EXEMPLES. Comprends le SENS quel que soit le dialecte ou la langue.
 
-4. CRÉER UN BUDGET:
-   Quand l'utilisateur dit: "Fixe un budget", "Crée un budget", "Budget de X pour Y"
-   → Utilise IMMÉDIATEMENT la fonction "creer_budget"
-   Exemples:
-   - "Fixe un budget de 2000 MAD pour l'alimentation" → creer_budget(nom="Budget Alimentation", montant=2000, categorie="Alimentation", periode="mensuel")
-   - "Je veux un budget mensuel de 5000 MAD" → creer_budget(nom="Budget mensuel", montant=5000, periode="mensuel")
+═══════════════════════════════════════════════════════════════
+⚠️ RÈGLE CRITIQUE N°2 - TOUJOURS INCLURE UN BLOC ACTION JSON
+═══════════════════════════════════════════════════════════════
 
-7. GÉRER DES BUDGETS (consulter, modifier, supprimer):
-   Quand l'utilisateur dit: "Mes budgets", "Montre mes budgets", "Consulte mes budgets", "Modifie le budget X"
-   → Utilise les informations disponibles ou réponds avec la liste des budgets actifs
-   Exemples:
-   - "Montre-moi mes budgets" → Liste les budgets avec leurs statistiques
-   - "Quels sont mes budgets actifs?" → Liste les budgets actifs
+Quand tu détectes une action financière dans le message (dépense, revenu, budget, objectif, etc.),
+tu DOIS inclure un bloc JSON structuré dans ta réponse, encadré par les marqueurs <<<ACTION>>> et <<<END_ACTION>>>.
 
-8. CRÉER UN OBJECTIF:
-   Quand l'utilisateur dit: "Je veux économiser", "Objectif de X", "Épargner X pour Y"
-   → Utilise IMMÉDIATEMENT la fonction "creer_objectif"
-   Exemples:
-   - "Je veux économiser 50000 MAD pour une voiture en 12 mois" → creer_objectif(nom="Voiture", montantCible=50000, dateLimite="+12 mois", type="projet")
-   - "Objectif: 10000 MAD d'épargne d'urgence" → creer_objectif(nom="Fonds d'urgence", montantCible=10000, type="fonds_urgence")
+FORMAT OBLIGATOIRE:
+<<<ACTION>>>
+{
+  "type": "nom_de_action",
+  "parametres": { ... }
+}
+<<<END_ACTION>>>
 
-9. SUIVRE DES OBJECTIFS FINANCIERS:
-   Quand l'utilisateur dit: "Mes objectifs", "Progression", "Suivi", "Où en suis-je avec mes objectifs?"
-   → Utilise les informations disponibles ou réponds avec la liste des objectifs et leur progression
-   Exemples:
-   - "Montre-moi mes objectifs" → Liste les objectifs avec progression, montant restant, montant mensuel requis
-   - "Où en suis-je avec mon objectif voiture?" → Donne la progression détaillée de l'objectif
+TYPES D'ACTIONS DISPONIBLES:
 
-10. DONNER DES CONSEILS PERSONNALISÉS:
-    Quand l'utilisateur demande: "Conseil", "Recommandation", "Que faire", "Comment améliorer", "Optimiser"
-    → Analyse le contexte financier et donne des conseils personnalisés basés sur:
-    - Le solde actuel
-    - Les revenus et dépenses du mois
-    - Les budgets actifs
-    - Les objectifs en cours
-    - Les habitudes de dépenses
-    Exemples:
-    - "Donne-moi des conseils" → Analyse et propose des recommandations personnalisées
-    - "Comment réduire mes dépenses?" → Analyse les dépenses et propose des réductions spécifiques
-    - "Comment optimiser mon épargne?" → Analyse la situation et propose des stratégies d'épargne
+1. "ajouter_transaction" - Quand l'utilisateur mentionne avoir dépensé ou reçu de l'argent
+   parametres: { "montant": number, "type": "depense"|"revenu", "categorie": string, "description": string, "date": "ISO string" }
 
-11. ANALYSER LES HABITUDES DE DÉPENSES:
-    Quand l'utilisateur demande: "Où est-ce que je dépense le plus?", "Analyse mes dépenses", "Mes habitudes", "Tendances"
-    → Analyse les dépenses et donne des insights sur:
-    - Les catégories où l'utilisateur dépense le plus
-    - Les tendances mensuelles
-    - Les comparaisons avec les mois précédents
-    - Les opportunités d'économies
-    Exemples:
-    - "Où est-ce que je dépense le plus?" → Liste les catégories par ordre décroissant avec pourcentages
-    - "Analyse mes habitudes de dépenses" → Donne une analyse complète des habitudes
-    - "Quelles sont mes tendances?" → Compare avec les mois précédents
+2. "creer_budget" - Quand l'utilisateur veut fixer une limite de dépenses
+   parametres: { "nom": string, "montant": number, "categorie": string, "periode": "mensuel"|"trimestriel"|"annuel" }
 
-12. CRÉER UN INVESTISSEMENT:
-    Quand l'utilisateur dit: "J'ai investi", "Investissement", "Acheté des actions", "Portefeuille"
-    → Utilise IMMÉDIATEMENT la fonction "creer_investissement"
-    Exemples:
-    - "J'ai investi 5000 MAD dans Bitcoin" → creer_investissement(nom="Bitcoin", type="crypto", montantInvesti=5000)
-    - "Acheté des actions Apple pour 10000 MAD" → creer_investissement(nom="Apple", type="actions", montantInvesti=10000)
-    - "Investissement immobilier de 200000 MAD" → creer_investissement(nom="Immobilier", type="immobilier", montantInvesti=200000)
+3. "creer_objectif" - Quand l'utilisateur veut épargner pour un objectif
+   parametres: { "nom": string, "montantCible": number, "dateLimite": "ISO string", "type": "epargne"|"remboursement"|"fonds_urgence"|"projet" }
 
-13. CRÉER UNE TRANSACTION RÉCURRENTE:
-    Quand l'utilisateur dit: "Abonnement", "Mensuel", "Récurrent", "Chaque mois", "Tous les mois"
-    → Utilise IMMÉDIATEMENT la fonction "creer_transaction_recurrente"
-    Exemples:
-    - "Abonnement Netflix de 99 MAD par mois" → creer_transaction_recurrente(montant=99, type="depense", categorie="Divertissement", description="Netflix", frequence="mensuel")
-    - "Mon loyer de 3000 MAD chaque mois" → creer_transaction_recurrente(montant=3000, type="depense", categorie="Logement", description="Loyer", frequence="mensuel")
-    - "Salaire mensuel de 10000 MAD" → creer_transaction_recurrente(montant=10000, type="revenu", categorie="Salaire", description="Salaire", frequence="mensuel")
+4. "creer_investissement" - Quand l'utilisateur a placé de l'argent
+   parametres: { "nom": string, "type": "actions"|"obligations"|"fonds"|"crypto"|"immobilier"|"autre", "montantInvesti": number }
 
-2. RECHERCHER/CONSULTER DES TRANSACTIONS:
-   Quand l'utilisateur dit: "Montre-moi", "Liste", "Affiche", "Trouve", "Combien j'ai dépensé", "Mes transactions"
-   → Utilise IMMÉDIATEMENT la fonction "rechercher_transactions"
-   Exemples:
-   - "Montre-moi mes dépenses ce mois" → rechercher_transactions(type="depense", dateDebut="début mois", dateFin="fin mois")
-   - "Combien j'ai dépensé en alimentation?" → rechercher_transactions(categorie="Alimentation")
-   - "Mes transactions d'hier" → rechercher_transactions(dateDebut="hier", dateFin="hier")
-   - "Trouve la transaction de 500 MAD" → rechercher_transactions(montant=500)
+5. "creer_transaction_recurrente" - Paiement/revenu régulier
+   parametres: { "nom": string, "montant": number, "type": "depense"|"revenu", "categorie": string, "frequence": "quotidien"|"hebdomadaire"|"mensuel"|"annuel", "description": string }
 
-3. STATISTIQUES ET CONSULTATION:
-   Quand l'utilisateur demande: "Quel est mon solde?", "Mes revenus", "Mes dépenses", "Statistiques", "Résumé"
-   → Utilise les informations du contexte fourni ou réponds directement avec les métriques disponibles
-   Exemples:
-   - "Quel est mon solde?" → Réponds avec le solde du contexte
-   - "Combien j'ai dépensé ce mois?" → Réponds avec depensesMois du contexte
-   - "Statistiques de ce mois" → Donne un résumé complet avec solde, revenus, dépenses, taux d'épargne
+6. "rechercher_transactions" - Consulter l'historique
+   parametres: { "description": string, "categorie": string, "type": "revenu"|"depense", "limite": number }
 
-4. MODIFIER UNE TRANSACTION:
+7. "statistiques" - Demande de résumé/bilan financier
+   parametres: {}
 
-CATÉGORISATION AUTOMATIQUE:
-- Restaurant, manger, food, café → "Alimentation"
-- Taxi, transport, carburant, essence → "Transport"
-- Loyer, électricité, eau, gaz, logement → "Logement"
-- Salaire, revenu, paie → "Salaire"
-- Médecin, pharmacie, santé → "Santé"
-- École, cours, formation → "Éducation"
-- Cinéma, loisir, divertissement → "Divertissement"
-- Achat, shopping, magasin → "Shopping"
+8. "analyser_habitudes" - Analyse des habitudes de dépenses
+   parametres: {}
 
-DÉTECTION DE DATES:
-- "hier" → date d'hier
-- "aujourd'hui" → date d'aujourd'hui
-- "il y a X jours" → date il y a X jours
-- Dates explicites → convertir en format ISO
+9. "conseils" - Demande de conseils financiers
+   parametres: {}
 
-STYLE DE COMMUNICATION:
-- Sois amical, professionnel et encourageant
-- Après avoir exécuté une action, confirme brièvement ce qui a été fait
-- Utilise un langage simple et accessible
-- Sois concis mais complet
-- Pose des questions de clarification UNIQUEMENT si des informations essentielles manquent
+EXEMPLES COMPLETS:
 
-CATÉGORIES DISPONIBLES:
-Alimentation, Transport, Logement, Santé, Éducation, Divertissement, Shopping, Autres, Salaire, Investissement, Autres revenus
+Message: "lbr7 khsaaart 1000dh f shoping"
+Réponse: ✅ Dépense de 1000 MAD en Shopping enregistrée (hier) ! 🛍️
+<<<ACTION>>>
+{"type":"ajouter_transaction","parametres":{"montant":1000,"type":"depense","categorie":"Shopping","description":"Shopping","date":"${new Date(Date.now() - 86400000).toISOString()}"}}
+<<<END_ACTION>>>
 
-Rappel: Tu DOIS utiliser les fonctions automatiquement. Ne demande JAMAIS de confirmation, exécute directement les actions demandées.`;
-  }
+Message: "khsaaart 2000dh f restau"
+Réponse: ✅ Dépense de 2000 MAD en Alimentation enregistrée ! 🍽️
+<<<ACTION>>>
+{"type":"ajouter_transaction","parametres":{"montant":2000,"type":"depense","categorie":"Alimentation","description":"Restaurant","date":"${new Date().toISOString()}"}}
+<<<END_ACTION>>>
+
+Message: "maine 500 rupees kharch kiye khane pe"
+Réponse: ✅ 500 MAD ka kharcha Alimentation mein record ho gaya! 🍽️
+<<<ACTION>>>
+{"type":"ajouter_transaction","parametres":{"montant":500,"type":"depense","categorie":"Alimentation","description":"Khana","date":"${new Date().toISOString()}"}}
+<<<END_ACTION>>>
+
+═══════════════════════════════════════
+CATÉGORISATION INTELLIGENTE
+═══════════════════════════════════════
+Déduis la catégorie par le CONTEXTE et le SENS, pas par des mots-clés exacts:
+- 🍽️ Alimentation: tout ce qui se mange/boit (resto, café, courses, supermarché, makla, khobz, atay, qhwa)
+- 🚗 Transport: tout déplacement (taxi, uber, bus, tram, essence, parking, tonobil, binsine)
+- 🏠 Logement: habitation (loyer, factures, eau, électricité, internet, kra, lma, daw)
+- 💊 Santé: soins (médecin, pharmacie, hôpital, tbib, farmacien)
+- 📚 Éducation: apprentissage (école, cours, formations, livres, madrasa)
+- 🎬 Divertissement: loisirs (cinéma, sport, gym, streaming, sorties, kharja)
+- 🛍️ Shopping: achats (vêtements, électronique, cadeaux, marjane, zara, souk)
+- 💰 Salaire | 📈 Investissement | 💵 Autres revenus | 📦 Autres
+
+═══════════════════════════════════════
+DATES & MONTANTS
+═══════════════════════════════════════
+- Si pas de date mentionnée → aujourd'hui
+- "hier/yesterday/lbar7/lbr7/lbareh/ams/البارح" → hier
+- "aujourd'hui/today/lyoum/lyom/اليوم" → aujourd'hui
+- Montants: "150", "150dh", "150 MAD", "1.5k"→1500
+- Devise par défaut: MAD
+
+═══════════════════════════════════════
+STYLE
+═══════════════════════════════════════
+- Amical, concis, avec emojis pertinents
+- Après une action: confirme brièvement ce qui a été fait
+- Adapte le ton à la langue de l'utilisateur (darija = décontracté, formel = formel)
+- Félicite les bonnes habitudes, alerte subtilement sur les excès
+
+⚠️ RAPPEL FINAL: INCLUS TOUJOURS LE BLOC <<<ACTION>>>...<<<END_ACTION>>> quand tu détectes une action financière. C'est OBLIGATOIRE. Sans ce bloc, l'action ne sera pas exécutée.
+    `}
 
 //obtenir le contexte financier de l'utilisateur
   private async obtenirContexteUtilisateur(utilisateurId: string): Promise<any> {
