@@ -30,9 +30,9 @@ export function DashboardPageShell({
           className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
           aria-hidden
         >
-          <div className="absolute -left-32 top-0 h-80 w-80 rounded-full bg-emerald-500/[0.07] blur-3xl dark:bg-emerald-500/4" />
-          <div className="absolute -right-24 top-40 h-80 w-80 rounded-full bg-violet-500/[0.07] blur-3xl dark:bg-violet-500/4" />
-          <div className="absolute bottom-0 left-1/2 h-56 w-[75%] -translate-x-1/2 rounded-full bg-blue-500/4 blur-3xl" />
+          <div className="absolute -left-32 top-0 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl dark:bg-emerald-500/5" />
+          <div className="absolute -right-32 top-48 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-500/5" />
+          <div className="absolute bottom-0 left-1/2 h-64 w-[80%] -translate-x-1/2 rounded-full bg-rose-500/5 blur-3xl" />
         </div>
       )}
       <div
@@ -55,9 +55,7 @@ type HeaderProps = {
   className?: string
 }
 
-/**
- * En-tête de page aligné sur le style Flux de trésorerie (badge + titre + actions).
- */
+
 export function DashboardPageHeader({
   badge,
   title,
@@ -79,7 +77,7 @@ export function DashboardPageHeader({
             className={cn(
               "inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold",
               badge.className ??
-                "border-violet-500/20 bg-violet-500/10 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-400"
+                "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
             )}
           >
             {BadgeIcon && <BadgeIcon className="size-3.5 shrink-0" />}
@@ -102,9 +100,6 @@ export function DashboardPageHeader({
   )
 }
 
-/**
- * Carte / section avec bordure et fond unifiés (remplace les multiples variantes border-zinc-200/80).
- */
 export function DashboardSection({
   children,
   className,
