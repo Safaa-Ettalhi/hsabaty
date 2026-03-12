@@ -26,8 +26,8 @@ const FAQ = [
     a: "Sur la page Transactions, utilisez les filtres puis le bouton d’export (CSV ou Excel). Les rapports (mensuel, dépenses, revenus, épargne) peuvent être téléchargés en PDF ou envoyés par email depuis la page Rapports.",
   },
   {
-    q: "L’assistant vocal et le chat IA sont-ils sécurisés ?",
-    a: "Les échanges avec l’assistant (texte et vocal) sont envoyés de manière sécurisée au serveur. Les conseils et insights sont calculés à partir de vos données pour rester personnels.",
+    q: "Le chat IA est-il sécurisé ?",
+    a: "Les échanges avec l’assistant (chat **texte** uniquement) sont envoyés de manière sécurisée au serveur (HTTPS). Les conseils et insights sont calculés à partir de vos données pour rester personnels.",
   },
 ]
 

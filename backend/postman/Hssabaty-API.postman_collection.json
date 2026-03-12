@@ -424,15 +424,6 @@
           "name": "Autres",
           "item": [
             {
-              "name": "Message vocal",
-              "request": {
-                "method": "POST",
-                "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-                "body": {"mode": "formdata", "formdata": [{"key": "audio", "type": "file", "src": ""}]},
-                "url": "{{baseUrl}}/api/agent-ia/voice"
-              }
-            },
-            {
               "name": "Historique conversations",
               "request": {
                 "method": "GET",
