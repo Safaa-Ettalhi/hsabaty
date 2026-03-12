@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Download, Mail, FileText, ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, Clock, SearchCode } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
+import { FluxCardEntrees, FluxCardSorties, FluxCardSolde } from "@/components/flux-kpi-cards"
 
 import {
   Select,
@@ -162,30 +163,33 @@ export function ReportsClient() {
       return (
         <div className="space-y-6 mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
-              <div className="absolute top-0 right-0 p-4 opacity-5">
-                <ArrowUpCircle className="size-20" />
-              </div>
-              <p className="text-sm font-semibold text-emerald-700/80 dark:text-emerald-400/80 mb-1">Revenus</p>
-              <h3 className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">+{formatter.format(d.resume.revenus)}</h3>
-            </div>
-
-            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
-              <div className="absolute top-0 right-0 p-4 opacity-5">
-                <ArrowDownCircle className="size-20" />
-              </div>
-              <p className="text-sm font-semibold text-rose-700/80 dark:text-rose-400/80 mb-1">Dépenses</p>
-              <h3 className="text-3xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">-{formatter.format(d.resume.depenses)}</h3>
-            </div>
-
-            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
-              <p className="text-sm font-semibold text-zinc-300 mb-1">Épargne brute</p>
-              <h3 className="text-3xl font-bold text-white tabular-nums">{d.resume.epargne > 0 ? '+' : ''}{formatter.format(d.resume.epargne)}</h3>
-            </div>
-
-            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm flex flex-col justify-center">
-              <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Taux d&apos;Épargne</p>
-              <h3 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{d.resume.tauxEpargne.toFixed(1)}%</h3>
+            <FluxCardEntrees
+              title="Revenus"
+              value={<span>+{formatter.format(d.resume.revenus)}</span>}
+              icon={ArrowUpCircle}
+            />
+            <FluxCardSorties
+              title="Dépenses"
+              value={<span>−{formatter.format(d.resume.depenses)}</span>}
+              icon={ArrowDownCircle}
+            />
+            <FluxCardSolde
+              title="Épargne brute"
+              value={<span>{d.resume.epargne > 0 ? "+" : ""}{formatter.format(d.resume.epargne)}</span>}
+              subtitle="Reste après dépenses"
+              icon={Wallet}
+              positive={d.resume.epargne >= 0}
+            />
+            <div className="flex flex-col justify-center rounded-3xl border border-violet-500/15 bg-linear-to-br from-white to-violet-50/50 p-6 shadow-sm dark:border-violet-500/10 dark:from-zinc-900 dark:to-violet-950/20">
+              <p className="text-xs font-semibold uppercase tracking-wider text-violet-600/90 dark:text-violet-400/90">
+                Taux d&apos;épargne
+              </p>
+              <h3 className="mt-2 text-3xl font-bold tabular-nums text-violet-800 dark:text-violet-300">
+                {d.resume.tauxEpargne.toFixed(1)}%
+              </h3>
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                Part des revenus conservée
+              </p>
             </div>
           </div>
 
@@ -236,13 +240,23 @@ export function ReportsClient() {
               <h3 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{d.nombreTransactions}</h3>
             </div>
 
-            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
-              <p className="text-sm font-semibold text-zinc-300 mb-1">Évolution vs période préc.</p>
-              <h3 className={cn("text-3xl font-bold tabular-nums", (d.evolution || 0) > 0 ? "text-rose-400" : "text-emerald-400")}>
-                {(d.evolution || 0) > 0 ? "+" : ""}{d.evolution?.toFixed(0) ?? 0} MAD
+            <div
+              className={cn(
+                "relative overflow-hidden rounded-3xl border p-6 shadow-sm",
+                (d.evolution || 0) <= 0
+                  ? "border-emerald-500/20 bg-linear-to-br from-emerald-600 to-emerald-800 text-white"
+                  : "border-rose-500/20 bg-linear-to-br from-rose-600 to-rose-800 text-white"
+              )}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
+                Évolution vs période préc.
+              </p>
+              <h3 className="mt-2 text-3xl font-bold tabular-nums">
+                {(d.evolution || 0) > 0 ? "+" : ""}
+                {d.evolution?.toFixed(0) ?? 0} MAD
               </h3>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-                {(d.evolution || 0) > 0 ? <TrendingUp className="size-16" /> : <TrendingDown className="size-16" />}
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30">
+                {(d.evolution || 0) > 0 ? <TrendingUp className="size-14" /> : <TrendingDown className="size-14" />}
               </div>
             </div>
           </div>
@@ -318,21 +332,24 @@ export function ReportsClient() {
       return (
         <div className="space-y-6 mt-4">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
-              <div className="absolute top-0 right-0 p-4 opacity-5">
-                <Wallet className="size-20" />
-              </div>
-              <p className="text-sm font-semibold text-zinc-300 mb-1">Montant Épargné</p>
-              <h3 className="text-3xl font-bold tabular-nums">{formatter.format(d.epargne)}</h3>
-            </div>
+            <FluxCardSolde
+              title="Montant épargné"
+              value={formatter.format(d.epargne)}
+              icon={Wallet}
+              positive={d.epargne >= 0}
+            />
 
-            <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
-              <p className="text-sm font-semibold text-zinc-500 mb-1">Taux Fixé</p>
-              <h3 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tabular-nums">{d.tauxEpargne.toFixed(1)} %</h3>
+            <div className="relative overflow-hidden rounded-3xl border border-violet-500/15 bg-linear-to-br from-white to-violet-50/50 p-6 shadow-sm dark:border-violet-500/10 dark:from-zinc-900 dark:to-violet-950/20">
+              <p className="text-xs font-semibold uppercase tracking-wider text-violet-600/90 dark:text-violet-400/90">
+                Taux fixé
+              </p>
+              <h3 className="mt-2 text-3xl font-bold tabular-nums text-violet-800 dark:text-violet-300">
+                {d.tauxEpargne.toFixed(1)} %
+              </h3>
             </div>
 
             {typeof d.evolution === "number" && (
-              <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
+              <div className="relative overflow-hidden rounded-3xl border border-emerald-500/15 bg-linear-to-br from-white to-emerald-50/50 p-6 shadow-sm dark:border-emerald-500/10 dark:from-zinc-900 dark:to-emerald-950/20">
                 <p className="text-sm font-semibold text-zinc-500 mb-1">Évolution vs période préc.</p>
                 <h3 className={cn("text-3xl font-bold tabular-nums", (d.evolution || 0) >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
                   {(d.evolution || 0) >= 0 ? "+" : ""}{d.evolution.toFixed(0)} MAD
@@ -412,7 +429,7 @@ export function ReportsClient() {
               <Download className="w-4 h-4" />
               <span>PDF</span>
             </Button>
-            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 flex-1 sm:flex-none" onClick={() => setShareOpen(true)}>
+            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12 flex-1 sm:flex-none" onClick={() => setShareOpen(true)}>
               <Mail className="w-4 h-4" />
               <span>Partager</span>
             </Button>
@@ -430,7 +447,7 @@ export function ReportsClient() {
           <div className="flex flex-col gap-6">
             <DialogHeader>
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
+                <div className="p-2.5 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-xl">
                   <FileText className="size-6" />
                 </div>
                 <div>
@@ -479,7 +496,7 @@ export function ReportsClient() {
                 Annuler
               </Button>
               <Button
-                className="w-full sm:w-auto min-w-32 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold shadow-md"
+                className="w-full sm:w-auto min-w-32 h-12 rounded-xl bg-violet-600 hover:bg-violet-700 font-semibold shadow-md"
                 onClick={handleShareEmail}
                 disabled={sharing || !shareEmail.trim()}
               >
