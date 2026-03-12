@@ -367,7 +367,23 @@ export function ChatPanel() {
                       {m.role === "user" ? (
                         <div className="whitespace-pre-wrap">{m.content}</div>
                       ) : (
-                        <div className="prose prose-sm dark:prose-invert wrap-break-word max-w-none prose-p:leading-relaxed prose-pre:bg-muted/50 prose-pre:border">
+                        <div
+                          className={cn(
+                            "wrap-break-word max-w-none text-sm leading-relaxed",
+                            "prose prose-sm dark:prose-invert",
+                            "prose-headings:font-semibold prose-headings:tracking-tight",
+                            "prose-h2:mb-2 prose-h2:mt-0 prose-h2:text-base prose-h2:border-b prose-h2:border-zinc-200 prose-h2:pb-1 dark:prose-h2:border-zinc-700",
+                            "prose-h3:mb-1.5 prose-h3:mt-3 prose-h3:text-sm prose-h3:text-violet-700 dark:prose-h3:text-violet-400",
+                            "prose-p:my-1 prose-li:my-0.5",
+                            "prose-hr:my-3 prose-hr:border-zinc-200 dark:prose-hr:border-zinc-700",
+                            "prose-strong:text-zinc-900 dark:prose-strong:text-zinc-100",
+                            "prose-table:text-xs prose-th:border prose-th:border-zinc-200 prose-th:bg-zinc-50 prose-th:px-2 prose-th:py-1.5 prose-td:border prose-td:border-zinc-200 prose-td:px-2 prose-td:py-1.5 dark:prose-th:border-zinc-700 dark:prose-th:bg-zinc-800/80 dark:prose-td:border-zinc-700",
+                            "overflow-x-auto prose-table:block prose-table:whitespace-nowrap",
+                            "prose-pre:bg-muted/50 prose-pre:border prose-pre:text-xs",
+                            "prose-blockquote:border-l-violet-500 prose-blockquote:bg-violet-500/5 prose-blockquote:py-2 prose-blockquote:px-3 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:text-zinc-700 dark:prose-blockquote:text-zinc-300",
+                            "prose-ul:my-2 prose-ol:my-2"
+                          )}
+                        >
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {m.content}
                           </ReactMarkdown>
