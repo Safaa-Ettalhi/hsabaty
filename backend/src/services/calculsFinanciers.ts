@@ -2,7 +2,7 @@ import { Transaction } from '../models/Transaction';
 import { Budget } from '../models/Budget';
 import { Objectif } from '../models/Objectif';
 import mongoose from 'mongoose';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, subYears } from 'date-fns';
 
 export class ServiceCalculsFinanciers {
   async calculerSolde(utilisateurId: string): Promise<number> {
@@ -41,6 +41,71 @@ export class ServiceCalculsFinanciers {
     });
 
     return transactions.reduce((total, transaction) => total + transaction.montant, 0);
+  }
+
+  async comparerPeriodesFinancieres(utilisateurId: string): Promise<{
+    courant: { label: string; revenus: number; depenses: number; epargne: number };
+    moisPrecedent: { label: string; revenus: number; depenses: number; epargne: number };
+    anneeDerniereMemeMois: { label: string; revenus: number; depenses: number; epargne: number };
+    deltasVsMoisPrecedent: {
+      revenusPct: number;
+      depensesPct: number;
+      epargneDiff: number;
+    };
+    deltasVsAnneeDerniere: {
+      revenusPct: number;
+      depensesPct: number;
+      epargneDiff: number;
+    };
+  }> {
+    const maintenant = new Date();
+    const debutCourant = startOfMonth(maintenant);
+    const finCourant = endOfMonth(maintenant);
+    const debutPrec = startOfMonth(subMonths(maintenant, 1));
+    const finPrec = endOfMonth(subMonths(maintenant, 1));
+    const debutAnDer = startOfMonth(subYears(maintenant, 1));
+    const finAnDer = endOfMonth(subYears(maintenant, 1));
+
+    const periode = async (debut: Date, fin: Date) => {
+      const revenus = await this.calculerRevenus(utilisateurId, debut, fin);
+      const depenses = await this.calculerDepenses(utilisateurId, debut, fin);
+      const epargne = revenus - depenses;
+      return { revenus, depenses, epargne };
+    };
+
+    const [courant, moisPrecedent, anneeDerniereMemeMois] = await Promise.all([
+      periode(debutCourant, finCourant),
+      periode(debutPrec, finPrec),
+      periode(debutAnDer, finAnDer)
+    ]);
+
+    const pct = (now: number, prev: number) =>
+      prev === 0 ? (now === 0 ? 0 : 100) : ((now - prev) / prev) * 100;
+
+    return {
+      courant: {
+        label: format(debutCourant, 'MMMM yyyy'),
+        ...courant
+      },
+      moisPrecedent: {
+        label: format(debutPrec, 'MMMM yyyy'),
+        ...moisPrecedent
+      },
+      anneeDerniereMemeMois: {
+        label: format(debutAnDer, 'MMMM yyyy'),
+        ...anneeDerniereMemeMois
+      },
+      deltasVsMoisPrecedent: {
+        revenusPct: pct(courant.revenus, moisPrecedent.revenus),
+        depensesPct: pct(courant.depenses, moisPrecedent.depenses),
+        epargneDiff: courant.epargne - moisPrecedent.epargne
+      },
+      deltasVsAnneeDerniere: {
+        revenusPct: pct(courant.revenus, anneeDerniereMemeMois.revenus),
+        depensesPct: pct(courant.depenses, anneeDerniereMemeMois.depenses),
+        epargneDiff: courant.epargne - anneeDerniereMemeMois.epargne
+      }
+    };
   }
 
   async calculerTauxEpargne(
