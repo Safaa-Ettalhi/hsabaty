@@ -10,10 +10,6 @@ export interface IUtilisateur extends Document {
   derniereConnexion?: Date;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
-  preferences: {
-    notificationsEmail: boolean;
-    notificationsPush: boolean;
-  };
   comparerMotDePasse(motDePasse: string): Promise<boolean>;
 }
 
@@ -54,16 +50,6 @@ const utilisateurSchema = new Schema<IUtilisateur>({
   resetPasswordExpires: {
     type: Date,
     select: false
-  },
-  preferences: {
-    notificationsEmail: {
-      type: Boolean,
-      default: true
-    },
-    notificationsPush: {
-      type: Boolean,
-      default: true
-    }
   }
 }, {
   timestamps: true
