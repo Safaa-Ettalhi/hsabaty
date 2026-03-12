@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plus, Pencil, Trash2, Wallet, Target, AlertCircle, TrendingDown} from "lucide-react"
+import { Plus, Pencil, Trash2, Wallet, Target, AlertCircle, TrendingDown, TrendingUp } from "lucide-react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -55,7 +55,23 @@ type Budget = {
   actif: boolean
   dateDebut?: string
   dateFin?: string
-  statistiques?: { montantUtilise: number; montantRestant: number; pourcentageUtilise: number; statut: string }
+  statistiques?: {
+    montantUtilise: number
+    montantRestant: number
+    pourcentageUtilise: number
+    statut: string
+    prevision?: {
+      joursTotal: number
+      joursEcoules: number
+      joursRestants: number
+      rythmeActuelJournalier: number
+      projectedMontantFinPeriode: number
+      projectedPourcentageFin: number
+      risqueDepassement: boolean
+      montantJournalierMaxPourTenir: number | null
+      messageCle: string
+    } | null
+  }
 }
 
 const formatter = new Intl.NumberFormat("fr-MA", { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 });
@@ -420,6 +436,37 @@ export function BudgetClient() {
                       </span>
                     </div>
                     <ProgressBar statut={statut} pourcentage={pct} />
+                    {b.statistiques?.prevision && (
+                      <div
+                        className={cn(
+                          "mt-2 rounded-xl border px-3 py-2 text-xs leading-snug",
+                          b.statistiques.prevision.risqueDepassement
+                            ? "border-rose-200 bg-rose-50/80 text-rose-800 dark:border-rose-900/40 dark:bg-rose-500/10 dark:text-rose-200"
+                            : b.statistiques.prevision.montantJournalierMaxPourTenir != null &&
+                                b.statistiques.prevision.montantJournalierMaxPourTenir > 0
+                              ? "border-emerald-200 bg-emerald-50/60 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-500/10 dark:text-emerald-200"
+                              : "border-zinc-200 bg-zinc-50/80 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300"
+                        )}
+                      >
+                        <span className="flex items-start gap-2">
+                          {b.statistiques.prevision.risqueDepassement ? (
+                            <TrendingUp className="size-3.5 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                          ) : (
+                            <Target className="size-3.5 shrink-0 mt-0.5 opacity-70" />
+                          )}
+                          <span className="font-medium">{b.statistiques.prevision.messageCle}</span>
+                        </span>
+                        {!b.statistiques.prevision.risqueDepassement &&
+                          b.statistiques.prevision.joursRestants > 0 &&
+                          b.statistiques.prevision.rythmeActuelJournalier > 0 && (
+                            <p className="mt-1 pl-5 text-[11px] opacity-90">
+                              Rythme actuel ~{formatter.format(b.statistiques.prevision.rythmeActuelJournalier)}
+                              /jour · Projection fin ~{formatter.format(b.statistiques.prevision.projectedMontantFinPeriode)}{" "}
+                              ({b.statistiques.prevision.projectedPourcentageFin.toFixed(0)} %)
+                            </p>
+                          )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:w-1/4 flex items-center justify-between sm:justify-end gap-5 border-t border-zinc-100 dark:border-zinc-800/80 sm:border-t-0 pt-4 sm:pt-0">
