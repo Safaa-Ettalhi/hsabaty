@@ -72,8 +72,6 @@ export class ServiceAgentIA {
           actionDirecte = await this.executerAction(utilisateurId, 'creer_objectif', intentionInitiale.parametres);
         } else if (intentionInitiale.type === 'creer_transaction_recurrente' && intentionInitiale.parametres) {
           actionDirecte = await this.executerAction(utilisateurId, 'creer_transaction_recurrente', intentionInitiale.parametres);
-        } else if (intentionInitiale.type === 'creer_investissement' && intentionInitiale.parametres) {
-          actionDirecte = await this.executerAction(utilisateurId, 'creer_investissement', intentionInitiale.parametres);
         } else if (intentionInitiale.type === 'ajouter_transaction' && intentionInitiale.parametres) {
           actionDirecte = await this.executerAction(utilisateurId, 'ajouter_transaction', intentionInitiale.parametres);
         }
@@ -132,6 +130,14 @@ export class ServiceAgentIA {
             reponseIA = this.genererReponseDepuisAction(action, contexte);
           }
         } else {
+          const actionParseeOpenAI = this.extraireActionDepuisReponse(reponseIA);
+          if (actionParseeOpenAI) {
+            const batchOpenAI = await this.executerActionsBatch(utilisateurId, actionParseeOpenAI, contexte);
+            reponseIA = batchOpenAI.reponseIA;
+            action = batchOpenAI.action;
+          }
+        }
+        if (!action) {
           const intention = this.detecterIntention(messageUtilisateur);
           if (intention && (intention.type === 'gerer_objectif' || intention.type === 'gerer_budget' || intention.type === 'statistiques' || intention.type === 'comparaison_temporelle' || intention.type === 'analyser_habitudes')) {
             const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
@@ -569,7 +575,7 @@ TYPES D'ACTIONS DISPONIBLES:
 3. "creer_objectif" - Quand l'utilisateur veut épargner pour un objectif
    parametres: { "nom": string, "montantCible": number, "dateLimite": "ISO string", "type": "epargne"|"remboursement"|"fonds_urgence"|"projet" }
 
-4. "creer_investissement" - Quand l'utilisateur a placé de l'argent
+4. "creer_investissement" - Uniquement quand l'utilisateur ENREGISTRE un placement avec un montant clair (compréhension du sens, toute langue). Jamais pour une simple question.
    parametres: { "nom": string, "type": "actions"|"obligations"|"fonds"|"crypto"|"immobilier"|"autre", "montantInvesti": number }
 
 5. "creer_transaction_recurrente" - Paiement/revenu régulier
@@ -636,6 +642,30 @@ TYPES D'ACTIONS DISPONIBLES:
 
 19. "consulter_budgets" - Voir les budgets
    parametres: {}
+
+20. "consulter_investissements" - Dès que le message concerne « ce que j'ai en portefeuille / placements / actifs » sans enregistrer quoi que ce soit. Comprends l'intention dans N'IMPORTE QUELLE langue ; n'utilise pas de liste de mots fixes.
+   parametres: {}
+
+21. "supprimer_tous_investissements_nom_exact" - PRIORITAIRE pour "msa7 ga3 ... smiyat investissement" / "smithom investissement" : un seul champ nomExact = "Investissement". Ne passe jamais smiyat/smithom/kamlin comme nom.
+   parametres: { "nomExact": "Investissement" }
+
+21b. "supprimer_investissement_par_nom" - Un seul actif par nom partiel, ou avec supprimerTous+nomExact pour tout supprimer au nom exact.
+
+22. "modifier_investissement_par_nom" - Mettre à jour valeur actuelle, montant investi, etc. ; extrais "nom" et montants du contexte. Si indispensable manquant pour l'investissement seulement → pose UNE question courte.
+   parametres: { "nom": string, "valeurActuelle": number (optionnel), "montantInvesti": number (optionnel), "nouveauNom": string (optionnel), ... }
+
+═══════════════════════════════════════════════════════════════
+INVESTISSEMENTS — COMPRÉHENSION INTELLIGENTE (PAS DE DÉTECTION MOTS)
+═══════════════════════════════════════════════════════════════
+- Pour tout ce qui touche au portefeuille / placements : tu DOIS appeler l'outil adapté OU inclure le bloc <<<ACTION>>> JSON. Le backend n'utilise plus de regex sur les messages pour les investissements.
+- Comprends le SENS (question = consulter ; déclaration avec montant = créer ; suppression / mise à jour = types 21-22). Même en darija, arabe, anglais, etc.
+- N'invente jamais un montant : sans montant explicite pour une création, appelle d'abord consulter_investissements ou demande une précision — uniquement si le doute porte sur l'investissement.
+
+23. LOT / MULTIPLE investissements — quand l'utilisateur demande plusieurs opérations d'un coup :
+   • Plusieurs AJOUTS → "creer_investissements_batch" avec parametres.items = [ { nom, montantInvesti, type? }, ... ]
+   • Plusieurs SUPPRESSIONS → "supprimer_investissements_batch" avec parametres.noms = [ "bitcoin", "apple", ... ]
+   • Plusieurs MODIFICATIONS → "modifier_investissements_batch" avec parametres.items = [ { nom, valeurActuelle? }, ... ]
+   Alternative : plusieurs blocs <<<ACTION>>> séparés (un par investissement) — les deux sont exécutés.
 
 EXEMPLES COMPLETS:
 
@@ -718,6 +748,42 @@ Message: "augmente le budget shopping à 5000dh"
 Réponse: ✅ Budget "Shopping" modifié à 5000 MAD ! ✏️
 <<<ACTION>>>
 {"type":"modifier_budget_par_nom","parametres":{"nom":"shopping","nouveauMontant":5000}}
+<<<END_ACTION>>>
+
+Message: "supprime mon investissement bitcoin"
+Réponse: ✅ Investissement "Bitcoin" supprimé du portefeuille ! 🗑️
+<<<ACTION>>>
+{"type":"supprimer_investissement_par_nom","parametres":{"nom":"bitcoin"}}
+<<<END_ACTION>>>
+
+Message: "mets la valeur actuelle de mes actions apple à 15000 mad"
+Réponse: ✅ Valeur actuelle de "Apple" mise à jour : 15 000 MAD ! 📈
+<<<ACTION>>>
+{"type":"modifier_investissement_par_nom","parametres":{"nom":"apple","valeurActuelle":15000}}
+<<<END_ACTION>>>
+
+Message: (n'importe quelle langue) l'utilisateur demande ce qu'il a comme placements sans donner de montant d'achat
+Réponse: (réponse naturelle) + bloc ACTION consulter_investissements
+<<<ACTION>>>
+{"type":"consulter_investissements","parametres":{}}
+<<<END_ACTION>>>
+
+Message: "zid liya bitcoin 5000 o apple 10000 f investissements"
+Réponse: ✅ 2 investissements enregistrés
+<<<ACTION>>>
+{"type":"creer_investissements_batch","parametres":{"items":[{"nom":"Bitcoin","montantInvesti":5000,"type":"crypto"},{"nom":"Apple","montantInvesti":10000,"type":"actions"}]}}
+<<<END_ACTION>>>
+
+Message: "msa7 liya bitcoin o netflix mn investissements"
+Réponse: ✅ Suppressions effectuées
+<<<ACTION>>>
+{"type":"supprimer_investissements_batch","parametres":{"noms":["bitcoin","netflix"]}}
+<<<END_ACTION>>>
+
+Message: "msa7 liya ga3 les investissement li 3ndhom smiyat investissement" / "le nom howa Investissement"
+Réponse: ✅ Tous supprimés
+<<<ACTION>>>
+{"type":"supprimer_tous_investissements_nom_exact","parametres":{"nomExact":"Investissement"}}
 <<<END_ACTION>>>
 
 Message: "bghit nsejel objectif dyal tomobil 200000dh o objectif dyal dar 500000dh"
@@ -952,6 +1018,126 @@ STYLE
             description: { type: 'string', description: 'Description de l\'investissement (optionnel)' }
           },
           required: ['nom', 'montantInvesti']
+        }
+      },
+      {
+        name: 'consulter_investissements',
+        description: 'Liste le portefeuille (investissements). À utiliser dès que l\'utilisateur veut VOIR / LISTER ses placements ou actifs, dans n\'importe quelle langue — compréhension sémantique uniquement, pas de mots-clés fixes. Aussi avant modifier/supprimer si besoin d\'identifier un actif.',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: []
+        }
+      },
+      {
+        name: 'supprimer_investissement_par_nom',
+        description: 'Supprime un investissement par nom. Si plusieurs lignes ont le même nom générique (ex. "Investissement"), utiliser supprimerTous: true ou nomExact: "Investissement" pour tout supprimer d\'un coup.',
+        parameters: {
+          type: 'object',
+          properties: {
+            nom: { type: 'string', description: 'Nom ou partie du nom (recherche partielle si supprimerTous false)' },
+            supprimerTous: { type: 'boolean', description: 'Si true : supprime TOUTES les lignes dont le nom est exactement égal à nomExact ou nom (ex. tous les "Investissement")' },
+            nomExact: { type: 'string', description: 'Nom exact à cibler quand on veut tout supprimer (ex. Investissement)' },
+            tous: { type: 'boolean', description: 'Alias de supprimerTous' }
+          },
+          required: ['nom']
+        }
+      },
+      {
+        name: 'supprimer_tous_investissements_nom_exact',
+        description: 'Supprime TOUS les investissements dont le nom d\'affichage est exactement égal à nomExact (sans regex partielle). Utilise OBLIGATOIREMENT quand l\'utilisateur veut enlever toutes les lignes génériques "Investissement" (darija: smiyat investissement, ga3 li smithom investissement, etc.). Un seul paramètre = moins d\'erreur.',
+        parameters: {
+          type: 'object',
+          properties: {
+            nomExact: {
+              type: 'string',
+              description: 'Nom exact en base, ex. Investissement (avec majuscule ou non, match insensible à la casse)'
+            }
+          },
+          required: ['nomExact']
+        }
+      },
+      {
+        name: 'modifier_investissement_par_nom',
+        description: 'Met à jour un investissement par son nom : surtout valeur actuelle pour actualiser le rendement, ou montant investi, renommer, etc.',
+        parameters: {
+          type: 'object',
+          properties: {
+            nom: { type: 'string', description: 'Nom actuel de l\'investissement à retrouver' },
+            valeurActuelle: { type: 'number', description: 'Nouvelle valeur actuelle de l\'actif (actualise dateValeur automatiquement)' },
+            montantInvesti: { type: 'number', description: 'Corriger le montant initialement investi' },
+            nouveauNom: { type: 'string', description: 'Renommer l\'investissement' },
+            type: { type: 'string', enum: ['actions', 'obligations', 'fonds', 'crypto', 'immobilier', 'autre'] },
+            description: { type: 'string', description: 'Description / note' }
+          },
+          required: ['nom']
+        }
+      },
+      {
+        name: 'creer_investissements_batch',
+        description: 'Crée plusieurs investissements en une fois. Utilise quand l\'utilisateur enregistre plusieurs placements dans le même message (ex. bitcoin 5000 et apple 10000).',
+        parameters: {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              description: 'Liste des investissements à créer',
+              items: {
+                type: 'object',
+                properties: {
+                  nom: { type: 'string' },
+                  montantInvesti: { type: 'number' },
+                  type: { type: 'string', enum: ['actions', 'obligations', 'fonds', 'crypto', 'immobilier', 'autre'] },
+                  valeurActuelle: { type: 'number' },
+                  description: { type: 'string' }
+                },
+                required: ['nom', 'montantInvesti']
+              }
+            }
+          },
+          required: ['items']
+        }
+      },
+      {
+        name: 'supprimer_investissements_batch',
+        description: 'Supprime plusieurs investissements. Pour supprimer TOUTES les lignes avec le même nom exact (ex. ga3 li smiyat "Investissement"), passer nomExact: "Investissement" et supprimerTousCorrespondants: true (ou noms: ["Investissement"] + supprimerTousCorrespondants: true).',
+        parameters: {
+          type: 'object',
+          properties: {
+            noms: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Noms à supprimer (un par un par défaut). Avec supprimerTousCorrespondants, un seul nom exact supprime toutes les occurrences.'
+            },
+            supprimerTousCorrespondants: { type: 'boolean', description: 'Si true avec un nom : supprime toutes les lignes au nom exact, pas seulement la première' },
+            nomExact: { type: 'string', description: 'Nom exact cible pour suppression totale (ex. Investissement)' },
+            tous: { type: 'boolean', description: 'Alias supprimerTousCorrespondants' }
+          },
+          required: []
+        }
+      },
+      {
+        name: 'modifier_investissements_batch',
+        description: 'Met à jour plusieurs investissements en une fois (valeur actuelle, montant, etc. par actif).',
+        parameters: {
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  nom: { type: 'string', description: 'Nom actuel à retrouver' },
+                  valeurActuelle: { type: 'number' },
+                  montantInvesti: { type: 'number' },
+                  nouveauNom: { type: 'string' },
+                  type: { type: 'string', enum: ['actions', 'obligations', 'fonds', 'crypto', 'immobilier', 'autre'] }
+                },
+                required: ['nom']
+              }
+            }
+          },
+          required: ['items']
         }
       },
       {
@@ -1272,6 +1458,381 @@ STYLE
         });
         await investissement.save();
         return { type: 'investissement_cree', details: investissement };
+
+      case 'consulter_investissements': {
+        const { Investissement: InvModel } = await import('../models/Investissement');
+        const liste = await InvModel.find({
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          actif: true
+        })
+          .sort({ dateAchat: -1 })
+          .limit(50)
+          .lean();
+        const totalInvesti = liste.reduce((s, i) => s + i.montantInvesti, 0);
+        const totalValeur = liste.reduce((s, i) => s + (i.valeurActuelle ?? i.montantInvesti), 0);
+        return {
+          type: 'investissements_liste',
+          nombre: liste.length,
+          investissements: liste.map((i) => ({
+            id: i._id.toString(),
+            nom: i.nom,
+            type: i.type,
+            montantInvesti: i.montantInvesti,
+            valeurActuelle: i.valeurActuelle ?? i.montantInvesti
+          })),
+          resume: { totalInvesti, totalValeur }
+        };
+      }
+
+      case 'supprimer_tous_investissements_nom_exact': {
+        const { Investissement: InvSuppExact } = await import('../models/Investissement');
+        const uid = new mongoose.Types.ObjectId(utilisateurId);
+        const nomExactOnly = String(parametres.nomExact ?? parametres.nom ?? '').trim();
+        if (!nomExactOnly) {
+          return {
+            type: 'erreur',
+            message: 'Indique le nom exact à supprimer (ex. nomExact: "Investissement").'
+          };
+        }
+        const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const filtreExact: any = {
+          utilisateurId: uid,
+          actif: true,
+          nom: new RegExp('^' + escape(nomExactOnly) + '$', 'i')
+        };
+        const docs = await InvSuppExact.find(filtreExact);
+        if (docs.length === 0) {
+          return {
+            type: 'erreur',
+            message: `Aucun investissement avec le nom exact "${nomExactOnly}".`
+          };
+        }
+        for (const d of docs) {
+          await InvSuppExact.findByIdAndDelete(d._id);
+        }
+        return {
+          type: 'investissements_batch_supprimes',
+          nombre: docs.length,
+          details: docs.map((d) => ({ nom: d.nom, id: d._id.toString() })),
+          message: `${docs.length} investissement(s) "${nomExactOnly}" supprimé(s).`
+        };
+      }
+
+      case 'supprimer_investissement_par_nom': {
+        const { Investissement: InvModelSupp } = await import('../models/Investissement');
+        const uid = new mongoose.Types.ObjectId(utilisateurId);
+        let nomRecherche = String(parametres.nom ?? parametres.nomExact ?? '').trim();
+        const jetonsAmbigus = /^(smiyat|smiyhthom|smithom|kamlin|smiyto|smiythom|smiyathom)$/i;
+        if (!nomRecherche || jetonsAmbigus.test(nomRecherche)) {
+          if (parametres.nomExact && String(parametres.nomExact).trim()) {
+            nomRecherche = String(parametres.nomExact).trim();
+          } else {
+            nomRecherche = 'Investissement';
+          }
+        }
+        if (!nomRecherche) {
+          return { type: 'erreur', message: 'Nom manquant pour la suppression.' };
+        }
+        const nomAmbigu = jetonsAmbigus.test(String(parametres.nom || ''));
+        const supprimerTous =
+          parametres.supprimerTous === true ||
+          parametres.tous === true ||
+          parametres.nomExact != null ||
+          nomAmbigu;
+        let nomExact =
+          parametres.nomExact != null && String(parametres.nomExact).trim()
+            ? String(parametres.nomExact).trim()
+            : nomRecherche;
+        if (nomAmbigu && (!parametres.nomExact || !String(parametres.nomExact).trim())) {
+          nomExact = 'Investissement';
+        }
+        if (supprimerTous) {
+          const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const filtreExact: any = {
+            utilisateurId: uid,
+            actif: true,
+            nom: new RegExp('^' + escape(nomExact) + '$', 'i')
+          };
+          const docs = await InvModelSupp.find(filtreExact);
+          if (docs.length === 0) {
+            return {
+              type: 'erreur',
+              message: `Aucun investissement avec le nom exact "${nomExact}".`
+            };
+          }
+          for (const d of docs) {
+            await InvModelSupp.findByIdAndDelete(d._id);
+          }
+          return {
+            type: 'investissements_batch_supprimes',
+            nombre: docs.length,
+            details: docs.map((d) => ({ nom: d.nom, id: d._id.toString() })),
+            message: `${docs.length} investissement(s) nommé(s) "${nomExact}" supprimé(s).`
+          };
+        }
+        const filtreInvSupp: any = {
+          utilisateurId: uid,
+          actif: true,
+          nom: { $regex: nomRecherche, $options: 'i' }
+        };
+        const invASupprimer = await InvModelSupp.findOne(filtreInvSupp).sort({ dateCreation: -1 });
+        if (!invASupprimer) {
+          return {
+            type: 'erreur',
+            message: `Aucun investissement trouvé correspondant à "${nomRecherche}".`
+          };
+        }
+        const detailsInvSupp = {
+          id: invASupprimer._id.toString(),
+          nom: invASupprimer.nom,
+          montantInvesti: invASupprimer.montantInvesti
+        };
+        await InvModelSupp.findByIdAndDelete(invASupprimer._id);
+        return {
+          type: 'investissement_supprime',
+          details: detailsInvSupp,
+          message: `Investissement supprimé : "${detailsInvSupp.nom}"`
+        };
+      }
+
+      case 'modifier_investissement_par_nom': {
+        const { Investissement: InvModelMod } = await import('../models/Investissement');
+        const filtreInvMod: any = {
+          utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+          actif: true,
+          nom: { $regex: parametres.nom, $options: 'i' }
+        };
+        const invAModifier = await InvModelMod.findOne(filtreInvMod).sort({ dateCreation: -1 });
+        if (!invAModifier) {
+          return {
+            type: 'erreur',
+            message: `Aucun investissement trouvé correspondant à "${parametres.nom}".`
+          };
+        }
+        const modsInv: string[] = [];
+        if (parametres.valeurActuelle !== undefined) {
+          invAModifier.valeurActuelle = parametres.valeurActuelle;
+          invAModifier.dateValeur = new Date();
+          modsInv.push(`valeur actuelle: ${parametres.valeurActuelle}`);
+        }
+        if (parametres.montantInvesti !== undefined) {
+          invAModifier.montantInvesti = parametres.montantInvesti;
+          modsInv.push(`montant investi: ${parametres.montantInvesti}`);
+        }
+        if (parametres.nouveauNom) {
+          invAModifier.nom = parametres.nouveauNom;
+          modsInv.push(`nom: ${parametres.nouveauNom}`);
+        }
+        if (parametres.type) {
+          invAModifier.type = parametres.type;
+          modsInv.push(`type: ${parametres.type}`);
+        }
+        if (parametres.description !== undefined) {
+          invAModifier.description = parametres.description;
+          modsInv.push('description mise à jour');
+        }
+        if (modsInv.length === 0) {
+          return {
+            type: 'erreur',
+            message: 'Indiquez au moins une modification (ex. valeurActuelle, montantInvesti, nouveauNom).'
+          };
+        }
+        invAModifier.dateModification = new Date();
+        await invAModifier.save();
+        return {
+          type: 'investissement_modifie',
+          details: invAModifier,
+          modifications: modsInv,
+          message: `Investissement "${invAModifier.nom}" modifié : ${modsInv.join(', ')}`
+        };
+      }
+
+      case 'creer_investissements_batch': {
+        const { Investissement: InvBatch } = await import('../models/Investissement');
+        const items = Array.isArray(parametres.items) ? parametres.items : [];
+        const crees: any[] = [];
+        const erreurs: string[] = [];
+        for (const it of items) {
+          if (!it || !it.nom || it.montantInvesti == null) {
+            erreurs.push(`Ignoré (nom ou montant manquant): ${JSON.stringify(it)}`);
+            continue;
+          }
+          try {
+            const inv = new InvBatch({
+              utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+              nom: it.nom,
+              type: it.type || 'autre',
+              montantInvesti: it.montantInvesti,
+              valeurActuelle: it.valeurActuelle ?? it.montantInvesti,
+              rendementPourcentage: it.rendementPourcentage,
+              dateAchat: it.dateAchat ? new Date(it.dateAchat) : new Date(),
+              dateValeur: it.valeurActuelle != null ? new Date() : undefined,
+              description: it.description
+            });
+            await inv.save();
+            crees.push(inv);
+          } catch (e: any) {
+            erreurs.push(`${it.nom}: ${e?.message || 'erreur'}`);
+          }
+        }
+        return {
+          type: 'investissements_batch_crees',
+          nombre: crees.length,
+          details: crees,
+          erreurs: erreurs.length ? erreurs : undefined
+        };
+      }
+
+      case 'supprimer_investissements_batch': {
+        const { Investissement: InvSuppBatch } = await import('../models/Investissement');
+        const uid = new mongoose.Types.ObjectId(utilisateurId);
+        const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const jetonsAmbigusBatch = /^(smiyat|smiyhthom|smithom|kamlin|smiyto|smiythom|smiyathom)$/i;
+        let noms = Array.isArray(parametres.noms)
+          ? parametres.noms
+          : Array.isArray(parametres.items)
+            ? parametres.items.map((x: any) => x?.nom).filter(Boolean)
+            : [];
+        if (noms.length === 0 && parametres.nomExact != null) {
+          noms = [String(parametres.nomExact).trim()];
+        }
+        const nomsStr = noms.map((n: unknown) => String(n).trim()).filter(Boolean);
+        const tousJetons =
+          nomsStr.length > 0 && nomsStr.every((n: string) => jetonsAmbigusBatch.test(n));
+        if (tousJetons) {
+          noms = ['Investissement'];
+          parametres.nomExact = 'Investissement';
+        }
+        let supprimerTousCorrespondants =
+          parametres.supprimerTousCorrespondants === true || parametres.tous === true;
+        if (parametres.nomExact === 'Investissement' || (noms.length === 1 && String(noms[0]).trim().toLowerCase() === 'investissement')) {
+          supprimerTousCorrespondants = true;
+        }
+        const nomExactSeul =
+          parametres.nomExact != null
+            ? String(parametres.nomExact).trim()
+            : noms.length === 1 && supprimerTousCorrespondants
+              ? String(noms[0]).trim()
+              : null;
+        if (nomExactSeul && (supprimerTousCorrespondants || parametres.nomExact != null)) {
+          const filtreExact: any = {
+            utilisateurId: uid,
+            actif: true,
+            nom: new RegExp('^' + escape(nomExactSeul) + '$', 'i')
+          };
+          const docs = await InvSuppBatch.find(filtreExact);
+          for (const d of docs) {
+            await InvSuppBatch.findByIdAndDelete(d._id);
+          }
+          return {
+            type: 'investissements_batch_supprimes',
+            nombre: docs.length,
+            details: docs.map((d) => ({ nom: d.nom, id: d._id.toString() })),
+            erreurs:
+              docs.length === 0
+                ? [`Aucun investissement avec le nom exact "${nomExactSeul}".`]
+                : undefined
+          };
+        }
+        const supprimes: any[] = [];
+        const erreurs: string[] = [];
+        for (const nom of noms) {
+          if (!nom || String(nom).trim().length < 1) continue;
+          const nomStr = String(nom).trim();
+          const tousPourCeNom =
+            typeof nom === 'object' && nom !== null && (nom as any).supprimerTous === true;
+          const nomPourFiltre = typeof nom === 'object' && nom !== null && (nom as any).nom != null
+            ? String((nom as any).nom).trim()
+            : nomStr;
+          if (tousPourCeNom || supprimerTousCorrespondants) {
+            const filtreExact: any = {
+              utilisateurId: uid,
+              actif: true,
+              nom: new RegExp('^' + escape(nomPourFiltre) + '$', 'i')
+            };
+            const docs = await InvSuppBatch.find(filtreExact);
+            for (const d of docs) {
+              await InvSuppBatch.findByIdAndDelete(d._id);
+              supprimes.push({ nom: d.nom, id: d._id.toString() });
+            }
+            if (docs.length === 0) erreurs.push(`Aucun exact: "${nomPourFiltre}"`);
+            continue;
+          }
+          const filtre: any = {
+            utilisateurId: uid,
+            actif: true,
+            nom: { $regex: nomStr, $options: 'i' }
+          };
+          const doc = await InvSuppBatch.findOne(filtre).sort({ dateCreation: -1 });
+          if (!doc) {
+            erreurs.push(`Non trouvé: "${nomStr}"`);
+            continue;
+          }
+          await InvSuppBatch.findByIdAndDelete(doc._id);
+          supprimes.push({ nom: doc.nom, id: doc._id.toString() });
+        }
+        return {
+          type: 'investissements_batch_supprimes',
+          nombre: supprimes.length,
+          details: supprimes,
+          erreurs: erreurs.length ? erreurs : undefined
+        };
+      }
+
+      case 'modifier_investissements_batch': {
+        const { Investissement: InvModBatch } = await import('../models/Investissement');
+        const items = Array.isArray(parametres.items) ? parametres.items : [];
+        const modifies: any[] = [];
+        const erreurs: string[] = [];
+        for (const it of items) {
+          if (!it || !it.nom) {
+            erreurs.push('Item sans nom ignoré');
+            continue;
+          }
+          const filtre: any = {
+            utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+            actif: true,
+            nom: { $regex: String(it.nom).trim(), $options: 'i' }
+          };
+          const inv = await InvModBatch.findOne(filtre).sort({ dateCreation: -1 });
+          if (!inv) {
+            erreurs.push(`Non trouvé: "${it.nom}"`);
+            continue;
+          }
+          const mods: string[] = [];
+          if (it.valeurActuelle !== undefined) {
+            inv.valeurActuelle = it.valeurActuelle;
+            inv.dateValeur = new Date();
+            mods.push(`valeur ${it.valeurActuelle}`);
+          }
+          if (it.montantInvesti !== undefined) {
+            inv.montantInvesti = it.montantInvesti;
+            mods.push(`montant ${it.montantInvesti}`);
+          }
+          if (it.nouveauNom) {
+            inv.nom = it.nouveauNom;
+            mods.push(`nom → ${it.nouveauNom}`);
+          }
+          if (it.type) {
+            inv.type = it.type;
+            mods.push(`type ${it.type}`);
+          }
+          if (it.description !== undefined) inv.description = it.description;
+          if (mods.length === 0) {
+            erreurs.push(`"${it.nom}": aucun champ à modifier`);
+            continue;
+          }
+          inv.dateModification = new Date();
+          await inv.save();
+          modifies.push({ nom: inv.nom, modifications: mods });
+        }
+        return {
+          type: 'investissements_batch_modifies',
+          nombre: modifies.length,
+          details: modifies,
+          erreurs: erreurs.length ? erreurs : undefined
+        };
+      }
 
       case 'creer_transaction_recurrente':
         const { TransactionRecurrente } = await import('../models/TransactionRecurrente');
@@ -1770,9 +2331,7 @@ STYLE
       return { type: 'analyser_habitudes', message: messageUtilisateur };
     }
 
-    if (messageLower.match(/(j'ai investi|investissement|investi|acheté|portefeuille|actions|obligations|crypto|bitcoin|immobilier)/i)) {
-      return this.extraireInfosInvestissement(messageUtilisateur);
-    }
+    // Investissements : pas de détection par mots-clés — uniquement JSON / outils LLM (voir prompt INVESTISSEMENTS)
 
     if (messageLower.match(/(abonnement|mensuel|récurrent|رَسوم|كل شهر|كل أسبوع|chaque mois|chaque semaine|tous les mois|tous les ans|netflix|spotify|loyer|salaire mensuel|subscription|every month|each month|every week)/i)) {
       return this.extraireInfosTransactionRecurrente(messageUtilisateur);
@@ -2065,48 +2624,6 @@ STYLE
     };
   }
 
-  private extraireInfosInvestissement(message: string): any {
-    const messageLower = message.toLowerCase();
-    
-    const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
-                         message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
-    const montantInvesti = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
-
-    let type = 'autre';
-    if (messageLower.match(/(actions|action|stock|share)/i)) type = 'actions';
-    else if (messageLower.match(/(obligations|obligation|bond)/i)) type = 'obligations';
-    else if (messageLower.match(/(fonds|fonds mutuel|mutual fund)/i)) type = 'fonds';
-    else if (messageLower.match(/(crypto|bitcoin|btc|ethereum|eth|blockchain)/i)) type = 'crypto';
-    else if (messageLower.match(/(immobilier|immobilier|real estate|propriété)/i)) type = 'immobilier';
-
-    // Extraire le nom
-    const nomMatch = message.match(/(?:investi|acheté|dans)\s+([^0-9]+?)(?:\s+pour|\s+de|\s+à|\s+au)/i) ||
-                     message.match(/(bitcoin|btc|ethereum|eth|apple|microsoft|tesla|netflix|spotify)/i);
-    const nom = nomMatch ? nomMatch[1]?.trim() || nomMatch[0] : 'Investissement';
-
-    // Extraire la valeur actuelle si mentionnée
-    const valeurMatch = message.match(/(valeur|vaut|actuellement)\s+(\d+(?:\s*\d+)*(?:[.,]\d+)?)/i);
-    const valeurActuelle = valeurMatch ? parseFloat(valeurMatch[2].replace(/\s/g, '').replace(',', '.')) : undefined;
-
-    // Extraire le rendement si mentionné
-    const rendementMatch = message.match(/(rendement|profit|gain|perte)\s+[de\s]*(\d+(?:[.,]\d+)?)\s*%/i);
-    const rendementPourcentage = rendementMatch ? parseFloat(rendementMatch[2].replace(',', '.')) : undefined;
-
-    if (!montantInvesti) return null;
-
-    return {
-      type: 'creer_investissement',
-      parametres: {
-        nom,
-        type,
-        montantInvesti,
-        valeurActuelle,
-        rendementPourcentage,
-        description: message.substring(0, 200)
-      }
-    };
-  }
-
   private extraireInfosTransactionRecurrente(message: string): any {
     const messageLower = message.toLowerCase();
     
@@ -2323,10 +2840,6 @@ STYLE
         return null; 
       }
 
-      if (intention.type === 'creer_investissement' && intention.parametres) {
-        return await this.executerAction(utilisateurId, 'creer_investissement', intention.parametres);
-      }
-
       if (intention.type === 'creer_transaction_recurrente' && intention.parametres) {
         return await this.executerAction(utilisateurId, 'creer_transaction_recurrente', intention.parametres);
       }
@@ -2460,6 +2973,91 @@ STYLE
           `## استثمار\n\n- ${inv.nom} — ${inv.montantInvesti}`
         );
       }
+
+      case 'investissements_liste': {
+        const invs = action.investissements || [];
+        const resume = action.resume;
+        if (invs.length === 0) {
+          return t(
+            'Aucun investissement enregistré pour le moment.',
+            'No investments recorded yet.',
+            'لا توجد استثمارات مسجلة.'
+          );
+        }
+        const lignes = invs.slice(0, 15).map((i: any) => {
+          // Plusieurs entrées avec le même nom générique : distinguer par suffixe id
+          const nomAffiche =
+            /^investissement$/i.test(String(i.nom || '').trim()) && i.id
+              ? `Investissement (${String(i.id).slice(-6)})`
+              : i.nom;
+          return `**${nomAffiche}** — investi ${i.montantInvesti} MAD — valeur ${i.valeurActuelle} MAD (${i.type})`;
+        });
+        const resumeStr = resume
+          ? `\n\n_Total investi : ${resume.totalInvesti} MAD — Valeur totale : ${resume.totalValeur} MAD_`
+          : '';
+        return t(
+          ok('Vos investissements', lignes) + resumeStr,
+          ok('Your investments', lignes) + resumeStr,
+          `## محفظتك\n\n` + invs.slice(0, 10).map((i: any) => `- ${i.nom}: ${i.valeurActuelle}`).join('\n')
+        );
+      }
+
+      case 'investissement_supprime':
+        return t(
+          ok('Investissement supprimé', [action.message || action.details?.nom || 'Suppression confirmée.']),
+          ok('Investment deleted', [action.message || action.details?.nom || 'Confirmed.']),
+          `## تم الحذف\n\n${action.message || ''}`
+        );
+
+      case 'investissement_modifie': {
+        const inv = action.details;
+        const va = inv?.valeurActuelle != null ? `**Valeur actuelle** : ${inv.valeurActuelle} MAD` : null;
+        const lignes = [action.message || 'Mise à jour confirmée.', va].filter(Boolean);
+        return t(
+          ok('Investissement modifié', lignes as string[]),
+          ok('Investment updated', lignes as string[]),
+          `## تم التعديل\n\n${action.message || ''}`
+        );
+      }
+
+      case 'investissements_batch_crees': {
+        const n = action.nombre || 0;
+        const details = action.details || [];
+        const lignes = details.slice(0, 20).map((inv: any) => `**${inv.nom}** — ${inv.montantInvesti} MAD (${inv.type})`);
+        const err = action.erreurs?.length ? `\n\n⚠ ${action.erreurs.join('; ')}` : '';
+        return t(
+          ok(`${n} investissement(s) enregistré(s)`, lignes) + err,
+          ok(`${n} investment(s) recorded`, lignes) + err,
+          `## تم التسجيل — ${n}\n\n` + lignes.join('\n') + err
+        );
+      }
+
+      case 'investissements_batch_supprimes': {
+        const n = action.nombre || 0;
+        const details = action.details || [];
+        const lignes = details.map((d: any) => `**${d.nom}** supprimé`);
+        const err = action.erreurs?.length ? `\n\n⚠ ${action.erreurs.join('; ')}` : '';
+        return t(
+          ok(`${n} investissement(s) supprimé(s)`, lignes) + err,
+          ok(`${n} investment(s) deleted`, lignes) + err,
+          `## تم الحذف — ${n}\n\n` + lignes.join('\n') + err
+        );
+      }
+
+      case 'investissements_batch_modifies': {
+        const n = action.nombre || 0;
+        const details = action.details || [];
+        const lignes = details.map((d: any) => `**${d.nom}** : ${(d.modifications || []).join(', ')}`);
+        const err = action.erreurs?.length ? `\n\n⚠ ${action.erreurs.join('; ')}` : '';
+        return t(
+          ok(`${n} investissement(s) modifié(s)`, lignes) + err,
+          ok(`${n} investment(s) updated`, lignes) + err,
+          `## تم التعديل — ${n}\n\n` + lignes.join('\n') + err
+        );
+      }
+
+      case 'erreur':
+        return action.message || t('Une erreur est survenue.', 'Something went wrong.', 'حدث خطأ.');
 
       case 'transaction_recurrente_creee': {
         const tr = action.details;
