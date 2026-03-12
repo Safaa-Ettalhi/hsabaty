@@ -11,10 +11,9 @@ export class RapportMensuelService {
 //générer et envoyer le rapport mensuel pour un utilisateur
   static async genererEtEnvoyerRapportMensuel(utilisateurId: string, mois?: number, annee?: number): Promise<void> {
     const utilisateur = await Utilisateur.findById(utilisateurId);
-    if (!utilisateur || !utilisateur.preferences.notificationsEmail) {
+    if (!utilisateur) {
       return;
     }
-
     const maintenant = new Date();
     const date = mois && annee
       ? new Date(annee, mois - 1, 1)
@@ -49,9 +48,7 @@ export class RapportMensuelService {
 
 //générer les rapports mensuels pour tous les utilisateurs
   static async genererRapportsMensuelsPourTous(): Promise<void> {
-    const utilisateurs = await Utilisateur.find({
-      'preferences.notificationsEmail': true
-    });
+    const utilisateurs = await Utilisateur.find();
 
     console.log(` Génération de ${utilisateurs.length} rapport(s) mensuel(s)...`);
 

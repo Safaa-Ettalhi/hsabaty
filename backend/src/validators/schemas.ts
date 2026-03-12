@@ -37,12 +37,7 @@ export const authReinitialiserMotDePasseSchema = z.object({
 export const authProfilModifierSchema = z.object({
   body: z.object({
     nom: z.string().min(1, 'Le nom est requis').max(100).trim().optional(),
-    prenom: z.string().max(100).trim().optional().nullable(),
-    preferences: z.object({
-      notificationsEmail: z.boolean().optional(),
-      notificationsPush: z.boolean().optional(),
-      langue: z.enum(['fr', 'ar', 'en']).optional()
-    }).optional()
+    prenom: z.string().max(100).trim().optional().nullable()
   }).refine(data => Object.keys(data).length > 0, { message: 'Au moins un champ à modifier est requis' })
 });
 
