@@ -41,9 +41,18 @@ import {
 } from "@/components/ui/chart"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
-import { DashboardPageShell } from "@/components/dashboard-page-shell"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 import { FluxCardEntrees, FluxCardSorties, FluxCardSolde } from "@/components/flux-kpi-cards"
-import { ArrowUpCircle, ArrowDownCircle, Wallet, PiggyBank } from "lucide-react"
+import { ArrowUpCircle, ArrowDownCircle, Wallet, PiggyBank, CalendarRange } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 const soldeAreaChartConfig = {
   solde: {
@@ -459,19 +468,49 @@ function ChartRevenusCanauxBar({ revenusData }: { revenusData: any[] }) {
   )
 }
 
+type PeriodePreset = "mois" | "mois_precedent" | "trimestre" | "semestre" | "annee" | "personnalise"
+
+function formatPeriodeLabel(dateDebut: string | Date, dateFin: string | Date) {
+  const a = typeof dateDebut === "string" ? new Date(dateDebut) : dateDebut
+  const b = typeof dateFin === "string" ? new Date(dateFin) : dateFin
+  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" }
+  return `${a.toLocaleDateString("fr-FR", opts)} – ${b.toLocaleDateString("fr-FR", opts)}`
+}
+
 export function DashboardClient() {
   const [data, setData] = useState<any>(null)
   const [tendances, setTendances] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [periodePreset, setPeriodePreset] = useState<PeriodePreset>("mois")
+  const [dateDebutCustom, setDateDebutCustom] = useState("")
+  const [dateFinCustom, setDateFinCustom] = useState("")
+
+  const buildMetriquesUrl = (): string | null => {
+    if (periodePreset === "personnalise") {
+      if (!dateDebutCustom || !dateFinCustom) return null
+      const params = new URLSearchParams()
+      params.set("dateDebut", dateDebutCustom)
+      params.set("dateFin", dateFinCustom)
+      return `/api/dashboard/metriques?${params.toString()}`
+    }
+    return `/api/dashboard/metriques?periode=${periodePreset}`
+  }
 
   const loadData = async () => {
+    const metriquesUrl = buildMetriquesUrl()
+    if (!metriquesUrl) {
+      setErrorMsg("Choisissez une date de début et de fin, puis cliquez sur Appliquer.")
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setErrorMsg(null)
     try {
+      const nbMois = periodePreset === "annee" ? 12 : 6
       const [resMetriques, resTendances] = await Promise.all([
-        api.get<any>("/api/dashboard/metriques?periode=mois"),
-        api.get<any>("/api/dashboard/tendances-mensuelles?nbMois=6")
+        api.get<any>(metriquesUrl),
+        api.get<any>(`/api/dashboard/tendances-mensuelles?nbMois=${nbMois}`),
       ])
 
       if (resMetriques.succes) {
@@ -494,12 +533,68 @@ export function DashboardClient() {
   }
 
   useEffect(() => {
+    if (periodePreset === "personnalise") {
+      setLoading(false)
+      return
+    }
     loadData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodePreset])
 
   if (loading || !data) {
     return (
       <DashboardPageShell contentClassName="gap-8 pb-10 pt-2">
+      <DashboardPageHeader
+        title="Tableau de bord"
+        description="Vue d’ensemble de vos finances"
+        actions={
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Select
+              value={periodePreset}
+              onValueChange={(v) => setPeriodePreset(v as PeriodePreset)}
+            >
+              <SelectTrigger className="h-10 w-full rounded-xl sm:w-52">
+                <CalendarRange className="mr-2 size-4 shrink-0 opacity-60" />
+                <SelectValue placeholder="Période" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mois">Ce mois-ci</SelectItem>
+                <SelectItem value="mois_precedent">Dernier mois</SelectItem>
+                <SelectItem value="trimestre">3 mois (glissant)</SelectItem>
+                <SelectItem value="semestre">6 mois (glissant)</SelectItem>
+                <SelectItem value="annee">Année en cours</SelectItem>
+                <SelectItem value="personnalise">Personnalisé</SelectItem>
+              </SelectContent>
+            </Select>
+            {periodePreset === "personnalise" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="date"
+                  className="h-10 w-40 rounded-xl"
+                  value={dateDebutCustom}
+                  onChange={(e) => setDateDebutCustom(e.target.value)}
+                />
+                <span className="text-muted-foreground text-sm">au</span>
+                <Input
+                  type="date"
+                  className="h-10 w-40 rounded-xl"
+                  value={dateFinCustom}
+                  onChange={(e) => setDateFinCustom(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-10 rounded-xl"
+                  disabled={!dateDebutCustom || !dateFinCustom}
+                  onClick={() => loadData()}
+                >
+                  Appliquer
+                </Button>
+              </div>
+            )}
+          </div>
+        }
+      />
       <div className="space-y-8">
         {errorMsg && (
           <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
@@ -526,12 +621,70 @@ export function DashboardClient() {
     )
   }
 
-  const { metriques, repartitionDepenses, repartitionRevenus, evolutionSolde } = data
+  const { metriques, repartitionDepenses, repartitionRevenus, evolutionSolde, periode } = data
+  const periodeStr =
+    periode?.dateDebut && periode?.dateFin
+      ? formatPeriodeLabel(periode.dateDebut, periode.dateFin)
+      : null
 
   const revenusFormatter = new Intl.NumberFormat("fr-MA", { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 });
+  const subtitleRevenusDepenses = periodeStr
+    ? `Sur la période : ${periodeStr}`
+    : "Total sur la période sélectionnée"
 
   return (
     <DashboardPageShell contentClassName="gap-8 pb-10 pt-2">
+      <DashboardPageHeader
+        title="Tableau de bord"
+        description={periodeStr ? `Période : ${periodeStr}` : "Vue d’ensemble de vos finances"}
+        actions={
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Select
+              value={periodePreset}
+              onValueChange={(v) => setPeriodePreset(v as PeriodePreset)}
+            >
+              <SelectTrigger className="h-10 w-full rounded-xl sm:w-52">
+                <CalendarRange className="mr-2 size-4 shrink-0 opacity-60" />
+                <SelectValue placeholder="Période" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mois">Ce mois-ci</SelectItem>
+                <SelectItem value="mois_precedent">Dernier mois</SelectItem>
+                <SelectItem value="trimestre">3 mois (glissant)</SelectItem>
+                <SelectItem value="semestre">6 mois (glissant)</SelectItem>
+                <SelectItem value="annee">Année en cours</SelectItem>
+                <SelectItem value="personnalise">Personnalisé</SelectItem>
+              </SelectContent>
+            </Select>
+            {periodePreset === "personnalise" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="date"
+                  className="h-10 w-40 rounded-xl"
+                  value={dateDebutCustom}
+                  onChange={(e) => setDateDebutCustom(e.target.value)}
+                />
+                <span className="text-muted-foreground text-sm">au</span>
+                <Input
+                  type="date"
+                  className="h-10 w-40 rounded-xl"
+                  value={dateFinCustom}
+                  onChange={(e) => setDateFinCustom(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-10 rounded-xl"
+                  disabled={!dateDebutCustom || !dateFinCustom}
+                  onClick={() => loadData()}
+                >
+                  Appliquer
+                </Button>
+              </div>
+            )}
+          </div>
+        }
+      />
       <div className="space-y-8">
       {errorMsg && (
         <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md font-medium">
@@ -547,15 +700,15 @@ export function DashboardClient() {
           positive
         />
         <FluxCardEntrees
-          title="Revenus (mois)"
+          title="Revenus"
           value={revenusFormatter.format(metriques?.revenus || 0)}
-          subtitle="Total depuis le début du mois"
+          subtitle={subtitleRevenusDepenses}
           icon={ArrowUpCircle}
         />
         <FluxCardSorties
-          title="Dépenses (mois)"
+          title="Dépenses"
           value={revenusFormatter.format(metriques?.depenses || 0)}
-          subtitle="Sorties sur la période"
+          subtitle={subtitleRevenusDepenses}
           icon={ArrowDownCircle}
         />
         <div className="relative overflow-hidden rounded-3xl border border-violet-500/15 bg-linear-to-br from-white to-violet-50/50 p-6 shadow-sm dark:border-violet-500/10 dark:from-zinc-900 dark:to-violet-950/20">
@@ -620,7 +773,9 @@ export function DashboardClient() {
               Sources de revenus
             </CardTitle>
             <CardDescription>
-              Répartition des revenus de ce mois.
+              {periodeStr
+                ? `Répartition des revenus sur la période affichée.`
+                : `Répartition des revenus sur la période sélectionnée.`}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4">
