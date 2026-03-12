@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Controller } from "react-hook-form"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 
 const transactionFormSchema = z.object({
   date: z.string().min(1, "Requis"),
@@ -203,15 +204,12 @@ export function TransactionsClient() {
   const balance = totalRevenus - totalDepenses;
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
-      
-      {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-2">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Opérations</h1>
-          <p className="text-zinc-500 mt-1 block">Pilotez vos flux d&apos;argent au centime près.</p>
-        </div>
-        
+    <DashboardPageShell contentClassName="gap-6">
+      <DashboardPageHeader
+        badge={{ icon: DatabaseZap, label: "Transactions" }}
+        title="Opérations"
+        description="Pilotez vos flux d'argent au centime près — filtres, export et saisie rapide."
+        actions={
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="hidden lg:flex gap-1.5 shadow-sm bg-white dark:bg-zinc-900 h-9" onClick={() => downloadFile(exportPath("csv"), `transactions_${Date.now()}.csv`)}>
             <Download className="size-4" /> Export CSV
@@ -227,7 +225,7 @@ export function TransactionsClient() {
                 Saisir un mouvement
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-106.25 p-6 rounded-2xl border-zinc-200 dark:border-zinc-800">
+            <DialogContent className="sm:max-w-106.25 rounded-2xl border-zinc-200 p-6 dark:border-zinc-800">
               <DialogHeader className="pb-4 border-b border-zinc-100 dark:border-zinc-800 mb-2">
                 <DialogTitle className="text-xl">
                   {editingId ? "Modifier la transaction" : "Nouvelle transaction"}
@@ -297,7 +295,8 @@ export function TransactionsClient() {
             </DialogContent>
           </Dialog>
         </div>
-      </div>
+        }
+      />
 
       {/* KPI DASHBOARD */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -524,6 +523,6 @@ export function TransactionsClient() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPageShell>
   )
 }

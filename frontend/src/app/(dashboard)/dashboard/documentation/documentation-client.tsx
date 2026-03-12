@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, ListOrdered, MessageSquare } from "lucide-react"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 
 const GUIDES = [
   {
@@ -67,16 +68,12 @@ const EXEMPLES_CHAT = [
 
 export function DocumentationClient() {
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-      <div className="space-y-1">
-        <h1 className="flex items-center gap-2 text-xl font-semibold md:text-2xl">
-          <BookOpen className="size-6 text-primary" />
-          Documentation
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Guides pas à pas et exemples pour bien utiliser Hssabaty.
-        </p>
-      </div>
+    <DashboardPageShell contentClassName="gap-6">
+      <DashboardPageHeader
+        badge={{ icon: BookOpen, label: "Documentation" }}
+        title="Guides & exemples"
+        description="Pas à pas et phrases types pour le chat IA."
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr,minmax(320px,400px)]">
         <div className="space-y-6">
@@ -153,6 +150,6 @@ export function DocumentationClient() {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

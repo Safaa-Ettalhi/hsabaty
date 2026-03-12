@@ -37,6 +37,8 @@ const SUPPORT = [
   { label: "Documentation", href: "/dashboard/documentation", icon: BookOpen, hint: "Guides pas à pas et exemples" },
 ]
 
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
+
 export function HelpClient() {
   const [openIndex, setOpenIndex] = useState<Set<number>>(new Set())
 
@@ -50,7 +52,12 @@ export function HelpClient() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
+    <DashboardPageShell contentClassName="gap-6">
+      <DashboardPageHeader
+        badge={{ icon: LifeBuoy, label: "Aide" }}
+        title="Centre d'aide"
+        description="FAQ, support et liens utiles pour utiliser Hssabaty au quotidien."
+      />
       <div className="grid gap-6 md:grid-cols-[1.4fr,1fr]">
         <Card className="shadow-sm">
           <CardHeader className="pb-3">
@@ -152,6 +159,6 @@ export function HelpClient() {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

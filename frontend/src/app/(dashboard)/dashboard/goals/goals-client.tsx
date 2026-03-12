@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select"
 import { Controller } from "react-hook-form"
 import { cn } from "@/lib/utils"
+import { DashboardPageShell } from "@/components/dashboard-page-shell"
 
 const typeObjectifOptions = [
   { value: "epargne", label: "Épargne Standard" },
@@ -226,7 +227,7 @@ export function GoalsClient() {
   const globalTotalActuel = objectifs.reduce((sum, o) => sum + o.montantActuel, 0)
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
+    <DashboardPageShell contentClassName="gap-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Objectifs</h1>
@@ -566,6 +567,6 @@ export function GoalsClient() {
           </Button>
         </div>
       )}
-    </div>
+    </DashboardPageShell>
   )
 }

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select"
 import { Controller } from "react-hook-form"
 import { cn } from "@/lib/utils"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 
 const periodeOptions = [
   { value: "mensuel", label: "Mensuel" },
@@ -185,12 +186,12 @@ export function BudgetClient() {
   const globalRestant = Math.max(0, globalMontantTotal - globalUtilise)
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Budgets</h1>
-          <p className="text-zinc-500 mt-1 block">Fixez vos limites et contrôlez précisément vos dépenses.</p>
-        </div>
+    <DashboardPageShell contentClassName="gap-6">
+      <DashboardPageHeader
+        badge={{ icon: Wallet, label: "Budgets" }}
+        title="Enveloppes & plafonds"
+        description="Fixez vos limites et contrôlez précisément vos dépenses par période."
+        actions={
         <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ nom: "", montant: 0, periode: "mensuel", categorie: "" }) }}>
           <DialogTrigger asChild>
             <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 h-10">
@@ -248,7 +249,8 @@ export function BudgetClient() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md p-6 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 shadow-xl">
@@ -476,6 +478,6 @@ export function BudgetClient() {
           </Button>
         </div>
       )}
-    </div>
+    </DashboardPageShell>
   )
 }

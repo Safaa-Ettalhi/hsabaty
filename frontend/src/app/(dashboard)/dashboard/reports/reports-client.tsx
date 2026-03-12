@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Download, Mail, FileText, ArrowUpCircle, ArrowDownCircle, Wallet, TrendingUp, TrendingDown, Clock, SearchCode } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 
 import {
   Select,
@@ -346,16 +347,14 @@ export function ReportsClient() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-5 mb-2">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Rapports</h1>
-          <p className="text-zinc-500 mt-1 block">Génerez, analysez ou partagez vos performances financières en un clic.</p>
-        </div>
-        
-        {/* Barre de Filtres/Actions */}
-        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm w-full sm:w-auto">
+    <DashboardPageShell contentClassName="gap-6">
+      <DashboardPageHeader
+        badge={{ icon: FileText, label: "Rapports" }}
+        title="Rapports financiers"
+        description="Générez, analysez ou partagez vos performances en PDF ou par email."
+        actions={
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex w-full items-center gap-2 rounded-xl border border-zinc-200 bg-white p-1.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:w-auto">
             <Select value={reportType} onValueChange={setReportType}>
               <SelectTrigger className="w-45 bg-transparent border-none shadow-none font-medium h-9 focus:ring-0">
                 <SelectValue />
@@ -419,7 +418,8 @@ export function ReportsClient() {
             </Button>
           </div>
         </div>
-      </div>
+        }
+      />
 
       <div className="w-full">
         {renderContent()}
@@ -489,6 +489,6 @@ export function ReportsClient() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardPageShell>
   )
 }

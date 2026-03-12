@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { api } from "@/lib/api"
 import { Sparkles, TrendingDown, TrendingUp, AlertCircle, Compass, BrainCircuit, Zap, ArrowDownCircle, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DashboardPageShell } from "@/components/dashboard-page-shell"
 
 const TABS = [
   { value: "insights", label: "Insights Globaux", path: "/api/conseils/insights", key: "insights", icon: BrainCircuit, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10" },
@@ -330,7 +331,7 @@ export function InsightsClient() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:p-8 md:pt-6 bg-zinc-50/50 dark:bg-zinc-950/20 min-h-full">
+    <DashboardPageShell contentClassName="gap-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2 shrink-0">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-3">
@@ -370,6 +371,6 @@ export function InsightsClient() {
       <div className="mt-2 shrink-0">
         {renderContent()}
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

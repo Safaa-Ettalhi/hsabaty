@@ -49,6 +49,7 @@ import {
   IconTrendingUp,
   IconReceipt2
 } from "@tabler/icons-react"
+import { DashboardPageShell } from "@/components/dashboard-page-shell"
 
 const soldeAreaChartConfig = {
   solde: {
@@ -504,7 +505,8 @@ export function DashboardClient() {
 
   if (loading || !data) {
     return (
-      <div className="space-y-8 pb-10 pt-4 px-4 md:px-6">
+      <DashboardPageShell contentClassName="gap-8 pb-10 pt-2" hideBackground>
+      <div className="space-y-8">
         {errorMsg && (
           <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
             {errorMsg}
@@ -526,6 +528,7 @@ export function DashboardClient() {
           </div>
         </div>
       </div>
+      </DashboardPageShell>
     )
   }
 
@@ -534,7 +537,8 @@ export function DashboardClient() {
   const revenusFormatter = new Intl.NumberFormat("fr-MA", { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 });
 
   return (
-    <div className="space-y-8 pb-10 pt-4 px-4 md:px-6">
+    <DashboardPageShell contentClassName="gap-8 pb-10 pt-2" hideBackground>
+      <div className="space-y-8">
       {errorMsg && (
         <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md font-medium">
           Détail pour le développeur: {errorMsg}
@@ -673,6 +677,7 @@ export function DashboardClient() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </DashboardPageShell>
   )
 }

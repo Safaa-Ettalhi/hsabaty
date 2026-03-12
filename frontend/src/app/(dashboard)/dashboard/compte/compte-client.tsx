@@ -14,11 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { 
-  IconUser, 
   IconCircleCheck, 
   IconInfoCircle,
   IconLock
 } from "@tabler/icons-react"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 
 type Utilisateur = {
   _id: string
@@ -133,23 +133,18 @@ export function CompteClient() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
+      <DashboardPageShell contentClassName="gap-6">
         <Skeleton className="h-65 w-full rounded-xl" />
-      </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-      <div className="space-y-2">
-        <h1 className="flex items-center gap-2 text-xl font-semibold md:text-2xl">
-          <IconUser className="size-6 text-primary" />
-          Mon compte
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Personnalisez votre identité et sécurisez votre accès à l&apos;application.
-        </p>
-      </div>
+    <DashboardPageShell contentClassName="gap-6">
+      <DashboardPageHeader
+        title="Mon compte"
+        description="Personnalisez votre identité et sécurisez votre accès à l'application."
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="shadow-sm">
@@ -270,7 +265,7 @@ export function CompteClient() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </DashboardPageShell>
   )
 }
 
