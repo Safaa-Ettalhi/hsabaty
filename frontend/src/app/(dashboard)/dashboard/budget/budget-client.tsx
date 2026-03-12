@@ -29,6 +29,7 @@ import {
 import { Controller } from "react-hook-form"
 import { cn } from "@/lib/utils"
 import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
+import { FluxCardEntrees, FluxCardSorties, FluxCardSolde } from "@/components/flux-kpi-cards"
 
 const periodeOptions = [
   { value: "mensuel", label: "Mensuel" },
@@ -194,7 +195,7 @@ export function BudgetClient() {
         actions={
         <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ nom: "", montant: 0, periode: "mensuel", categorie: "" }) }}>
           <DialogTrigger asChild>
-            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 h-10">
+            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-full px-5 h-10">
               <Plus className="size-4" />
               Nouveau Budget
             </Button>
@@ -244,7 +245,7 @@ export function BudgetClient() {
               </div>
               <DialogFooter className="pt-4 mt-2">
                 <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setOpen(false)}>Annuler</Button>
-                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700 h-11">Enregistrer</Button>
+                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700 h-11">Enregistrer</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -347,36 +348,26 @@ export function BudgetClient() {
         </div>
       ) : budgets.length > 0 ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-center">
-               <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Masse Budgétisée</p>
-               <h3 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">{formatter.format(globalMontantTotal)}</h3>
-               <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                 Total de vos plafonds
-               </div>
-            </div>
-
-            <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-center">
-               <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
-                 <TrendingDown className="size-24" />
-               </div>
-               <p className="text-sm font-semibold text-rose-700/80 dark:text-rose-400/80 mb-1">Dépensé</p>
-               <h3 className="text-3xl font-extrabold tracking-tight text-rose-600 dark:text-rose-400 tabular-nums">{formatter.format(globalUtilise)}</h3>
-               <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Déjà consommé
-               </div>
-            </div>
-
-            <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-6 shadow-sm text-white flex flex-col justify-center">
-               <div className="absolute top-0 right-0 p-4 opacity-5">
-                 <Wallet className="size-24" />
-               </div>
-               <p className="text-sm font-semibold text-zinc-300 mb-1">Reste disponible</p>
-               <h3 className="text-3xl font-extrabold tabular-nums tracking-tight text-white">{formatter.format(globalRestant)}</h3>
-               <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                 Coussin sécuritaire
-               </div>
-            </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <FluxCardEntrees
+              title="Masse budgétisée"
+              value={formatter.format(globalMontantTotal)}
+              subtitle="Total de vos plafonds"
+              icon={Wallet}
+            />
+            <FluxCardSorties
+              title="Dépensé"
+              value={formatter.format(globalUtilise)}
+              subtitle="Déjà consommé"
+              icon={TrendingDown}
+            />
+            <FluxCardSolde
+              title="Reste disponible"
+              value={formatter.format(globalRestant)}
+              subtitle="Coussin sécuritaire"
+              icon={Wallet}
+              positive={globalRestant >= 0}
+            />
           </div>
 
           <div className="space-y-3">
