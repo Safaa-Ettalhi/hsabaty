@@ -185,7 +185,7 @@ export class AdminController {
 
 //modifier un utilisateur
   static modifierUtilisateur = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const { nom, prenom, email, preferences } = req.body;
+    const { nom, prenom, email } = req.body;
 
     const utilisateur = await Utilisateur.findById(req.params.id);
     
@@ -196,9 +196,6 @@ export class AdminController {
     if (nom) utilisateur.nom = nom;
     if (prenom !== undefined) utilisateur.prenom = prenom;
     if (email) utilisateur.email = email;
-    if (preferences) {
-      utilisateur.preferences = { ...utilisateur.preferences, ...preferences };
-    }
 
     await utilisateur.save();
 
