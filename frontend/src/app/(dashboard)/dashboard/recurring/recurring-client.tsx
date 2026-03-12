@@ -32,7 +32,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Controller } from "react-hook-form"
-import { DashboardPageShell } from "@/components/dashboard-page-shell"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
+import { FluxCardEntrees, FluxCardSorties, FluxCardSolde } from "@/components/flux-kpi-cards"
 
 const frequenceOptions = [
   { value: "hebdomadaire", label: "Hebdomadaire" },
@@ -153,15 +154,12 @@ export function RecurringClient() {
 
   return (
     <DashboardPageShell contentClassName="gap-6">
-      
-      {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-2">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Récurrentes</h1>
-          <p className="text-zinc-500 mt-1 block">Pilotez et anticipez vos abonnements et entrées fixes.</p>
-        </div>
-        
-        <div className="flex items-center gap-2">
+      <DashboardPageHeader
+        badge={{ icon: CalendarSync, label: "Récurrentes" }}
+        title="Récurrentes"
+        description="Pilotez et anticipez vos abonnements et entrées fixes."
+        actions={
+          <>
           <Button 
             variant="outline" 
             className={cn("gap-2 shadow-sm bg-white dark:bg-zinc-900 h-10 px-4 rounded-xl transition-all", generating && "opacity-80 pointer-events-none")} 
@@ -173,7 +171,7 @@ export function RecurringClient() {
 
           <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ description: "", montant: 0, type: "depense", categorie: "", frequence: "mensuel" }) }}>
             <DialogTrigger asChild>
-              <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 h-10">
+              <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-5 h-10">
                 <Plus className="size-4" />
                 Nouveau
               </Button>
@@ -232,14 +230,17 @@ export function RecurringClient() {
                 </div>
                 <DialogFooter className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-2">
                   <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto" onClick={() => setOpen(false)}>Annuler</Button>
-                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700">Enregistrer</Button>
+                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700">Enregistrer</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
+          </>
+        }
+      />
 
-          {/* EDIT DIALOG */}
-          <Dialog open={!!editing} onOpenChange={(o) => (!o) && setEditing(null)}>
+      {/* EDIT DIALOG */}
+      <Dialog open={!!editing} onOpenChange={(o) => (!o) && setEditing(null)}>
             <DialogContent className="sm:max-w-md p-6 rounded-2xl border-zinc-200 dark:border-zinc-800">
               <DialogHeader className="pb-4 border-b border-zinc-100 dark:border-zinc-800 mb-2">
                 <DialogTitle className="text-xl">Modifier une Récurrence</DialogTitle>
@@ -290,14 +291,14 @@ export function RecurringClient() {
                 </div>
                 <DialogFooter className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-2">
                   <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto" onClick={() => setEditing(null)}>Annuler</Button>
-                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700">Mettre à jour</Button>
+                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700">Mettre à jour</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
+      </Dialog>
 
-          {/* DELETE DIALOG */}
-          <Dialog open={!!toDelete} onOpenChange={(o) => (!o) && setToDelete(null)}>
+      {/* DELETE DIALOG */}
+      <Dialog open={!!toDelete} onOpenChange={(o) => (!o) && setToDelete(null)}>
             <DialogContent className="sm:max-w-md p-6 rounded-2xl">
               {toDelete && (
                 <div className="flex flex-col gap-4">
@@ -334,40 +335,28 @@ export function RecurringClient() {
                 </div>
               )}
             </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+      </Dialog>
 
-      {/* KPI DASHBOARD */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
-           <div className="absolute top-0 right-0 p-4 opacity-5">
-             <CalendarSync className="size-24" />
-           </div>
-           <p className="text-sm font-medium text-zinc-300 mb-1">Impact Mensuel Total</p>
-           <h3 className="text-3xl font-bold">{impactMensuel > 0 ? '+' : ''}{formatter.format(impactMensuel)}</h3>
-           <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-             Lissé sur 30 jours (revenus - abonnements)
-           </div>
-        </div>
-        <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm flex flex-col justify-center">
-           <div className="flex items-center gap-3 mb-2">
-             <div className="p-2 bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full">
-               <ArrowDownCircle className="size-5" />
-             </div>
-             <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Abonnements actifs</p>
-           </div>
-           <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 pl-11">{abonnements.length} <span className="text-sm font-medium text-zinc-400">souscriptions</span></p>
-        </div>
-        <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm flex flex-col justify-center">
-           <div className="flex items-center gap-3 mb-2">
-             <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full">
-               <ArrowUpCircle className="size-5" />
-             </div>
-             <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">Revenus actifs</p>
-           </div>
-           <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 pl-11">{salaires.length} <span className="text-sm font-medium text-zinc-400">sources fixes</span></p>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <FluxCardEntrees
+          title="Revenus actifs"
+          value={<span>{salaires.length} <span className="text-lg font-semibold text-emerald-600/80 dark:text-emerald-400/80">sources fixes</span></span>}
+          subtitle="Entrées récurrentes configurées"
+          icon={ArrowUpCircle}
+        />
+        <FluxCardSorties
+          title="Abonnements actifs"
+          value={<span>{abonnements.length} <span className="text-lg font-semibold text-rose-600/80 dark:text-rose-400/80">souscriptions</span></span>}
+          subtitle="Sorties récurrentes configurées"
+          icon={ArrowDownCircle}
+        />
+        <FluxCardSolde
+          title="Impact mensuel"
+          value={<span>{impactMensuel >= 0 ? "+" : ""}{formatter.format(impactMensuel)}</span>}
+          subtitle="Lissé sur 30 jours (revenus − abonnements)"
+          icon={CalendarSync}
+          positive={impactMensuel >= 0}
+        />
       </div>
 
       {/* RECURRING LIST */}
