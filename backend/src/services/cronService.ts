@@ -1,7 +1,6 @@
 import cron from 'node-cron';
 import { TransactionRecurrente } from '../models/TransactionRecurrente';
 import { Transaction } from '../models/Transaction';
-import { NotificationService } from './notificationService';
 import { RapportMensuelService } from './rapportMensuelService';
 import { addMonths, addWeeks, addYears } from 'date-fns';
 
@@ -70,16 +69,6 @@ export class CronService {
     cron.schedule('0 0 * * *', async () => {
       console.log(' Tâche: Génération des transactions récurrentes');
       await this.genererTransactionsRecurrentes();
-    });
-
-    cron.schedule('0 8 * * *', async () => {
-      console.log(' Tâche: Alertes budgétaires');
-      await NotificationService.verifierAlertesBudgets();
-    });
-
-    cron.schedule('0 9 * * *', async () => {
-      console.log(' Tâche: Rappels transactions récurrentes');
-      await NotificationService.envoyerRappelsTransactionsRecurrentes();
     });
 
     cron.schedule('0 8 1 * *', async () => {
