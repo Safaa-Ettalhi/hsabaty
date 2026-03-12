@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import {
   IconDotsVertical,
   IconLogout,
-  IconNotification,
   IconUserCircle,
 } from "@tabler/icons-react"
 
@@ -104,12 +103,6 @@ export function NavUser({
                 <Link href="/dashboard/compte">
                   <IconUserCircle />
                   Compte
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/notifications">
-                  <IconNotification />
-                  Notifications
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

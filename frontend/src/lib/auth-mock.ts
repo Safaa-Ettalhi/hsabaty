@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 const AUTH_TOKEN_KEY = "hssabaty_token"
 const REMEMBER_ME_KEY = "hssabaty_remember_me"
 const USER_KEY = "hssabaty_user"
