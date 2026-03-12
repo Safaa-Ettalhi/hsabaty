@@ -115,9 +115,6 @@ export class AuthController {
       throw new ErreurApp('Utilisateur non trouvé', 404);
     }
     const obj = utilisateur.toObject();
-    if (!obj.preferences) {
-      obj.preferences = { notificationsEmail: true, notificationsPush: true };
-    }
     res.json({
       succes: true,
       donnees: { utilisateur: obj }
@@ -126,18 +123,13 @@ export class AuthController {
 
   // modifier le profil
   static modifierProfil = asyncHandler(async (req: AuthentifieRequest, res: Response, _next: NextFunction) => {
-    const { nom, prenom, preferences } = req.body;
+    const { nom, prenom } = req.body;
     const utilisateur = await Utilisateur.findById(req.utilisateurId);
     if (!utilisateur) {
       throw new ErreurApp('Utilisateur non trouvé', 404);
     }
     if (nom !== undefined) utilisateur.nom = nom;
     if (prenom !== undefined) utilisateur.prenom = prenom;
-    if (preferences) {
-      utilisateur.preferences = utilisateur.preferences || { notificationsEmail: true, notificationsPush: true };
-      if (preferences.notificationsEmail !== undefined) utilisateur.preferences.notificationsEmail = preferences.notificationsEmail;
-      if (preferences.notificationsPush !== undefined) utilisateur.preferences.notificationsPush = preferences.notificationsPush;
-    }
     await utilisateur.save();
     const obj = utilisateur.toObject();
     delete (obj as any).motDePasse;
