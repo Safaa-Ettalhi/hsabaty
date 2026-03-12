@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/select"
 import { Controller } from "react-hook-form"
 import { cn } from "@/lib/utils"
-import { DashboardPageShell } from "@/components/dashboard-page-shell"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
+import { FluxCardEntrees, FluxCardSorties, FluxCardSolde } from "@/components/flux-kpi-cards"
 
 const typeObjectifOptions = [
   { value: "epargne", label: "Épargne Standard" },
@@ -228,14 +229,14 @@ export function GoalsClient() {
 
   return (
     <DashboardPageShell contentClassName="gap-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">Objectifs</h1>
-          <p className="text-zinc-500 mt-1 block">Visualisez et planifiez vos rêves, une étape à la fois.</p>
-        </div>
+      <DashboardPageHeader
+        badge={{ icon: Target, label: "Objectifs" }}
+        title="Objectifs"
+        description="Visualisez et planifiez vos rêves, une étape à la fois."
+        actions={
         <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ nom: "", montantCible: 0, dateLimite: "", type: "epargne", description: "" }) }}>
           <DialogTrigger asChild>
-            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 h-10" onClick={() => setEditing(null)}>
+            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-full px-5 h-10" onClick={() => setEditing(null)}>
               <Plus className="size-4" />
               Nouveau Projet
             </Button>
@@ -284,12 +285,13 @@ export function GoalsClient() {
               </div>
               <DialogFooter className="pt-4 mt-2">
                 <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setOpen(false)}>Annuler</Button>
-                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white h-11">Lancer l&apos;objectif</Button>
+                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white h-11">Lancer l&apos;objectif</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md p-6 rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 shadow-xl">
@@ -336,7 +338,7 @@ export function GoalsClient() {
               </div>
             <DialogFooter className="pt-4 mt-2">
               <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setEditing(null)}>Annuler</Button>
-              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white h-11">Enregistrer</Button>
+              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white h-11">Enregistrer</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -389,7 +391,7 @@ export function GoalsClient() {
                    Plus tard
                  </Button>
                  <Button
-                   className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white h-11 gap-1 font-semibold"
+                   className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white h-11 gap-1 font-semibold"
                    onClick={onContribution}
                    disabled={contributing || !contributionMontant || Number(contributionMontant) <= 0}
                  >
@@ -438,36 +440,26 @@ export function GoalsClient() {
       ) : objectifs.length > 0 ? (
         <div className="space-y-6">
           {/* KPI Dashboard */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-center">
-                 <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Cible Globale</p>
-                 <h3 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 tabular-nums">{formatter.format(globalTotalCible)}</h3>
-                 <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                   Somme de vos projets
-                 </div>
-              </div>
-
-              <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-6 shadow-sm flex flex-col justify-center">
-                 <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
-                   <TrendingUp className="size-24" />
-                 </div>
-                 <p className="text-sm font-semibold text-emerald-700/80 dark:text-emerald-400/80 mb-1">Total Épargné</p>
-                 <h3 className="text-3xl font-extrabold tracking-tight text-emerald-600 dark:text-emerald-400 tabular-nums">{formatter.format(globalTotalActuel)}</h3>
-                 <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Avancement en cours
-                 </div>
-              </div>
-
-              <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-6 shadow-sm text-white flex flex-col justify-center">
-                 <div className="absolute top-0 right-0 p-4 opacity-5">
-                   <Target className="size-24" />
-                 </div>
-                 <p className="text-sm font-semibold text-zinc-300 mb-1">Reste à Financer</p>
-                 <h3 className="text-3xl font-extrabold tabular-nums tracking-tight text-white">{formatter.format(Math.max(0, globalTotalCible - globalTotalActuel))}</h3>
-                 <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-                   Pour atteindre tous vos buts
-                 </div>
-              </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <FluxCardSolde
+              title="Cible globale"
+              value={formatter.format(globalTotalCible)}
+              subtitle="Somme de vos projets"
+              icon={Target}
+              positive
+            />
+            <FluxCardEntrees
+              title="Total épargné"
+              value={formatter.format(globalTotalActuel)}
+              subtitle="Avancement en cours"
+              icon={TrendingUp}
+            />
+            <FluxCardSorties
+              title="Reste à financer"
+              value={formatter.format(Math.max(0, globalTotalCible - globalTotalActuel))}
+              subtitle="Pour atteindre tous vos buts"
+              icon={Target}
+            />
           </div>
 
           {/* List of Goals */}
@@ -561,7 +553,7 @@ export function GoalsClient() {
           <p className="text-zinc-500 text-base max-w-md mx-auto mb-8 leading-relaxed">
             Définissez des objectifs d&apos;épargne clairs pour vos grands projets (voyages, maison, fonds de sécurité) et suivez votre progression.
           </p>
-          <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 h-12 font-semibold" onClick={() => setOpen(true)}>
+          <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-full px-8 h-12 font-semibold" onClick={() => setOpen(true)}>
             <Plus className="size-5" />
             Créer mon premier objectif
           </Button>
