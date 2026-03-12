@@ -14,6 +14,7 @@ import {
   IconBulb,
   IconSettings,
   IconHelp,
+  IconTrendingUp,
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -40,6 +41,7 @@ const navMain = [
   { title: "Budget", url: "/dashboard/budget", icon: IconCoin },
   { title: "Récurrentes", url: "/dashboard/recurring", icon: IconRepeat },
   { title: "Objectifs", url: "/dashboard/goals", icon: IconTarget },
+  { title: "Investissements", url: "/dashboard/investments", icon: IconTrendingUp },
   { title: "Conseils & Insights", url: "/dashboard/insights", icon: IconBulb },
 ]
 

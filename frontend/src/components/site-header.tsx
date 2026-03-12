@@ -23,6 +23,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   budget: "Budget",
   recurring: "Récurrentes",
   goals: "Objectifs",
+  investments: "Investissements",
   insights: "Conseils & Insights",
   settings: "Paramètres",
   help: "Aide",
