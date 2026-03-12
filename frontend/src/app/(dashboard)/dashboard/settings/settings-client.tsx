@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import {
   IconUserCircle,
-  IconNotification,
   IconSettings,
   IconChevronRight,
   IconLogout,
@@ -20,12 +19,6 @@ const SECTIONS = [
     icon: IconUserCircle,
     title: "Compte",
     description: "Prénom, email et mot de passe",
-  },
-  {
-    href: "/dashboard/notifications",
-    icon: IconNotification,
-    title: "Notifications",
-    description: "Alertes email et navigateur",
   },
 ] as const
 

@@ -118,6 +118,7 @@ export function LoginForm({
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="rememberMe"
+                    // eslint-disable-next-line react-hooks/incompatible-library
                     checked={form.watch("rememberMe")}
                     onCheckedChange={(checked) =>
                       form.setValue("rememberMe", !!checked)
