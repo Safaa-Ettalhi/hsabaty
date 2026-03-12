@@ -41,15 +41,9 @@ import {
 } from "@/components/ui/chart"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
-import { 
-  IconArrowUpRight, 
-  IconArrowDownRight, 
-  IconWallet, 
-  IconPigMoney,
-  IconTrendingUp,
-  IconReceipt2
-} from "@tabler/icons-react"
 import { DashboardPageShell } from "@/components/dashboard-page-shell"
+import { FluxCardEntrees, FluxCardSorties, FluxCardSolde } from "@/components/flux-kpi-cards"
+import { ArrowUpCircle, ArrowDownCircle, Wallet, PiggyBank } from "lucide-react"
 
 const soldeAreaChartConfig = {
   solde: {
@@ -505,7 +499,7 @@ export function DashboardClient() {
 
   if (loading || !data) {
     return (
-      <DashboardPageShell contentClassName="gap-8 pb-10 pt-2" hideBackground>
+      <DashboardPageShell contentClassName="gap-8 pb-10 pt-2">
       <div className="space-y-8">
         {errorMsg && (
           <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
@@ -537,89 +531,46 @@ export function DashboardClient() {
   const revenusFormatter = new Intl.NumberFormat("fr-MA", { style: 'currency', currency: 'MAD', maximumFractionDigits: 0 });
 
   return (
-    <DashboardPageShell contentClassName="gap-8 pb-10 pt-2" hideBackground>
+    <DashboardPageShell contentClassName="gap-8 pb-10 pt-2">
       <div className="space-y-8">
       {errorMsg && (
         <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md font-medium">
           Détail pour le développeur: {errorMsg}
         </div>
       )}
-      {/* KPI Cards */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card Solde */}
-        <div className="group relative overflow-hidden rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-linear-to-br from-white to-zinc-50/50 dark:from-zinc-900/50 dark:to-zinc-950/20 p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
-          <div className="absolute -right-6 -top-6 size-32 opacity-20 blur-2xl rounded-full bg-blue-500 transition-opacity group-hover:opacity-30" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center border border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm">
-                <IconWallet className="size-6" />
-              </div>
-            </div>
-            <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mb-1">Solde actuel</p>
-            <h3 className="text-3xl font-black text-zinc-900 dark:text-zinc-100 tabular-nums tracking-tight">
-              {revenusFormatter.format(metriques?.solde || 0)}
-            </h3>
-            <p className="text-xs font-medium text-zinc-400 dark:text-zinc-500 mt-2 flex items-center gap-1.5">
-              La totalité de vos fonds disponibles
-            </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <FluxCardSolde
+          title="Solde actuel"
+          value={revenusFormatter.format(metriques?.solde || 0)}
+          subtitle="Total de vos fonds disponibles"
+          icon={Wallet}
+          positive
+        />
+        <FluxCardEntrees
+          title="Revenus (mois)"
+          value={revenusFormatter.format(metriques?.revenus || 0)}
+          subtitle="Total depuis le début du mois"
+          icon={ArrowUpCircle}
+        />
+        <FluxCardSorties
+          title="Dépenses (mois)"
+          value={revenusFormatter.format(metriques?.depenses || 0)}
+          subtitle="Sorties sur la période"
+          icon={ArrowDownCircle}
+        />
+        <div className="relative overflow-hidden rounded-3xl border border-violet-500/15 bg-linear-to-br from-white to-violet-50/50 p-6 shadow-sm dark:border-violet-500/10 dark:from-zinc-900 dark:to-violet-950/20">
+          <div className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-xl bg-violet-500/15 text-violet-600 dark:bg-violet-500/20 dark:text-violet-400">
+            <PiggyBank className="size-5" />
           </div>
-        </div>
-
-        {/* Card Revenus */}
-        <div className="group relative overflow-hidden rounded-3xl border border-emerald-200/60 dark:border-emerald-900/30 bg-linear-to-br from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-zinc-900/50 p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
-          <div className="absolute -right-6 -top-6 size-32 opacity-20 blur-2xl rounded-full bg-emerald-500 transition-opacity group-hover:opacity-30" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="size-12 rounded-2xl bg-emerald-100/80 dark:bg-emerald-500/20 flex items-center justify-center border border-emerald-200 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-400 shadow-sm">
-                <IconTrendingUp className="size-6" />
-              </div>
-            </div>
-            <p className="text-sm font-semibold text-emerald-700/80 dark:text-emerald-400/80 mb-1">Revenus (Mois)</p>
-            <h3 className="text-3xl font-black text-emerald-900 dark:text-emerald-50 tabular-nums tracking-tight">
-              {revenusFormatter.format(metriques?.revenus || 0)}
-            </h3>
-            <p className="text-xs font-medium text-emerald-600/60 dark:text-emerald-400/60 mt-2 flex items-center gap-1.5">
-              <IconArrowUpRight className="size-3.5" /> Totalisé depuis le début du mois
-            </p>
-          </div>
-        </div>
-
-        {/* Card Dépenses */}
-        <div className="group relative overflow-hidden rounded-3xl border border-rose-200/60 dark:border-rose-900/30 bg-linear-to-br from-rose-50/50 to-white dark:from-rose-950/20 dark:to-zinc-900/50 p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
-          <div className="absolute -right-6 -top-6 size-32 opacity-20 blur-2xl rounded-full bg-rose-500 transition-opacity group-hover:opacity-30" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="size-12 rounded-2xl bg-rose-100/80 dark:bg-rose-500/20 flex items-center justify-center border border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 shadow-sm">
-                <IconReceipt2 className="size-6" />
-              </div>
-            </div>
-            <p className="text-sm font-semibold text-rose-700/80 dark:text-rose-400/80 mb-1">Dépenses (Mois)</p>
-            <h3 className="text-3xl font-black text-rose-900 dark:text-rose-50 tabular-nums tracking-tight">
-              {revenusFormatter.format(metriques?.depenses || 0)}
-            </h3>
-            <p className="text-xs font-medium text-rose-600/60 dark:text-rose-400/60 mt-2 flex items-center gap-1.5">
-              <IconArrowDownRight className="size-3.5" /> Sorties d&apos;argent sur la période
-            </p>
-          </div>
-        </div>
-
-        {/* Card Taux Epargne */}
-        <div className="group relative overflow-hidden rounded-3xl border border-violet-200/60 dark:border-violet-900/30 bg-linear-to-br from-violet-50/50 to-white dark:from-violet-950/20 dark:to-zinc-900/50 p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
-          <div className="absolute -right-6 -top-6 size-32 opacity-20 blur-2xl rounded-full bg-violet-500 transition-opacity group-hover:opacity-30" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="size-12 rounded-2xl bg-violet-100/80 dark:bg-violet-500/20 flex items-center justify-center border border-violet-200 dark:border-violet-800/50 text-violet-600 dark:text-violet-400 shadow-sm">
-                <IconPigMoney className="size-6" />
-              </div>
-            </div>
-            <p className="text-sm font-semibold text-violet-700/80 dark:text-violet-400/80 mb-1">Taux d&apos;épargne</p>
-            <h3 className="text-3xl font-black text-violet-900 dark:text-violet-50 tabular-nums tracking-tight">
-              {(metriques?.tauxEpargne || 0).toFixed(1)}%
-            </h3>
-            <p className="text-xs font-medium text-violet-600/60 dark:text-violet-400/60 mt-2 flex items-center gap-1.5">
-              Pourcentage de vos revenus conservés
-            </p>
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-violet-600/90 dark:text-violet-400/90">
+            Taux d&apos;épargne
+          </p>
+          <p className="mt-2 text-2xl font-bold tabular-nums text-violet-800 dark:text-violet-300 md:text-3xl">
+            {(metriques?.tauxEpargne || 0).toFixed(1)}%
+          </p>
+          <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+            Part des revenus conservée
+          </p>
         </div>
       </div>
 
