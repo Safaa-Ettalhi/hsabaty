@@ -6,10 +6,10 @@ import { useEffect, useState } from "react"
 import { api } from "@/lib/api"
 import { Sparkles, TrendingDown, TrendingUp, AlertCircle, Compass, BrainCircuit, Zap, ArrowDownCircle, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { DashboardPageShell } from "@/components/dashboard-page-shell"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 
 const TABS = [
-  { value: "insights", label: "Insights Globaux", path: "/api/conseils/insights", key: "insights", icon: BrainCircuit, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10" },
+  { value: "insights", label: "Insights Globaux", path: "/api/conseils/insights", key: "insights", icon: BrainCircuit, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-500/10" },
   { value: "reduction", label: "Réduire les Dépenses", path: "/api/conseils/recommandations/reduction-depenses", key: "recommandations", icon: TrendingDown, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-500/10" },
   { value: "optimisation", label: "Optimiser l'Épargne", path: "/api/conseils/recommandations/optimisation-epargne", key: "recommandations", icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
   { value: "inhabituelles", label: "Anomalies", path: "/api/conseils/depenses-inhabituelles", key: "depensesInhabituelles", icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/10" },
@@ -59,9 +59,9 @@ export function InsightsClient() {
       return (
         <div className="flex flex-col items-center justify-center p-16 text-center min-h-100 border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 rounded-3xl">
           <div className="relative flex items-center justify-center mb-6">
-            <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl animate-pulse"></div>
-            <div className="size-20 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center relative shadow-sm border border-blue-100 dark:border-blue-500/20">
-              <BrainCircuit className="size-10 text-blue-600 dark:text-blue-400 animate-pulse" />
+            <div className="absolute inset-0 rounded-full bg-violet-500/20 blur-xl animate-pulse"></div>
+            <div className="size-20 rounded-full bg-violet-50 dark:bg-violet-500/10 flex items-center justify-center relative shadow-sm border border-violet-100 dark:border-violet-500/20">
+              <BrainCircuit className="size-10 text-violet-600 dark:text-violet-400 animate-pulse" />
             </div>
           </div>
           <h3 className="text-xl font-bold mb-2 text-zinc-900 dark:text-zinc-100">L&apos;IA analyse vos données...</h3>
@@ -198,7 +198,7 @@ export function InsightsClient() {
             <div>
               <h2 className="text-xl md:text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">{tabConfig.label}</h2>
               <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 mt-1.5">
-                <Sparkles className="size-4 text-blue-500" /> Analyse approfondie générée par l&apos;IA
+                <Sparkles className="size-4 text-violet-500" /> Analyse approfondie générée par l&apos;IA
               </p>
             </div>
           </div>
@@ -296,7 +296,7 @@ export function InsightsClient() {
               if (trimmed.startsWith('>')) {
                 return (
                   <div key={i} className="my-6 p-4 md:p-5 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 flex gap-3.5 text-blue-800 dark:text-blue-300">
-                    <div className="mt-0.5 shrink-0 text-blue-500">
+                    <div className="mt-0.5 shrink-0 text-violet-500">
                       <Sparkles className="size-5" />
                     </div>
                     <div className="text-[14px] leading-relaxed font-medium italic">
@@ -332,18 +332,17 @@ export function InsightsClient() {
 
   return (
     <DashboardPageShell contentClassName="gap-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-2 shrink-0">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-3">
-            Conseils &amp; Insights
-            <span className="inline-flex items-center rounded-full bg-blue-100/80 dark:bg-blue-900/40 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800 sm:flex">
-              <Sparkles className="size-3 mr-1" />
-              Propulsé par l&apos;IA
-            </span>
-          </h1>
-          <p className="text-zinc-500 mt-1 block">Découvrez des recommandations personnalisées pour optimiser vos finances.</p>
-        </div>
-      </div>
+      <DashboardPageHeader
+        badge={{
+          icon: Sparkles,
+          label: "Conseils & Insights",
+          className:
+            "border-violet-500/20 bg-violet-500/10 text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-400",
+        }}
+        title="Conseils & Insights"
+        description="Recommandations personnalisées pour optimiser vos finances — propulsé par l&apos;IA."
+        className="shrink-0"
+      />
 
       <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 hide-scrollbar shrink-0">
         <div className="flex gap-2 min-w-max">
@@ -356,7 +355,7 @@ export function InsightsClient() {
                 className={cn(
                   "flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold transition-all border shadow-xs outline-none",
                   isActive
-                    ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100 shadow-md"
+                    ? "border-violet-600 bg-violet-600 text-white shadow-md dark:border-violet-500 dark:bg-violet-600"
                     : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/50"
                 )}
               >
