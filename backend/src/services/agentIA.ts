@@ -54,7 +54,6 @@ export class ServiceAgentIA {
     return 'fr';
   }
 
-// traiter un message utilisateur et générer une réponse avec actions
   async traiterMessage(
     utilisateurId: string,
     messageUtilisateur: string,
@@ -64,7 +63,6 @@ export class ServiceAgentIA {
     const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
     (contexte as any).langue = langue;
     const intentionInitiale = this.detecterIntention(messageUtilisateur);
-    // Exécution directe pour les intentions de création (sans passer par le modèle)
     if (intentionInitiale) {
       let actionDirecte: any = null;
       try {
@@ -135,7 +133,7 @@ export class ServiceAgentIA {
           }
         } else {
           const intention = this.detecterIntention(messageUtilisateur);
-          if (intention && (intention.type === 'gerer_objectif' || intention.type === 'gerer_budget' || intention.type === 'statistiques' || intention.type === 'analyser_habitudes')) {
+          if (intention && (intention.type === 'gerer_objectif' || intention.type === 'gerer_budget' || intention.type === 'statistiques' || intention.type === 'comparaison_temporelle' || intention.type === 'analyser_habitudes')) {
             const actionDetectee = await this.executerActionDetectee(utilisateurId, intention);
             if (actionDetectee) {
               action = actionDetectee;
@@ -154,14 +152,12 @@ export class ServiceAgentIA {
           ? message.content[0].text 
           : '';
 
-        // Try to parse structured action from LLM response first (smart approach)
         const actionParsee = this.extraireActionDepuisReponse(reponseIA);
         if (actionParsee) {
           const batchResult = await this.executerActionsBatch(utilisateurId, actionParsee, contexte);
           reponseIA = batchResult.reponseIA;
           action = batchResult.action;
         }
-        // Fallback to regex detection only if LLM didn't provide an action
         if (!action) {
           const intention = this.detecterIntention(messageUtilisateur);
           if (intention) {
@@ -186,7 +182,6 @@ export class ServiceAgentIA {
           const response = result.response;
           reponseIA = response.text() || '';
 
-          // Primary: parse structured JSON action from LLM response (the smart way)
           const actionParsee = this.extraireActionDepuisReponse(reponseIA);
           if (actionParsee) {
             const batchResult = await this.executerActionsBatch(utilisateurId, actionParsee, contexte);
@@ -194,7 +189,6 @@ export class ServiceAgentIA {
             action = batchResult.action;
           }
 
-          // Fallback: regex-based detection only if LLM didn't include an action block
           if (!action) {
             const intention = this.detecterIntention(messageUtilisateur);
             if (intention) {
@@ -205,8 +199,6 @@ export class ServiceAgentIA {
               }
             }
           }
-
-          // Final fallback: if no response at all
           if (!reponseIA || reponseIA.trim().length === 0) {
             reponseIA = action
               ? this.genererReponseDepuisAction(action, contexte)
@@ -228,14 +220,12 @@ export class ServiceAgentIA {
             console.warn(`[ServiceAgentIA] ⚠️ Crédit Gemini épuisé (${errorStatus}), basculement vers Nemotron 3 Nano 30B A3B`);
             try {
               reponseIA = await this.appelerNemotronViaOpenRouter(messagesHistorique, messageUtilisateur, promptSystem);
-              // Try LLM-parsed action first
               const actionParsee = this.extraireActionDepuisReponse(reponseIA);
               if (actionParsee) {
                 const batchResult = await this.executerActionsBatch(utilisateurId, actionParsee, contexte);
                 reponseIA = batchResult.reponseIA;
                 action = batchResult.action;
               }
-              // Fallback to regex
               if (!action) {
                 const intention = this.detecterIntention(messageUtilisateur);
                 if (intention) {
@@ -325,14 +315,12 @@ export class ServiceAgentIA {
             let reponseIA = await this.appelerNemotronViaOpenRouter(messagesHistorique, messageUtilisateur, promptSystem);
             let action: any = null;
             
-            // Try LLM-parsed action first
             const actionParsee = this.extraireActionDepuisReponse(reponseIA);
             if (actionParsee) {
               const batchResult = await this.executerActionsBatch(utilisateurId, actionParsee, contexte);
               reponseIA = batchResult.reponseIA;
               action = batchResult.action;
             }
-            // Fallback to regex
             if (!action) {
               const intention = this.detecterIntention(messageUtilisateur);
               if (intention) {
@@ -443,7 +431,6 @@ export class ServiceAgentIA {
   }
 
   private extraireActionDepuisReponse(reponseIA: string): { texte: string; action: any } | null {
-    // Extract ALL action blocks from the response (supports multiple actions)
     const actionBlocks = [...reponseIA.matchAll(/<<<ACTION>>>\s*([\s\S]*?)\s*<<<END_ACTION>>>/g)];
     if (actionBlocks.length === 0) return null;
 
@@ -467,11 +454,9 @@ export class ServiceAgentIA {
     if (actions.length === 1) {
       return { texte, action: actions[0] };
     }
-    // Multiple actions: wrap them in a batch
     return { texte, action: { type: 'batch', actions } };
   }
 
-  // Execute a batch of actions (or a single one)
   private async executerActionsBatch(utilisateurId: string, actionParsee: { texte: string; action: any }, contexte: any): Promise<{ reponseIA: string; action: any }> {
     if (actionParsee.action.type === 'batch') {
       const resultats: any[] = [];
@@ -495,7 +480,6 @@ export class ServiceAgentIA {
       }
       return { reponseIA: actionParsee.texte, action: null };
     } else {
-      // Single action
       try {
         const action = await this.executerAction(utilisateurId, actionParsee.action.type, actionParsee.action.parametres || {});
         if (action) {
@@ -511,7 +495,6 @@ export class ServiceAgentIA {
     }
   }
 
-//construire le prompt système pour l'agent IA
   private construirePromptSystem(contexte: any): string {
     const langue = (contexte && (contexte as any).langue) || 'fr';
     const descriptionLangue = langue === 'en'
@@ -607,6 +590,10 @@ TYPES D'ACTIONS DISPONIBLES:
 
 9. "statistiques" - Demande de résumé/bilan financier
    parametres: {}
+
+9b. "comparaison_temporelle" - Comparer ce mois au mois précédent ou à l'année dernière (revenus, dépenses, épargne)
+   parametres: {}
+   UTILISE quand l'utilisateur demande une comparaison temporelle, évolution, ou "par rapport au mois dernier / l'an dernier".
 
 10. "analyser_habitudes" - Analyse des habitudes de dépenses
    parametres: {}
@@ -815,7 +802,6 @@ STYLE
 - Associe le BON montant au BON item. Ne mélange PAS les prix.
     `}
 
-//obtenir le contexte financier de l'utilisateur
   private async obtenirContexteUtilisateur(utilisateurId: string): Promise<any> {
     const maintenant = new Date();
     const debutMois = startOfMonth(maintenant);
@@ -862,7 +848,6 @@ STYLE
     };
   }
 
-//définir les fonctions disponibles pour l'IA
   private obtenirFonctionsIA(): any[] {
     return [
       {
@@ -998,6 +983,15 @@ STYLE
         }
       },
       {
+        name: 'comparer_periodes',
+        description: 'Compare les revenus, dépenses et épargne du mois en cours avec le mois précédent et le même mois l\'année dernière. À utiliser pour les questions de type "compare avec le mois dernier", "évolution par rapport à l\'an dernier", etc.',
+        parameters: {
+          type: 'object',
+          properties: {},
+          required: []
+        }
+      },
+      {
         name: 'consulter_budgets',
         description: 'Consulte la liste des budgets avec leurs statistiques. Utilise cette fonction quand l\'utilisateur demande "mes budgets", "montre-moi mes budgets", "consulte mes budgets", etc.',
         parameters: {
@@ -1011,7 +1005,6 @@ STYLE
     ];
   }
 
-//exécuter une action demandée par l'IA
   private async executerAction(utilisateurId: string, nomAction: string, parametres: any): Promise<any> {
     switch (nomAction) {
       case 'rechercher_transactions':
@@ -1151,7 +1144,6 @@ STYLE
           utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
         });
 
-        // Obtenir l'utilisateur si besoin (inutile maintenant)
 
         return {
           type: 'transaction_supprimee',
@@ -1349,6 +1341,14 @@ STYLE
           nombre: objectifsAvecProgression.length,
           objectifs: objectifsAvecProgression
         };
+
+      case 'comparer_periodes':
+      case 'comparaison_temporelle': {
+        const { ServiceCalculsFinanciers } = await import('./calculsFinanciers');
+        const serviceCalculs = new ServiceCalculsFinanciers();
+        const comp = await serviceCalculs.comparerPeriodesFinancieres(utilisateurId);
+        return { type: 'comparaison_temporelle', donnees: comp };
+      }
 
       case 'consulter_budgets':
         const budgets = await Budget.find({
@@ -1621,7 +1621,6 @@ STYLE
     }
   }
 
-//sauvegarder un message dans la conversation
   private async sauvegarderMessage(
     utilisateurId: string,
     messageUtilisateur: string,
@@ -1670,7 +1669,6 @@ STYLE
     return conversation._id.toString();
   }
 
-//catégoriser une transaction
   async categoriserTransaction(description: string): Promise<string> {
     const descriptionLower = description.toLowerCase();
     
@@ -1718,7 +1716,6 @@ STYLE
     if (messageLower.match(/(mes objectifs|montre.*mes objectifs|affiche.*mes objectifs|liste.*mes objectifs|voir.*mes objectifs|consulter.*mes objectifs|montre-moi.*objectifs|affiche-moi.*objectifs|liste-moi.*objectifs|voir.*objectifs|objectifs|progression.*objectif|suivre.*objectif|suivi.*objectif|où en suis-je.*objectif)/i)) {
       return { type: 'gerer_objectif', message: messageUtilisateur };
     }
-    // Création de budget via langage naturel (FR + EN + AR simple)
     if (
       messageLower.match(/(fixe un budget|fixer un budget|crée un budget|créer un budget|budget de|budget pour|nouveau budget|set a budget|set .*budget|create a budget|budget of|budget for|monthly budget)/i) ||
       /(ميزانية|بودجي|بوجي)/i.test(messageUtilisateur)
@@ -1742,6 +1739,14 @@ STYLE
 
     if (messageLower.match(/(supprime|efface|retire|enlève|supprimer|effacer|supprime|retire)/i) && messageLower.match(/(transaction|dépense|revenu)/i)) {
       return { type: 'supprimer_transaction', message: messageUtilisateur };
+    }
+
+    if (
+      messageLower.match(
+        /(compare|comparaison|par rapport|vs\.? | versus |mois dernier|mois précédent|mois d'avant|mois passé|l'an dernier|année dernière|même mois.*an dernier|last month|last year|year over year|yoy|évolution.*mois|différence.*mois)/i
+      )
+    ) {
+      return { type: 'comparaison_temporelle', message: messageUtilisateur };
     }
 
     if (messageLower.match(/(statistiques|stats|résumé|bilan|solde|revenus|dépenses|épargne|taux|pourcentage|répartition|summary|overview|balance|how much did i spend)/i)) {
@@ -1779,7 +1784,6 @@ STYLE
   private extraireInfosTransaction(message: string): any {
     const messageLower = message.toLowerCase();
     
-    // Extraire le montant
     const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
@@ -1788,7 +1792,6 @@ STYLE
       ? 'revenu'
       : 'depense';
 
-    // Extraire la catégorie
     let categorie = 'Autres';
     if (messageLower.match(/(restaurant|manger|food|café|repas)/i)) categorie = 'Alimentation';
     else if (messageLower.match(/(taxi|transport|carburant|essence|bus|métro)/i)) categorie = 'Transport';
@@ -1808,7 +1811,6 @@ STYLE
       categorie = 'Transport';
     }
 
-    // Extraire la description
     let description = '';
 
     const motsCles = message.match(/(restaurant|boulangerie|pharmacie|supermarché|magasin|cinéma|théâtre|hôpital|médecin|dentiste|école|université|gare|aéroport|station|essence|carburant|électricité|eau|gaz|loyer|salaire|paie|revenu|transport|taxi|bus|métرو|مطعم|مطعمة|أكل|اكل|طعام|ماكلة|ماكل|طاكسي|تاكسي|التاكسي)/i);
@@ -1929,11 +1931,8 @@ STYLE
     };
   }
 
-//extraire les informations d'un budget depuis le message
   private extraireInfosBudget(message: string): any {
     const messageLower = message.toLowerCase();
-    
-    // Extraire le montant
     const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
@@ -1950,7 +1949,6 @@ STYLE
       periode = 'annuel';
     }
 
-    // Extraire le nom
     const nomMatch =
       message.match(/(?:budget|pour)\s+([^0-9]+?)(?:\s+de|\s+pour)/i) ||
       message.match(/(?:budget|for)\s+([^0-9]+?)(?:\s+of|\s+for)/i) ||
@@ -1970,11 +1968,8 @@ STYLE
     };
   }
 
-//extraire les informations d'un objectif depuis le message
   private extraireInfosObjectif(message: string): any {
     const messageLower = message.toLowerCase();
-    
-    // Extraire le montant
     const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montantCible = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
@@ -1999,7 +1994,6 @@ STYLE
       message.match(/(voiture|car|maison|house|appartement|apartment|voyage|trip|urgence|emergency|projet|مشروع|سيارة|دار|سفر)/i);
     const nom = nomMatch ? nomMatch[1].trim() : 'Objectif d\'épargne';
 
-    // Déterminer le type
     let type = 'epargne';
     if (messageLower.match(/(urgence|fonds d'urgence|emergency)/i)) type = 'fonds_urgence';
     else if (messageLower.match(/(remboursement|dette|debt|rembourse)/i)) type = 'remboursement';
@@ -2018,29 +2012,24 @@ STYLE
     };
   }
 
-//extraire les informations de recherche depuis le message
   private extraireInfosRecherche(message: string): any {
     const messageLower = message.toLowerCase();
     const parametres: any = {};
 
-    // Extraire le montant si mentionné
     const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     if (montantMatch) {
       parametres.montant = parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.'));
     }
 
-    // Extraire la catégorie
     if (messageLower.match(/(alimentation|restaurant|manger|food)/i)) parametres.categorie = 'Alimentation';
     else if (messageLower.match(/(transport|carburant|taxi)/i)) parametres.categorie = 'Transport';
     else if (messageLower.match(/(logement|loyer|électricité)/i)) parametres.categorie = 'Logement';
     else if (messageLower.match(/(santé|médecin|pharmacie)/i)) parametres.categorie = 'Santé';
 
-    // Extraire le type
     if (messageLower.match(/(revenus|revenu|salaire)/i)) parametres.type = 'revenu';
     else if (messageLower.match(/(dépenses|dépense)/i)) parametres.type = 'depense';
 
-    // Extraire la description
     const descMatch = message.match(/(?:pour|au|à|chez)\s+([^0-9]+?)(?:\s+(?:hier|aujourd'hui|ce mois|ce mois-ci))?/i);
     if (descMatch) parametres.description = descMatch[1].trim();
 
@@ -2076,7 +2065,6 @@ STYLE
     };
   }
 
-//extraire les informations d'un investissement depuis le message
   private extraireInfosInvestissement(message: string): any {
     const messageLower = message.toLowerCase();
     
@@ -2084,7 +2072,6 @@ STYLE
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montantInvesti = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
 
-    // Déterminer le type d'investissement
     let type = 'autre';
     if (messageLower.match(/(actions|action|stock|share)/i)) type = 'actions';
     else if (messageLower.match(/(obligations|obligation|bond)/i)) type = 'obligations';
@@ -2120,25 +2107,20 @@ STYLE
     };
   }
 
-//extraire les informations d'une transaction récurrente depuis le message
   private extraireInfosTransactionRecurrente(message: string): any {
     const messageLower = message.toLowerCase();
     
-    // Extraire le montant
     const montantMatch = message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)\s*(?:MAD|mad|dh|dirham)/i) || 
                          message.match(/(\d+(?:\s*\d+)*(?:[.,]\d+)?)/);
     const montant = montantMatch ? parseFloat(montantMatch[1].replace(/\s/g, '').replace(',', '.')) : null;
 
-    // Déterminer le type (revenu ou dépense)
     const type = messageLower.match(/(salaire|revenu|reçu|gagné)/i) ? 'revenu' : 'depense';
 
-    // Déterminer la fréquence
     let frequence = 'mensuel';
     if (messageLower.match(/(hebdomadaire|chaque semaine|toutes les semaines|semaine)/i)) frequence = 'hebdomadaire';
     else if (messageLower.match(/(trimestriel|trimestre|tous les 3 mois)/i)) frequence = 'trimestriel';
     else if (messageLower.match(/(annuel|année|chaque année|tous les ans)/i)) frequence = 'annuel';
 
-    // Extraire la catégorie
     let categorie = 'Autres';
     if (messageLower.match(/(netflix|spotify|disney|abonnement|streaming)/i)) categorie = 'Divertissement';
     else if (messageLower.match(/(loyer|logement|rent)/i)) categorie = 'Logement';
@@ -2149,13 +2131,11 @@ STYLE
       categorie = 'Logement';
     }
 
-    // Extraire la description
     const descMatch =
       message.match(/(netflix|spotify|disney|loyer|salaire|électricité|eau|gaz|internet|téléphone|gym|salle de sport|rent|الكراء|كراء|إيجار)/i) ||
       message.match(/(?:abonnement|paiement)\s+([^0-9]+?)(?:\s+de|\s+pour)/i);
     const description = descMatch ? descMatch[1] || descMatch[0] : 'Transaction récurrente';
 
-    // Extraire le jour du mois si mentionné
     const jourMatch = message.match(/(?:le|jour)\s+(\d{1,2})(?:er)?\s+(?:de chaque mois|du mois)/i);
     const jourDuMois = jourMatch ? parseInt(jourMatch[1]) : undefined;
 
@@ -2174,7 +2154,6 @@ STYLE
     };
   }
 
-//exécuter une action détectée (pour Claude et Gemini)
   private async executerActionDetectee(utilisateurId: string, intention: any): Promise<any> {
     if (!intention || !intention.type) return null;
 
@@ -2185,6 +2164,13 @@ STYLE
 
       if (intention.type === 'rechercher_transactions' && intention.parametres) {
         return await this.executerAction(utilisateurId, 'rechercher_transactions', intention.parametres);
+      }
+
+      if (intention.type === 'comparaison_temporelle') {
+        const { ServiceCalculsFinanciers } = await import('./calculsFinanciers');
+        const serviceCalculs = new ServiceCalculsFinanciers();
+        const comp = await serviceCalculs.comparerPeriodesFinancieres(utilisateurId);
+        return { type: 'comparaison_temporelle', donnees: comp };
       }
 
       if (intention.type === 'statistiques') {
@@ -2271,7 +2257,6 @@ STYLE
       }
 
       if (intention.type === 'modifier_transaction' || intention.type === 'supprimer_transaction') {
-        // Rechercher d'abord la transaction
         const recherche = this.extraireInfosRecherche(intention.message);
         const transactions = await Transaction.find({
           utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
@@ -2354,7 +2339,6 @@ STYLE
     return null;
   }
 
-//générer une réponse depuis une action exécutée
   private genererReponseDepuisAction(action: any, contexte: any): string {
     if (!action) return 'Action effectuée avec succès.';
 
@@ -2367,202 +2351,299 @@ STYLE
       return fr;
     };
 
+    const ok = (titre: string, lignes: string[]) =>
+      `## ${titre}\n\n` + lignes.map((l) => `- ${l}`).join('\n');
+
     switch (action.type) {
       case 'transaction_ajoutee': {
         const trans = action.details;
         return t(
-          `✅ Transaction ajoutée avec succès : ${trans.description} - ${trans.montant} (${trans.categorie})`,
-          `✅ Transaction added successfully: ${trans.description} - ${trans.montant} (${trans.categorie})`,
-          `✅ تم إضافة العملية بنجاح: ${trans.description} - ${trans.montant} (${trans.categorie})`
+          ok('Transaction enregistrée', [
+            `**Description** : ${trans.description}`,
+            `**Montant** : ${trans.montant} MAD`,
+            `**Catégorie** : ${trans.categorie}`,
+          ]),
+          ok('Transaction recorded', [
+            `**Description** : ${trans.description}`,
+            `**Amount** : ${trans.montant}`,
+            `**Category** : ${trans.categorie}`,
+          ]),
+          `## تم التسجيل\n\n- ${trans.description} — ${trans.montant} (${trans.categorie})`
         );
       }
 
       case 'transaction_modifiee':
         return t(
-          `✅ Transaction modifiée avec succès. ${action.message || ''}`,
-          `✅ Transaction updated successfully. ${action.message || ''}`,
-          `✅ تم تعديل العملية بنجاح. ${action.message || ''}`
+          ok('Transaction modifiée', [action.message || 'Mise à jour effectuée.']),
+          ok('Transaction updated', [action.message || 'Update completed.']),
+          `## تم التعديل\n\n${action.message || ''}`
         );
 
       case 'transaction_supprimee':
         return t(
-          `✅ Transaction supprimée avec succès. ${action.message || ''}`,
-          `✅ Transaction deleted successfully. ${action.message || ''}`,
-          `✅ تم حذف العملية بنجاح. ${action.message || ''}`
+          ok('Transaction supprimée', [action.message || 'Suppression effectuée.']),
+          ok('Transaction deleted', [action.message || 'Deletion completed.']),
+          `## تم الحذف\n\n${action.message || ''}`
         );
 
       case 'transactions_trouvees':
         if (action.nombre === 0) {
           return t(
-            'Aucune transaction trouvée correspondant à vos critères.',
-            'No transaction matched your criteria.',
-            'لا توجد أي عملية مطابقة للمعايير.'
+            '> Aucune transaction ne correspond à vos critères.\n\nEssayez d’élargir la recherche (dates, catégorie).',
+            '> No transaction matched your criteria.',
+            '> لا توجد نتائج.'
           );
         }
-        const listeTrans = action.transactions
-          .slice(0, 3)
-          .map((tItem: any) => `${tItem.description}: ${tItem.montant}`)
-          .join(', ');
+        const rows = action.transactions
+          .slice(0, 10)
+          .map((tItem: any) => {
+            const d = tItem.date ? new Date(tItem.date).toLocaleDateString('fr-FR') : '—';
+            return `| ${(tItem.description || '—').replace(/\|/g, ' ')} | ${tItem.montant} | ${tItem.type || '—'} | ${tItem.categorie || '—'} | ${d} |`;
+          })
+          .join('\n');
         return t(
-          `J'ai trouvé ${action.nombre} transaction(s). ${listeTrans}`,
-          `I found ${action.nombre} transaction(s). ${listeTrans}`,
-          `لقد وجدت ${action.nombre} عملية(عمليات). ${listeTrans}`
+          `## Résultats de recherche\n\n**${action.nombre}** transaction(s) trouvée(s).\n\n| Description | Montant | Type | Catégorie | Date |\n|-------------|--------:|:-----|:----------|:-----|\n${rows}`,
+          `## Search results\n\n**${action.nombre}** transaction(s) found.\n\n| Description | Amount | Type | Category | Date |\n|-------------|--------:|:-----|:---------|------|\n${rows}`,
+          `## نتائج البحث\n\n**${action.nombre}** عملية.\n\n${rows}`
         );
 
       case 'budget_cree': {
         const budget = action.details;
         return t(
-          `✅ Budget créé avec succès : ${budget.nom} - ${budget.montant}/${budget.periode}`,
-          `✅ Budget created successfully: ${budget.nom} - ${budget.montant}/${budget.periode}`,
-          `✅ تم إنشاء الميزانية بنجاح: ${budget.nom} - ${budget.montant}/${budget.periode}`
+          ok('Budget créé', [
+            `**Nom** : ${budget.nom}`,
+            `**Montant** : ${budget.montant} MAD`,
+            `**Période** : ${budget.periode}`,
+          ]),
+          ok('Budget created', [`**Name** : ${budget.nom}`, `**Amount** : ${budget.montant}`, `**Period** : ${budget.periode}`]),
+          `## ميزانية جديدة\n\n- ${budget.nom} — ${budget.montant} / ${budget.periode}`
         );
       }
 
       case 'budgets_trouves':
         if (action.nombre === 0) {
           return t(
-            'Vous n\'avez pas encore de budgets. Créez-en un pour commencer à suivre vos dépenses !',
-            'You do not have any budgets yet. Create one to start tracking your spending!',
-            'ليس لديك أي ميزانية بعد. أنشئ ميزانية لتبدأ في تتبع مصاريفك!'
+            '> Vous n’avez pas encore de budget.\n\nCréez-en un pour suivre vos dépenses par catégorie.',
+            '> You have no budgets yet.',
+            '> لا توجد ميزانيات.'
           );
         }
+        const budgetRows = action.budgets
+          .slice(0, 15)
+          .map((b: any) => `| ${b.nom} | ${b.montant} | ${b.categorie || '—'} | ${b.periode || '—'} | ${b.actif ? 'Oui' : 'Non'} |`)
+          .join('\n');
         return t(
-          `Vous avez ${action.nombre} budget(s) actif(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant}`).join(', ')}`,
-          `You have ${action.nombre} active budget(s). ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant}`).join(', ')}`,
-          `لديك ${action.nombre} ميزانية نشِطة. ${action.budgets.slice(0, 3).map((b: any) => `${b.nom}: ${b.montant}`).join(', ')}`
+          `## Vos budgets (${action.nombre})\n\n| Nom | Montant | Catégorie | Période | Actif |\n|-----|--------:|:----------|:--------|:-----:|\n${budgetRows}`,
+          `## Your budgets (${action.nombre})\n\n| Name | Amount | Category | Period | Active |\n|------|--------:|:---------|:-------|:------:|\n${budgetRows}`,
+          `## الميزانيات (${action.nombre})\n\n${budgetRows}`
         );
 
       case 'objectif_cree': {
         const obj = action.details;
         const dateStr = new Date(obj.dateLimite).toLocaleDateString('fr-FR');
         return t(
-          `✅ Objectif créé avec succès : ${obj.nom} - ${obj.montantCible} d'ici ${dateStr}`,
-          `✅ Goal created successfully: ${obj.nom} - ${obj.montantCible} by ${dateStr}`,
-          `✅ تم إنشاء الهدف بنجاح: ${obj.nom} - ${obj.montantCible} قبل ${dateStr}`
+          ok('Objectif créé', [
+            `**Nom** : ${obj.nom}`,
+            `**Cible** : ${obj.montantCible} MAD`,
+            `**Échéance** : ${dateStr}`,
+          ]),
+          ok('Goal created', [`**Name** : ${obj.nom}`, `**Target** : ${obj.montantCible}`, `**Deadline** : ${dateStr}`]),
+          `## هدف جديد\n\n- ${obj.nom} — ${obj.montantCible} — ${dateStr}`
         );
       }
 
       case 'investissement_cree': {
         const inv = action.details;
         return t(
-          `✅ Investissement créé avec succès : ${inv.nom} - ${inv.montantInvesti} (${inv.type})`,
-          `✅ Investment created successfully: ${inv.nom} - ${inv.montantInvesti} (${inv.type})`,
-          `✅ تم إنشاء الاستثمار بنجاح: ${inv.nom} - ${inv.montantInvesti} (${inv.type})`
+          ok('Investissement enregistré', [`**${inv.nom}**`, `**Montant** : ${inv.montantInvesti} MAD`, `**Type** : ${inv.type}`]),
+          ok('Investment recorded', [`**${inv.nom}**`, `**Amount** : ${inv.montantInvesti}`, `**Type** : ${inv.type}`]),
+          `## استثمار\n\n- ${inv.nom} — ${inv.montantInvesti}`
         );
       }
 
       case 'transaction_recurrente_creee': {
         const tr = action.details;
         return t(
-          `✅ Transaction récurrente créée avec succès : ${tr.description} - ${tr.montant}/${tr.frequence}`,
-          `✅ Recurring transaction created successfully: ${tr.description} - ${tr.montant}/${tr.frequence}`,
-          `✅ تم إنشاء عملية متكررة بنجاح: ${tr.description} - ${tr.montant}/${tr.frequence}`
+          ok('Récurrente créée', [`**${tr.description}**`, `**Montant** : ${tr.montant} MAD`, `**Fréquence** : ${tr.frequence}`]),
+          ok('Recurring created', [`**${tr.description}**`, `**Amount** : ${tr.montant}`, `**Frequency** : ${tr.frequence}`]),
+          `## متكررة\n\n- ${tr.description} — ${tr.montant} / ${tr.frequence}`
         );
       }
 
       case 'budget_supprime':
         return t(
-          `✅ ${action.message || 'Budget supprimé avec succès.'}`,
-          `✅ Budget deleted successfully. ${action.message || ''}`,
-          `✅ تم حذف الميزانية بنجاح. ${action.message || ''}`
+          ok('Budget supprimé', [action.message || 'Suppression confirmée.']),
+          ok('Budget deleted', [action.message || 'Confirmed.']),
+          `## تم الحذف\n\n${action.message || ''}`
         );
 
       case 'budget_modifie':
         return t(
-          `✅ ${action.message || 'Budget modifié avec succès.'}`,
-          `✅ Budget updated successfully. ${action.message || ''}`,
-          `✅ تم تعديل الميزانية بنجاح. ${action.message || ''}`
+          ok('Budget modifié', [action.message || 'Mise à jour confirmée.']),
+          ok('Budget updated', [action.message || 'Confirmed.']),
+          `## تم التعديل\n\n${action.message || ''}`
         );
 
       case 'objectif_supprime':
         return t(
-          `✅ ${action.message || 'Objectif supprimé avec succès.'}`,
-          `✅ Goal deleted successfully. ${action.message || ''}`,
-          `✅ تم حذف الهدف بنجاح. ${action.message || ''}`
+          ok('Objectif supprimé', [action.message || 'Suppression confirmée.']),
+          ok('Goal deleted', [action.message || 'Confirmed.']),
+          `## تم الحذف\n\n${action.message || ''}`
         );
 
       case 'objectif_modifie':
         return t(
-          `✅ ${action.message || 'Objectif modifié avec succès.'}`,
-          `✅ Goal updated successfully. ${action.message || ''}`,
-          `✅ تم تعديل الهدف بنجاح. ${action.message || ''}`
+          ok('Objectif modifié', [action.message || 'Mise à jour confirmée.']),
+          ok('Goal updated', [action.message || 'Confirmed.']),
+          `## تم التعديل\n\n${action.message || ''}`
         );
 
       case 'recurrente_supprimee':
         return t(
-          `✅ ${action.message || 'Transaction récurrente supprimée avec succès.'}`,
-          `✅ Recurring transaction deleted successfully. ${action.message || ''}`,
-          `✅ تم حذف العملية المتكررة بنجاح. ${action.message || ''}`
+          ok('Récurrente supprimée', [action.message || 'Suppression confirmée.']),
+          ok('Recurring deleted', [action.message || 'Confirmed.']),
+          `## تم الحذف\n\n${action.message || ''}`
         );
 
       case 'recurrente_modifiee':
         return t(
-          `✅ ${action.message || 'Transaction récurrente modifiée avec succès.'}`,
-          `✅ Recurring transaction updated successfully. ${action.message || ''}`,
-          `✅ تم تعديل العملية المتكررة بنجاح. ${action.message || ''}`
+          ok('Récurrente modifiée', [action.message || 'Mise à jour confirmée.']),
+          ok('Recurring updated', [action.message || 'Confirmed.']),
+          `## تم التعديل\n\n${action.message || ''}`
         );
+
+      case 'comparaison_temporelle': {
+        const d = action.donnees;
+        if (!d || !d.courant) {
+          return t(
+            'Données de comparaison indisponibles pour le moment.',
+            'Comparison data is temporarily unavailable.',
+            'بيانات المقارنة غير متوفرة حالياً.'
+          );
+        }
+        const fmt = (n: number) =>
+          new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(Math.round(n)) + ' MAD';
+        const ligneComparaison = (prev: number, curr: number, pct: number, labelPrev: string) => {
+          if (prev === 0 && curr === 0) return `- **${labelPrev}** : 0 MAD — aucune activité sur les deux périodes`;
+          if (prev === 0 && curr > 0)
+            return `- **${labelPrev}** : 0 MAD → **${fmt(curr)}** ce mois *(aucune donnée sur la période de référence)*`;
+          if (prev > 0) {
+            const evol = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+            return `- **${labelPrev}** : ${fmt(prev)} → ${fmt(curr)} (**${evol}**)`;
+          }
+          return `- **${labelPrev}** : ${fmt(curr)} ce mois`;
+        };
+        const courant = d.courant;
+        const prec = d.moisPrecedent;
+        const anDer = d.anneeDerniereMemeMois;
+        const dPrec = d.deltasVsMoisPrecedent;
+        const dAn = d.deltasVsAnneeDerniere;
+        const epargneDiffStr = (diff: number) => (diff >= 0 ? '+' : '') + fmt(diff);
+        return t(
+          `## Comparaison temporelle\n\n` +
+            `### ${courant.label} — mois en cours\n\n` +
+            `| Indicateur | Montant |\n` +
+            `|------------|--------:|\n` +
+            `| Revenus | ${fmt(courant.revenus)} |\n` +
+            `| Dépenses | ${fmt(courant.depenses)} |\n` +
+            `| Épargne nette | ${fmt(courant.epargne)} |\n\n` +
+            `---\n\n` +
+            `### Par rapport à ${prec.label}\n\n` +
+            `${ligneComparaison(prec.revenus, courant.revenus, dPrec.revenusPct, 'Revenus')}\n` +
+            `${ligneComparaison(prec.depenses, courant.depenses, dPrec.depensesPct, 'Dépenses')}\n` +
+            `- **Épargne** : écart **${epargneDiffStr(dPrec.epargneDiff)}** par rapport au mois précédent\n\n` +
+            `---\n\n` +
+            `### Par rapport à ${anDer.label} (même mois, année dernière)\n\n` +
+            `${ligneComparaison(anDer.revenus, courant.revenus, dAn.revenusPct, 'Revenus')}\n` +
+            `${ligneComparaison(anDer.depenses, courant.depenses, dAn.depensesPct, 'Dépenses')}\n` +
+            `- **Épargne** : écart **${epargneDiffStr(dAn.epargneDiff)}** par rapport à l'année dernière\n`,
+          `## Time comparison\n\n### ${courant.label} (current)\n\n| | |\n|--|--:|\n| Income | ${fmt(courant.revenus)} |\n| Expenses | ${fmt(courant.depenses)} |\n| Net savings | ${fmt(courant.epargne)} |\n\n### vs ${prec.label}\n\n${ligneComparaison(prec.revenus, courant.revenus, dPrec.revenusPct, 'Income')}\n${ligneComparaison(prec.depenses, courant.depenses, dPrec.depensesPct, 'Expenses')}\nSavings diff: **${epargneDiffStr(dPrec.epargneDiff)}**\n\n### vs ${anDer.label}\n\n${ligneComparaison(anDer.revenus, courant.revenus, dAn.revenusPct, 'Income')}\n${ligneComparaison(anDer.depenses, courant.depenses, dAn.depensesPct, 'Expenses')}\nSavings diff: **${epargneDiffStr(dAn.epargneDiff)}**`,
+          `## مقارنة زمنية\n\n### ${courant.label}\n\n- الإيرادات: ${fmt(courant.revenus)}\n- المصاريف: ${fmt(courant.depenses)}\n- الادخار: ${fmt(courant.epargne)}\n\n### مقارنة بالشهر الماضي\n\nفرق الادخار: **${epargneDiffStr(dPrec.epargneDiff)}**`
+        );
+      }
 
       case 'statistiques': {
         const stats = action.donnees;
+        const tx = (stats.tauxEpargne != null && typeof stats.tauxEpargne === 'number')
+          ? stats.tauxEpargne.toFixed(1)
+          : '—';
         return t(
-          `📊 Votre solde actuel est de ${stats.solde}. Ce mois : ${stats.revenus} de revenus, ${stats.depenses} de dépenses. Taux d'épargne : ${stats.tauxEpargne.toFixed(1)}%`,
-          `📊 Your current balance is ${stats.solde}. This month: ${stats.revenus} income, ${stats.depenses} expenses. Savings rate: ${stats.tauxEpargne.toFixed(1)}%`,
-          `📊 رصيدك الحالي هو ${stats.solde}. هذا الشهر: ${stats.revenus} دخل، ${stats.depenses} مصاريف. نسبة الادخار: ${stats.tauxEpargne.toFixed(1)}%`
+          `## Synthèse du mois\n\n| Indicateur | Valeur |\n|------------|--------:|\n| **Solde actuel** | ${stats.solde} |\n| **Revenus** | ${stats.revenus} |\n| **Dépenses** | ${stats.depenses} |\n| **Épargne (net)** | ${stats.epargne != null ? stats.epargne : (Number(stats.revenus) - Number(stats.depenses))} |\n| **Taux d'épargne** | ${tx}% |`,
+          `## Monthly summary\n\n| | |\n|--|--:|\n| **Balance** | ${stats.solde} |\n| **Income** | ${stats.revenus} |\n| **Expenses** | ${stats.depenses} |\n| **Savings rate** | ${tx}% |`,
+          `## ملخص\n\n- الرصيد: ${stats.solde}\n- الدخل: ${stats.revenus}\n- المصاريف: ${stats.depenses}\n- نسبة الادخار: ${tx}%`
         );
       }
 
       case 'objectifs_trouves':
         if (action.nombre === 0) {
           return t(
-            'Vous n\'avez pas encore d\'objectifs financiers. Créez-en un pour commencer à épargner !',
-            'You do not have any financial goals yet. Create one to start saving!',
-            'ليس لديك أي أهداف مالية بعد. أنشئ هدفاً لتبدأ في الادخار!'
+            '> Aucun objectif pour l’instant.\n\nCréez un objectif depuis la page **Objectifs** ou dites-moi par exemple : *« objectif vacances 10 000 d’ici décembre »*.',
+            '> No goals yet.\n\nCreate one from the Goals page or say e.g. *"vacation goal 10000 by December"*.',
+            '> لا أهداف بعد.'
           );
         }
+        const fmtMad = (n: number) =>
+          new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(Math.round(n));
         const objectifsDetails = action.objectifs.map((o: any) => {
-          const montantRestant = o.montantCible - o.montantActuel;
+          const montantRestant = Math.max(0, o.montantCible - o.montantActuel);
+          const mensuel = Math.ceil(o.progression.montantMensuelRequis);
+          const dateLim = o.dateLimite ? new Date(o.dateLimite).toLocaleDateString('fr-FR') : '';
+          const pct = o.progression.pourcentageComplete.toFixed(1);
           return {
-            fr: `\n• ${o.nom}: ${o.montantActuel} / ${o.montantCible} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Reste: ${montantRestant} | Mensuel requis: ${o.progression.montantMensuelRequis.toFixed(0)}`,
-            en: `\n• ${o.nom}: ${o.montantActuel} / ${o.montantCible} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  Remaining: ${montantRestant} | Required per month: ${o.progression.montantMensuelRequis.toFixed(0)}`,
-            ar: `\n• ${o.nom}: ${o.montantActuel} / ${o.montantCible} (${o.progression.pourcentageComplete.toFixed(1)}%)\n  المتبقي: ${montantRestant} | المطلوب شهرياً: ${o.progression.montantMensuelRequis.toFixed(0)}`
+            fr:
+              `### ${o.nom}\n\n` +
+              `- **Progression** : ${fmtMad(o.montantActuel)} / ${fmtMad(o.montantCible)} MAD (${pct}%)\n` +
+              `- **Reste à épargner** : ${fmtMad(montantRestant)} MAD\n` +
+              (dateLim ? `- **Échéance** : ${dateLim}\n` : '') +
+              `- **Recommandation** : ~**${fmtMad(mensuel)} MAD/mois** pour tenir la date limite\n\n---\n\n`,
+            en:
+              `### ${o.nom}\n\n` +
+              `- **Progress** : ${fmtMad(o.montantActuel)} / ${fmtMad(o.montantCible)} MAD (${pct}%)\n` +
+              `- **Remaining** : ${fmtMad(montantRestant)} MAD\n` +
+              (dateLim ? `- **Deadline** : ${dateLim}\n` : '') +
+              `- **Recommendation** : ~**${fmtMad(mensuel)} MAD/month**\n\n---\n\n`,
+            ar:
+              `### ${o.nom}\n\n` +
+              `- **التقدم** : ${fmtMad(o.montantActuel)} / ${fmtMad(o.montantCible)} MAD\n` +
+              `- **توصية شهرية** : ~${fmtMad(mensuel)} درهم\n\n---\n\n`
           };
         });
         const objectifsTexte = objectifsDetails
           .map((o: { en: any; ar: any; fr: any; }) => (langue === 'en' ? o.en : langue === 'ar' ? o.ar : o.fr))
           .join('');
         return t(
-          `📊 Vous avez ${action.nombre} objectif(s) actif(s):${objectifsTexte}`,
-          `📊 You have ${action.nombre} active goal(s):${objectifsTexte}`,
-          `📊 لديك ${action.nombre} هدف(أهداف) نشِط(ة):${objectifsTexte}`
+          `## Vos objectifs (${action.nombre})\n\n${objectifsTexte}`,
+          `## Your goals (${action.nombre})\n\n${objectifsTexte}`,
+          `## أهدافك (${action.nombre})\n\n${objectifsTexte}`
         );
 
       case 'habitudes_analysees':
         if (!action.categories || action.categories.length === 0) {
           return t(
-            'Vous n\'avez pas encore de dépenses enregistrées pour analyser vos habitudes.',
-            'You do not have enough expenses recorded yet to analyse your habits.',
-            'لا توجد مصاريف كافية لتحليل عاداتك.'
+            '> Pas assez de dépenses enregistrées pour une analyse.\n\nAjoutez quelques transactions **dépense** puis redemandez une analyse des habitudes.',
+            '> Not enough expenses to analyse yet.',
+            '> بيانات غير كافية.'
           );
         }
         const periodeText = action.periode === '3_mois'
-          ? t('les 3 derniers mois', 'the last 3 months', 'آخر 3 أشهر')
-          : t('ce mois', 'this month', 'هذا الشهر');
-        const categoriesList = action.categories
+          ? t('3 derniers mois', 'last 3 months', 'آخر 3 أشهر')
+          : t('mois en cours', 'current month', 'هذا الشهر');
+        const catRows = action.categories
           .map((cat: any, index: number) =>
-            `${index + 1}. ${cat.categorie}: ${cat.montant.toFixed(2)} (${cat.pourcentage.toFixed(1)}%)`
+            `| ${index + 1} | ${cat.categorie} | ${cat.montant.toFixed(0)} | ${cat.pourcentage.toFixed(1)}% |`
           )
           .join('\n');
         return t(
-          `📊 Voici où vous dépensez le plus ${periodeText}:\n\n${categoriesList}\n\nTotal: ${action.categories.length} catégorie(s) analysée(s)`,
-          `📊 Here is where you spend the most over ${periodeText}:\n\n${categoriesList}\n\nTotal: ${action.categories.length} category(ies) analysed`,
-          `📊 هذه هي الأماكن التي تصرف فيها أكثر خلال ${periodeText}:\n\n${categoriesList}\n\nالمجموع: ${action.categories.length} فئة تم تحليلها`
+          `## Où vous dépensez le plus (${periodeText})\n\n| # | Catégorie | Montant | Part |\n|--:|:----------|--------:|:-----|\n${catRows}\n\n*${action.categories.length} catégorie(s) prises en compte.*`,
+          `## Where you spend most (${periodeText})\n\n| # | Category | Amount | Share |\n|--:|:---------|-------:|:------|\n${catRows}`,
+          `## أين تنفق أكثر\n\n${catRows}`
         );
 
       default:
         return t(
-          'Action effectuée avec succès.',
-          'Action completed successfully.',
-          'تم تنفيذ العملية بنجاح.'
+          '> Action enregistrée.\n\nSi quelque chose ne s’affiche pas comme prévu, précisez votre demande (ex. *mes budgets*, *solde du mois*).',
+          '> Action completed.\n\nIf something looks off, try rephrasing (e.g. *my budgets*, *this month balance*).',
+          '> تم التنفيذ.'
         );
     }
   }
