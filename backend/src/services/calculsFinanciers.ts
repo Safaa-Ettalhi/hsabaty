@@ -2,7 +2,7 @@ import { Transaction } from '../models/Transaction';
 import { Budget } from '../models/Budget';
 import { Objectif } from '../models/Objectif';
 import mongoose from 'mongoose';
-import { format, startOfMonth, endOfMonth, subMonths, subYears } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, subYears, differenceInCalendarDays } from 'date-fns';
 
 export class ServiceCalculsFinanciers {
   async calculerSolde(utilisateurId: string): Promise<number> {
@@ -251,6 +251,17 @@ export class ServiceCalculsFinanciers {
     montantRestant: number;
     pourcentageUtilise: number;
     statut: 'ok' | 'attention' | 'depasse';
+    prevision: {
+      joursTotal: number;
+      joursEcoules: number;
+      joursRestants: number;
+      rythmeActuelJournalier: number;
+      projectedMontantFinPeriode: number;
+      projectedPourcentageFin: number;
+      risqueDepassement: boolean;
+      montantJournalierMaxPourTenir: number | null;
+      messageCle: string;
+    } | null;
   }> {
     const budget = await Budget.findById(budgetId);
     if (!budget) {
@@ -261,7 +272,7 @@ export class ServiceCalculsFinanciers {
       utilisateurId: budget.utilisateurId,
       type: 'depense',
       date: { $gte: budget.dateDebut, $lte: budget.dateFin },
-      ...(budget.categorie && { categorie: { $regex: new RegExp('^' + budget.categorie + '$', 'i') } })
+      ...(budget.categorie && { categorie: { $regex: new RegExp('^' + budget.categorie.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } })
     });
 
     const montantUtilise = transactions.reduce((sum, t) => sum + t.montant, 0);
@@ -275,11 +286,89 @@ export class ServiceCalculsFinanciers {
       statut = 'attention';
     }
 
+    const maintenant = new Date();
+    const debut = new Date(budget.dateDebut);
+    const fin = new Date(budget.dateFin);
+    debut.setHours(0, 0, 0, 0);
+    fin.setHours(23, 59, 59, 999);
+    const now = new Date(maintenant);
+    now.setHours(12, 0, 0, 0);
+
+    const joursTotal = Math.max(1, differenceInCalendarDays(fin, debut) + 1);
+
+    let prevision: {
+      joursTotal: number;
+      joursEcoules: number;
+      joursRestants: number;
+      rythmeActuelJournalier: number;
+      projectedMontantFinPeriode: number;
+      projectedPourcentageFin: number;
+      risqueDepassement: boolean;
+      montantJournalierMaxPourTenir: number | null;
+      messageCle: string;
+    } | null = null;
+
+    if (now > fin) {
+      prevision = null;
+    } else {
+      let joursEcoules = 1;
+      if (now >= debut) {
+        joursEcoules = differenceInCalendarDays(now, debut) + 1;
+        joursEcoules = Math.min(joursTotal, Math.max(1, joursEcoules));
+      }
+      const joursRestants = now > fin ? 0 : Math.max(0, differenceInCalendarDays(fin, now));
+
+      const rythmeActuelJournalier = montantUtilise / joursEcoules;
+      const projectedMontantFinPeriode = Math.round(rythmeActuelJournalier * joursTotal * 100) / 100;
+      const projectedPourcentageFin =
+        budget.montant > 0 ? (projectedMontantFinPeriode / budget.montant) * 100 : 0;
+      const risqueDepassement = projectedMontantFinPeriode > budget.montant && budget.montant > 0;
+
+      let montantJournalierMaxPourTenir: number | null = null;
+      if (joursRestants > 0 && montantRestant > 0) {
+        montantJournalierMaxPourTenir = Math.round((montantRestant / joursRestants) * 100) / 100;
+      } else if (joursRestants > 0 && montantRestant <= 0) {
+        montantJournalierMaxPourTenir = 0;
+      }
+
+      let messageCle: string;
+      if (now < debut) {
+        messageCle = 'La période budgétaire n’a pas encore commencé.';
+      } else if (risqueDepassement) {
+        const depassement = projectedMontantFinPeriode - budget.montant;
+        messageCle = `Au rythme actuel, fin de période estimée à ${projectedMontantFinPeriode.toFixed(0)} MAD (dépassement ~${depassement.toFixed(0)} MAD).`;
+      } else if (montantJournalierMaxPourTenir != null && montantJournalierMaxPourTenir > 0) {
+        messageCle = `Pour tenir le plafond : max ${montantJournalierMaxPourTenir.toFixed(0)} MAD/jour encore ${joursRestants} jour(s).`;
+      } else if (pourcentageUtilise >= 100) {
+        messageCle = 'Plafond déjà atteint.';
+      } else if (montantUtilise === 0 && now >= debut) {
+        messageCle =
+          montantJournalierMaxPourTenir != null && montantJournalierMaxPourTenir > 0
+            ? `Aucune dépense enregistrée — pour tenir le plafond : max ${montantJournalierMaxPourTenir.toFixed(0)} MAD/jour sur ${joursRestants} jour(s) restant(s).`
+            : 'Aucune dépense enregistrée sur la période pour l’instant.';
+      } else {
+        messageCle = `Projection fin de période : ~${projectedMontantFinPeriode.toFixed(0)} MAD (${projectedPourcentageFin.toFixed(0)} % du plafond).`;
+      }
+
+      prevision = {
+        joursTotal,
+        joursEcoules: Math.min(joursTotal, joursEcoules),
+        joursRestants,
+        rythmeActuelJournalier: Math.round(rythmeActuelJournalier * 100) / 100,
+        projectedMontantFinPeriode,
+        projectedPourcentageFin: Math.round(projectedPourcentageFin * 10) / 10,
+        risqueDepassement,
+        montantJournalierMaxPourTenir,
+        messageCle
+      };
+    }
+
     return {
       montantUtilise,
       montantRestant,
       pourcentageUtilise,
-      statut
+      statut,
+      prevision
     };
   }
 
