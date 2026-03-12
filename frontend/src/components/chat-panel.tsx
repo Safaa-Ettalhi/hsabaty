@@ -205,7 +205,7 @@ export function ChatPanel() {
           <Button
             type="submit"
             size="icon"
-            className="h-8 w-8 rounded-lg bg-primary/90 text-primary-foreground hover:bg-primary shadow-sm transition-transform active:scale-95"
+            className="h-8 w-8 rounded-lg bg-violet-600 text-white shadow-sm transition-transform hover:bg-violet-700 active:scale-95"
             disabled={!input.trim() || isLoading}
           >
             <IconSend className="size-4 -ml-0.5" />
@@ -217,8 +217,8 @@ export function ChatPanel() {
 
   const sidebarContent = (
     <>
-      <div className="p-4 border-b shrink-0 bg-background/50 backdrop-blur-sm z-10 relative">
-        <Button className="w-full flex gap-2 justify-start font-medium shadow-sm" variant="default" onClick={handleNewChat}>
+      <div className="relative z-10 shrink-0 border-b border-zinc-200/80 bg-zinc-50/80 p-4 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+        <Button className="w-full justify-start gap-2 rounded-full bg-violet-600 font-medium text-white shadow-md hover:bg-violet-700" onClick={handleNewChat}>
           <IconPlus className="size-4" />
           Nouvelle session
         </Button>
@@ -248,10 +248,16 @@ export function ChatPanel() {
   )
 
   return (
-    <div className="flex flex-1 h-full overflow-hidden bg-background">
+    <div className="relative flex h-full flex-1 overflow-hidden bg-zinc-50/80 dark:bg-zinc-950/50">
+      {/* Fond style Flux de trésorerie */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
+        <div className="absolute -left-32 top-0 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl dark:bg-emerald-500/5" />
+        <div className="absolute -right-24 top-40 h-80 w-80 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-500/5" />
+        <div className="absolute bottom-0 left-1/2 h-56 w-[75%] -translate-x-1/2 rounded-full bg-rose-500/5 blur-3xl" />
+      </div>
       {/* Sidebar Historique Desktop */}
       <div className={cn(
-        "hidden md:flex flex-col border-r bg-muted/10 transition-all duration-300 ease-in-out overflow-hidden shrink-0",
+        "hidden md:flex flex-col border-r border-zinc-200/80 bg-white/90 backdrop-blur-sm transition-all duration-300 ease-in-out overflow-hidden shrink-0 dark:border-zinc-800 dark:bg-zinc-900/90",
         isSidebarOpen ? "w-64" : "w-0 border-r-0"
       )}>
         <div className={cn("flex flex-col flex-1 min-h-0 transition-opacity duration-200", isSidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none")}>
@@ -259,9 +265,9 @@ export function ChatPanel() {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col min-h-0 relative bg-background">
+      <div className="relative flex min-h-0 flex-1 flex-col bg-transparent">
         {/* Desktop top bar with toggle */}
-        <div className="hidden md:flex shrink-0 items-center gap-2 border-b px-4 py-2 bg-background/60 backdrop-blur-md z-10">
+        <div className="z-10 hidden shrink-0 items-center gap-2 border-b border-zinc-200/80 bg-white/80 px-4 py-2 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/80 md:flex">
           <Button
             variant="ghost"
             size="icon"
@@ -275,7 +281,7 @@ export function ChatPanel() {
         </div>
 
         {/* Header Mobile / Navigation */}
-        <div className="flex shrink-0 items-center justify-between border-b px-4 py-2 lg:px-6 md:hidden bg-background/80 backdrop-blur-md z-10">
+        <div className="z-10 flex shrink-0 items-center justify-between border-b border-zinc-200/80 bg-white/80 px-4 py-2 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/80 md:hidden lg:px-6">
           <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className={cn("text-muted-foreground", isMobileSidebarOpen && "text-primary")}>
@@ -299,16 +305,15 @@ export function ChatPanel() {
         </div>
 
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-6 lg:px-6 relative">
-          {/* Subtle background glow for empty state */}
           {!hasMessages && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="pointer-events-none absolute left-1/2 top-1/2 h-150 w-150 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500/5 blur-3xl" />
           )}
           <div className="mx-auto max-w-3xl relative">
             {!hasMessages ? (
               <div className="flex flex-col items-center justify-center min-h-[60vh] md:min-h-[70vh] gap-8 md:gap-12">
                 <div className="flex flex-col items-center gap-3 md:gap-4 text-center mt-2 md:mt-8 px-2">
-                  <div className="relative flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-2xl bg-linear-to-br from-primary/20 to-primary/5 text-primary shadow-sm border border-primary/10">
-                    <div className="absolute inset-0 rounded-2xl bg-primary/10 animate-ping opacity-20" style={{ animationDuration: "3s" }} />
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-500/20 bg-linear-to-br from-violet-500/20 to-violet-500/5 text-violet-700 shadow-sm dark:text-violet-400 md:h-16 md:w-16">
+                    <div className="absolute inset-0 animate-ping rounded-2xl bg-violet-500/10 opacity-20" style={{ animationDuration: "3s" }} />
                     <span className="text-xl md:text-2xl font-bold tracking-tight">H</span>
                   </div>
                   <h2 className="text-2xl md:text-3xl font-semibold text-foreground tracking-tight">
@@ -325,10 +330,10 @@ export function ChatPanel() {
                       key={label}
                       type="button"
                       variant="outline"
-                      className="rounded-xl px-3 py-4 md:px-4 md:py-5 h-auto flex flex-col items-start gap-2 md:gap-3 border shadow-sm bg-card hover:bg-accent/50 hover:border-primary/30 transition-all text-left w-[calc(50%-4px)] md:w-auto md:max-w-50"
+                      className="flex h-auto w-[calc(50%-4px)] flex-col items-start gap-2 rounded-2xl border border-zinc-200/80 bg-white/90 px-3 py-4 shadow-sm backdrop-blur transition-all hover:border-violet-500/30 hover:bg-violet-50/50 dark:border-zinc-800 dark:bg-zinc-900/80 dark:hover:bg-violet-950/20 md:max-w-50 md:w-auto md:gap-3 md:px-4 md:py-5"
                       onClick={() => handleSuggestion(label)}
                     >
-                      <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg text-primary shrink-0">
+                      <div className="shrink-0 rounded-lg bg-violet-500/10 p-1.5 text-violet-600 dark:text-violet-400 md:p-2">
                         <Icon className="size-4 md:size-5" />
                       </div>
                       <span className="text-xs md:text-sm font-medium leading-tight whitespace-normal">{label}</span>
@@ -347,7 +352,7 @@ export function ChatPanel() {
                     )}
                   >
                     {m.role === "assistant" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-400">
                         <span className="text-xs font-medium">H</span>
                       </div>
                     )}
@@ -355,8 +360,8 @@ export function ChatPanel() {
                       className={cn(
                         "max-w-[85%] px-5 py-3.5 text-sm leading-relaxed",
                         m.role === "user"
-                          ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm shadow-sm"
-                          : "bg-card border shadow-sm text-foreground rounded-2xl rounded-tl-sm"
+                          ? "rounded-2xl rounded-tr-sm bg-violet-600 text-white shadow-sm dark:bg-violet-600"
+                          : "rounded-2xl rounded-tl-sm border border-zinc-200/80 bg-white text-foreground shadow-sm dark:border-zinc-800 dark:bg-zinc-900/90"
                       )}
                     >
                       {m.role === "user" ? (
@@ -373,10 +378,10 @@ export function ChatPanel() {
                 ))}
                 {isLoading && (
                   <div className="flex gap-3 justify-start">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-500/15 text-violet-700 dark:text-violet-400">
                       <span className="text-xs font-medium">H</span>
                     </div>
-                    <div className="rounded-2xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+                    <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/80 dark:text-zinc-400">
                       <span className="animate-pulse">Réflexion...</span>
                     </div>
                   </div>
@@ -387,7 +392,7 @@ export function ChatPanel() {
         </div>
 
  
-        <div className="shrink-0 bg-background/90 backdrop-blur-md border-t px-4 py-4 lg:px-6 z-10">
+        <div className="z-10 shrink-0 border-t border-zinc-200/80 bg-white/90 px-4 py-4 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/90 lg:px-6">
           <div className="mx-auto max-w-3xl">{inputBar}</div>
         </div>
       </div>
