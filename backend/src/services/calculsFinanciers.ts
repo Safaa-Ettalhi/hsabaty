@@ -255,6 +255,10 @@ export class ServiceCalculsFinanciers {
     sources: Array<{ nom: string; montant: number }>;
     categories: Array<{ nom: string; montant: number }>;
     epargne: number;
+    sankey: {
+      nodes: Array<{ id: string; name: string }>;
+      links: Array<{ source: string; target: string; value: number }>;
+    };
   }> {
     const transactions = await Transaction.find({
       utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
@@ -284,11 +288,108 @@ export class ServiceCalculsFinanciers {
     const totalRevenus = Object.values(sources).reduce((sum: number, val: any) => sum + val, 0);
     const totalDepenses = Object.values(categories).reduce((sum: number, val: any) => sum + val, 0);
     const epargne = totalRevenus - totalDepenses;
+    const epargnePositive = Math.max(0, epargne);
+
+    const sourcesArr = Object.entries(sources).map(([nom, montant]: [string, any]) => ({ nom, montant }));
+    const categoriesArr = Object.entries(categories).map(([nom, montant]: [string, any]) => ({ nom, montant }));
+
+    const sankey = this.construireSankeyFlux(
+      sourcesArr,
+      categoriesArr,
+      epargnePositive,
+      totalRevenus,
+      totalDepenses
+    );
 
     return {
-      sources: Object.entries(sources).map(([nom, montant]: [string, any]) => ({ nom, montant })),
-      categories: Object.entries(categories).map(([nom, montant]: [string, any]) => ({ nom, montant })),
-      epargne: Math.max(0, epargne)
+      sources: sourcesArr,
+      categories: categoriesArr,
+      epargne: epargnePositive,
+      sankey
     };
+  }
+
+  private construireSankeyFlux(
+    sources: Array<{ nom: string; montant: number }>,
+    categories: Array<{ nom: string; montant: number }>,
+    epargne: number,
+    totalRevenus: number,
+    totalDepenses: number
+  ): {
+    nodes: Array<{ id: string; name: string }>;
+    links: Array<{ source: string; target: string; value: number }>;
+  } {
+    const nodes: Array<{ id: string; name: string }> = [];
+    const links: Array<{ source: string; target: string; value: number }> = [];
+    const nodeIds = new Set<string>();
+
+    const addNode = (id: string, name: string) => {
+      if (nodeIds.has(id)) return;
+      nodeIds.add(id);
+      nodes.push({ id, name });
+    };
+
+    const HUB_ID = 'hub-flux';
+
+    if (totalRevenus <= 0 && totalDepenses <= 0) {
+      return { nodes, links };
+    }
+
+    if (totalRevenus <= 0 && totalDepenses > 0) {
+      addNode('source-deficit', 'Sorties (période)');
+      categories
+        .filter((c) => c.montant > 0)
+        .forEach((c) => {
+          const id = `dep-${this.slugSankey(c.nom)}`;
+          addNode(id, c.nom);
+          links.push({ source: 'source-deficit', target: id, value: c.montant });
+        });
+      return { nodes, links };
+    }
+
+    addNode(HUB_ID, 'Flux');
+
+    sources
+      .filter((s) => s.montant > 0)
+      .forEach((s) => {
+        const id = `rev-${this.slugSankey(s.nom)}`;
+        addNode(id, s.nom);
+        links.push({ source: id, target: HUB_ID, value: s.montant });
+      });
+
+    categories
+      .filter((c) => c.montant > 0)
+      .forEach((c) => {
+        const id = `dep-${this.slugSankey(c.nom)}`;
+        addNode(id, c.nom);
+        links.push({ source: HUB_ID, target: id, value: c.montant });
+      });
+
+    if (epargne > 0) {
+      addNode('epargne', 'Épargne');
+      links.push({ source: HUB_ID, target: 'epargne', value: epargne });
+    }
+
+    const entrant = links.filter((l) => l.target === HUB_ID).reduce((s, l) => s + l.value, 0);
+    const sortant = links.filter((l) => l.source === HUB_ID).reduce((s, l) => s + l.value, 0);
+    if (entrant > 0 && sortant > 0 && Math.abs(entrant - sortant) > 0.01) {
+      for (let i = links.length - 1; i >= 0; i--) {
+        if (links[i].source === HUB_ID) {
+          links[i].value = Math.max(0, links[i].value + (entrant - sortant));
+          break;
+        }
+      }
+    }
+
+    return { nodes, links };
+  }
+
+  private slugSankey(nom: string): string {
+    return String(nom)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 40) || 'x';
   }
 }
