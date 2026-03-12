@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import {
   IconUserCircle,
-  IconSettings,
   IconChevronRight,
   IconLogout,
 } from "@tabler/icons-react"
+import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 
 const SECTIONS = [
   {
@@ -38,16 +38,11 @@ export function SettingsClient() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-6">
-      <div className="space-y-2">
-        <h1 className="flex items-center gap-2 text-xl font-semibold md:text-2xl">
-          <IconSettings className="size-6 text-primary" />
-          Paramètres
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Gérez votre compte, vos préférences et votre session en un seul endroit.
-        </p>
-      </div>
+    <DashboardPageShell contentClassName="gap-6">
+      <DashboardPageHeader
+        title="Paramètres"
+        description="Gérez votre compte, vos préférences et votre session en un seul endroit."
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr,minmax(280px,360px)]">
         <Card className="shadow-sm">
@@ -114,6 +109,6 @@ export function SettingsClient() {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }
