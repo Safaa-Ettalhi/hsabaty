@@ -169,7 +169,10 @@ export const transactionRecurrenteCreerSchema = z.object({
 
 export const dashboardMetriquesQuerySchema = z.object({
   query: z.object({
-    periode: z.enum(['mois', 'trimestre', 'semestre', 'annee']).optional().default('mois'),
+    periode: z
+      .enum(['mois', 'mois_precedent', 'trimestre', 'semestre', 'annee'])
+      .optional()
+      .default('mois'),
     dateDebut: z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional(),
     dateFin: z.string().regex(/^\d{4}-\d{2}-\d{2}/).optional()
   })

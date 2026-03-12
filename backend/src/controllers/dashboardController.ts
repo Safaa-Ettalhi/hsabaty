@@ -32,6 +32,12 @@ export class DashboardController {
           dateDebut = startOfMonth(dateFin);
           dateFin = endOfMonth(dateFin);
           break;
+        case 'mois_precedent': {
+          const ref = subMonths(dateFin, 1);
+          dateDebut = startOfMonth(ref);
+          dateFin = endOfMonth(ref);
+          break;
+        }
         case 'trimestre':
           dateDebut = subMonths(dateFin, 3);
           break;
