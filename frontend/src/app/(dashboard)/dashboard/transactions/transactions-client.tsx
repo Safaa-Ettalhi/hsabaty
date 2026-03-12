@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Plus, Pencil, Trash2, Download, FileSpreadsheet, Search, ArrowUpRight, ArrowDownRight, Tag, CalendarDays, ArrowUpCircle, ArrowDownCircle, DatabaseZap} from "lucide-react"
+import { Plus, Pencil, Trash2, Download, FileSpreadsheet, Search, ArrowUpRight, ArrowDownRight, Tag, CalendarDays, ArrowUpCircle, ArrowDownCircle, DatabaseZap, Wallet } from "lucide-react"
 import { api, downloadFile } from "@/lib/api"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select"
 import { Controller } from "react-hook-form"
 import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
+import { FluxCardEntrees, FluxCardSorties, FluxCardSolde } from "@/components/flux-kpi-cards"
 
 const transactionFormSchema = z.object({
   date: z.string().min(1, "Requis"),
@@ -220,7 +221,7 @@ export function TransactionsClient() {
 
           <Dialog open={openForm} onOpenChange={(o) => { setOpenForm(o); if (!o) setEditingId(null) }}>
             <DialogTrigger asChild>
-              <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 h-10">
+              <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-full px-5 h-10">
                 <Plus className="size-4" />
                 Saisir un mouvement
               </Button>
@@ -289,7 +290,7 @@ export function TransactionsClient() {
                 </Field>
                 <DialogFooter className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-2">
                   <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto" onClick={() => setOpenForm(false)}>Annuler</Button>
-                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-blue-600 hover:bg-blue-700">{editingId ? "Sauvegarder" : "Valider"}</Button>
+                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700">{editingId ? "Sauvegarder" : "Valider"}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -298,49 +299,38 @@ export function TransactionsClient() {
         }
       />
 
-      {/* KPI DASHBOARD */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
-           <div className="absolute top-0 right-0 p-4 opacity-5">
-             <ArrowUpCircle className="size-24" />
-           </div>
-           <p className="text-sm font-medium text-zinc-500 mb-1">Entrées (sur cette page)</p>
-           <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">+{formatter.format(totalRevenus)}</h3>
-           <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-             <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Argent crédité
-           </div>
-        </div>
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 p-5 shadow-sm">
-           <div className="absolute top-0 right-0 p-4 opacity-5">
-             <ArrowDownCircle className="size-24" />
-           </div>
-           <p className="text-sm font-medium text-zinc-500 mb-1">Sorties (sur cette page)</p>
-           <h3 className="text-2xl font-bold text-rose-600 dark:text-rose-400">-{formatter.format(totalDepenses)}</h3>
-           <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-             <span className="w-2 h-2 rounded-full bg-rose-500"></span> Argent débité
-           </div>
-        </div>
-        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-zinc-900 to-zinc-800 dark:from-zinc-800 dark:to-zinc-950 p-5 shadow-sm text-white">
-           <p className="text-sm font-medium text-zinc-300 mb-1">Bilan Partiel</p>
-           <h3 className="text-2xl font-bold">{balance > 0 ? '+' : ''}{formatter.format(balance)}</h3>
-           <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-             <span className={cn("w-2 h-2 rounded-full", balance >= 0 ? "bg-emerald-400" : "bg-rose-400")}></span> 
-             {balance >= 0 ? "Bilan positif" : "Bilan négatif"}
-           </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <FluxCardEntrees
+          title="Entrées (page)"
+          value={<span>+{formatter.format(totalRevenus)}</span>}
+          subtitle="Argent crédité sur les résultats filtrés"
+          icon={ArrowUpCircle}
+        />
+        <FluxCardSorties
+          title="Sorties (page)"
+          value={<span>−{formatter.format(totalDepenses)}</span>}
+          subtitle="Argent débité sur les résultats filtrés"
+          icon={ArrowDownCircle}
+        />
+        <FluxCardSolde
+          title="Bilan partiel"
+          value={<span>{balance >= 0 ? "+" : ""}{formatter.format(balance)}</span>}
+          subtitle={balance >= 0 ? "Bilan positif" : "Bilan négatif"}
+          icon={Wallet}
+          positive={balance >= 0}
+        />
       </div>
 
       {/* FILTERS & LIST */}
       <div className="flex flex-col rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 shadow-sm ">
         
-        {/* PREMIUM FILTER BAR */}
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
            <div className="flex flex-col lg:flex-row items-center gap-3">
              <div className="relative flex-1 w-full lg:max-w-md group">
                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors" />
                <Input 
                  placeholder="Rechercher par description..." 
-                 className="pl-10 h-10 rounded-xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-blue-500/20"
+                 className="pl-10 h-10 rounded-xl bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-violet-500/20"
                  value={recherche}
                  onChange={(e) => setRecherche(e.target.value)}
                />
