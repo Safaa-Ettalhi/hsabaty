@@ -236,7 +236,7 @@ export function GoalsClient() {
         actions={
         <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ nom: "", montantCible: 0, dateLimite: "", type: "epargne", description: "" }) }}>
           <DialogTrigger asChild>
-            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-full px-5 h-10" onClick={() => setEditing(null)}>
+            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-primary text-primary-foreground rounded-full px-5 h-10 hover:bg-primary/90" onClick={() => setEditing(null)}>
               <Plus className="size-4" />
               Nouveau Projet
             </Button>
@@ -285,7 +285,7 @@ export function GoalsClient() {
               </div>
               <DialogFooter className="pt-4 mt-2">
                 <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setOpen(false)}>Annuler</Button>
-                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white h-11">Lancer l&apos;objectif</Button>
+                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 h-11">Lancer l&apos;objectif</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -338,7 +338,7 @@ export function GoalsClient() {
               </div>
             <DialogFooter className="pt-4 mt-2">
               <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setEditing(null)}>Annuler</Button>
-              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white h-11">Enregistrer</Button>
+              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 h-11">Enregistrer</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -391,7 +391,7 @@ export function GoalsClient() {
                    Plus tard
                  </Button>
                  <Button
-                   className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white h-11 gap-1 font-semibold"
+                   className="rounded-xl w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 h-11 gap-1 font-semibold"
                    onClick={onContribution}
                    disabled={contributing || !contributionMontant || Number(contributionMontant) <= 0}
                  >
@@ -553,7 +553,7 @@ export function GoalsClient() {
           <p className="text-zinc-500 text-base max-w-md mx-auto mb-8 leading-relaxed">
             Définissez des objectifs d&apos;épargne clairs pour vos grands projets (voyages, maison, fonds de sécurité) et suivez votre progression.
           </p>
-          <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-full px-8 h-12 font-semibold" onClick={() => setOpen(true)}>
+          <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-primary text-primary-foreground rounded-full px-8 h-12 font-semibold hover:bg-primary/90" onClick={() => setOpen(true)}>
             <Plus className="size-5" />
             Créer mon premier objectif
           </Button>
