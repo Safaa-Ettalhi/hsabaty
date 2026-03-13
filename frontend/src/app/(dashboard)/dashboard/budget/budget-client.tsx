@@ -211,7 +211,7 @@ export function BudgetClient() {
         actions={
         <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ nom: "", montant: 0, periode: "mensuel", categorie: "" }) }}>
           <DialogTrigger asChild>
-            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-full px-5 h-10">
+            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-primary text-primary-foreground rounded-full px-5 h-10 hover:bg-primary/90">
               <Plus className="size-4" />
               Nouveau Budget
             </Button>
@@ -261,7 +261,7 @@ export function BudgetClient() {
               </div>
               <DialogFooter className="pt-4 mt-2">
                 <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setOpen(false)}>Annuler</Button>
-                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700 h-11">Enregistrer</Button>
+                <Button type="submit" className="rounded-xl w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 h-11">Enregistrer</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -315,7 +315,7 @@ export function BudgetClient() {
             </div>
             <DialogFooter className="pt-4 mt-2">
               <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto hover:bg-zinc-100 dark:hover:bg-zinc-800 h-11" onClick={() => setEditing(null)}>Annuler</Button>
-              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200 h-11">Mettre à jour</Button>
+              <Button type="submit" className="rounded-xl w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 h-11">Mettre à jour</Button>
             </DialogFooter>
           </form>
         </DialogContent>
