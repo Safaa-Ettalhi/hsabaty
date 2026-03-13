@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { adminApi } from "@/lib/admin-api"
-import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
+import { DashboardPageShell } from "@/components/dashboard-page-shell"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
     <DashboardPageShell>
       <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3">
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-400">
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/10 dark:text-primary">
             <Shield className="size-3.5" />
             Administration
           </div>
@@ -107,16 +107,16 @@ export default function AdminDashboardPage() {
         />
         <div
           className={cn(
-            "relative overflow-hidden rounded-3xl border border-emerald-500/15 bg-linear-to-br from-white to-emerald-50/50 p-6 shadow-sm transition-shadow hover:shadow-md dark:border-emerald-500/10 dark:from-zinc-900 dark:to-emerald-950/20"
+            "relative overflow-hidden rounded-3xl border border-primary/20 bg-primary/5 p-6 shadow-sm transition-shadow hover:shadow-md"
           )}
         >
-          <div className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+          <div className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-xl bg-primary/15 text-primary dark:bg-primary/20 dark:text-primary">
             <UserPlus className="size-5" />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600/90 dark:text-emerald-400/90">
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary/90 dark:text-primary">
             Nouveaux ce mois
           </p>
-          <div className="mt-2 text-2xl font-bold tabular-nums text-emerald-700 dark:text-emerald-400 md:text-3xl">
+          <div className="mt-2 text-2xl font-bold tabular-nums text-primary dark:text-primary md:text-3xl">
             {data.utilisateurs.nouveauxMois}
           </div>
           <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
