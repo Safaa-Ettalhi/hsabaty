@@ -154,7 +154,7 @@ function InvestissementForm({
           type="submit"
           className={cn(
             "h-11 w-full rounded-xl sm:w-auto",
-            submitClassName ?? "bg-violet-600 hover:bg-violet-700"
+            submitClassName ?? "bg-primary text-primary-foreground hover:bg-primary/90"
           )}
         >
           {submitLabel}
@@ -346,7 +346,7 @@ export function InvestmentsClient() {
           }}
         >
           <DialogTrigger asChild>
-            <Button className="gap-2 rounded-full bg-violet-600 px-5 shadow-md transition-shadow hover:bg-violet-700 hover:shadow-lg">
+            <Button className="gap-2 rounded-full bg-primary text-primary-foreground px-5 shadow-md transition-shadow hover:bg-primary/90 hover:shadow-lg">
               <Plus className="size-4" />
               Ajouter
             </Button>
@@ -365,7 +365,7 @@ export function InvestmentsClient() {
               onSubmit={onSubmit}
               onCancel={() => setOpen(false)}
               submitLabel="Enregistrer"
-              submitClassName="bg-violet-600 hover:bg-violet-700"
+              submitClassName="bg-primary text-primary-foreground hover:bg-primary/90"
             />
           </DialogContent>
         </Dialog>
@@ -388,7 +388,7 @@ export function InvestmentsClient() {
             onSubmit={onSubmit}
             onCancel={() => setEditing(null)}
             submitLabel="Mettre à jour"
-            submitClassName="bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            submitClassName="bg-primary text-primary-foreground hover:bg-primary/90"
           />
         </DialogContent>
       </Dialog>
@@ -502,15 +502,20 @@ export function InvestmentsClient() {
                 return (
                   <div
                     key={i._id}
-                    className="flex flex-col gap-4 rounded-3xl border bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                    className="group relative flex flex-col justify-between gap-5 rounded-3xl border border-zinc-200/80 bg-white p-5 shadow-sm transition-all hover:shadow-md hover:border-zinc-300 dark:border-zinc-800/80 dark:bg-zinc-900/50 dark:hover:border-zinc-700 sm:flex-row sm:items-center"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="flex size-12 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600">
+                    {/* Icône + infos principales */}
+                    <div className="flex min-w-48 items-center gap-4 sm:w-1/3">
+                      <div className="flex size-12 items-center justify-center rounded-2xl border bg-primary/10 text-primary shadow-xs transition-transform group-hover:scale-105">
                         <Icon className="size-6" />
                       </div>
                       <div>
-                        <h3 className="font-semibold">{i.nom}</h3>
-                        <p className="text-xs capitalize text-muted-foreground">{i.type}</p>
+                        <h3 className="mb-1 text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                          {i.nom}
+                        </h3>
+                        <p className="text-xs font-medium capitalize text-zinc-500 dark:text-zinc-400">
+                          {i.type}
+                        </p>
                         {i.description && (
                           <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
                             {i.description}
@@ -518,34 +523,47 @@ export function InvestmentsClient() {
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-6 sm:justify-end">
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Investi</p>
-                        <p className="font-medium tabular-nums">
-                          {formatter.format(i.montantInvesti)}
-                        </p>
+
+                    {/* Montants Investi / Valeur */}
+                    <div className="flex w-full max-w-xs flex-1 flex-col gap-2">
+                      <div className="flex items-end justify-between px-1">
+                        <div className="text-left">
+                          <p className="text-xs text-muted-foreground">Investi</p>
+                          <p className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                            {formatter.format(i.montantInvesti)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Valeur</p>
+                          <p className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                            {formatter.format(val)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Valeur</p>
-                        <p className="font-medium tabular-nums">{formatter.format(val)}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Perf.</p>
-                        <p
+                    </div>
+
+                    {/* Performance + actions */}
+                    <div className="flex items-center justify-between gap-5 border-t border-zinc-100 pt-4 dark:border-zinc-800/80 sm:w-1/4 sm:border-t-0 sm:pt-0 sm:justify-end">
+                      <div className="flex flex-col items-start sm:items-end">
+                        <span
                           className={cn(
-                            "font-semibold tabular-nums",
-                            pct >= 0 ? "text-emerald-600" : "text-rose-600"
+                            "text-xl font-extrabold tabular-nums tracking-tight",
+                            pct >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                           )}
                         >
                           {pct >= 0 ? "+" : ""}
-                          {pct.toFixed(1)} %
-                        </p>
+                          {pct.toFixed(1)}%
+                        </span>
+                        <span className="mt-0.5 text-xs font-semibold text-zinc-500">
+                          {pct >= 0 ? `Gain ${formatter.format(gain >= 0 ? gain : 0)}` : `Perte ${formatter.format(Math.abs(gain))}`}
+                        </span>
                       </div>
-                      <div className="flex gap-1">
+
+                      <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="rounded-full"
+                          className="h-10 w-10 rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-400 dark:hover:bg-zinc-700"
                           onClick={() => openEdit(i)}
                         >
                           <Pencil className="size-4" />
@@ -553,7 +571,7 @@ export function InvestmentsClient() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="rounded-full text-rose-600"
+                          className="h-10 w-10 rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                           onClick={() => setToDelete(i)}
                         >
                           <Trash2 className="size-4" />
