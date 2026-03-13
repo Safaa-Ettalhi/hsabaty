@@ -429,7 +429,7 @@ export function ReportsClient() {
               <Download className="w-4 h-4" />
               <span>PDF</span>
             </Button>
-            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12 flex-1 sm:flex-none" onClick={() => setShareOpen(true)}>
+            <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-primary text-primary-foreground rounded-xl h-12 flex-1 sm:flex-none hover:bg-primary/90" onClick={() => setShareOpen(true)}>
               <Mail className="w-4 h-4" />
               <span>Partager</span>
             </Button>
@@ -496,7 +496,7 @@ export function ReportsClient() {
                 Annuler
               </Button>
               <Button
-                className="w-full sm:w-auto min-w-32 h-12 rounded-xl bg-violet-600 hover:bg-violet-700 font-semibold shadow-md"
+                className="w-full sm:w-auto min-w-32 h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-md"
                 onClick={handleShareEmail}
                 disabled={sharing || !shareEmail.trim()}
               >
