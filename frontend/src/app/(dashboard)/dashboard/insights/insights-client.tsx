@@ -355,7 +355,7 @@ export function InsightsClient() {
                 className={cn(
                   "flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold transition-all border shadow-xs outline-none",
                   isActive
-                    ? "border-violet-600 bg-violet-600 text-white shadow-md dark:border-violet-500 dark:bg-violet-600"
+                    ? "border-primary bg-primary text-primary-foreground shadow-md"
                     : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/50"
                 )}
               >
