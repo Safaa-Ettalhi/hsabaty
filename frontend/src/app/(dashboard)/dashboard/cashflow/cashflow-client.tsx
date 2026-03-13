@@ -165,8 +165,8 @@ export function CashflowClient() {
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
         aria-hidden
       >
-        <div className="absolute -left-32 top-0 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl dark:bg-emerald-500/5" />
-        <div className="absolute -right-32 top-48 h-96 w-96 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-500/5" />
+        <div className="absolute -left-32 top-0 h-96 w-96 rounded-full bg-primary/10 blur-3xl dark:bg-primary/10" />
+        <div className="absolute -right-32 top-48 h-96 w-96 rounded-full bg-primary/5 blur-3xl dark:bg-primary/10" />
         <div className="absolute bottom-0 left-1/2 h-64 w-[80%] -translate-x-1/2 rounded-full bg-rose-500/5 blur-3xl" />
       </div>
 
@@ -174,7 +174,7 @@ export function CashflowClient() {
         {/* HEADER */}
         <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary dark:border-primary/30 dark:bg-primary/10 dark:text-primary">
               <GitBranch className="size-3.5" />
               Flux de trésorerie
             </div>
@@ -337,7 +337,7 @@ export function CashflowClient() {
                 className={cn(
                   "relative overflow-hidden rounded-3xl border p-6 shadow-sm transition-shadow hover:shadow-md",
                   data.epargne >= 0
-                    ? "border-violet-500/20 bg-linear-to-br from-violet-600 to-violet-800 text-white dark:from-violet-700 dark:to-violet-950"
+                    ? "border-primary/20 bg-primary text-primary-foreground"
                     : "border-amber-500/20 bg-linear-to-br from-amber-600 to-orange-700 text-white"
                 )}
               >
