@@ -221,7 +221,7 @@ export function TransactionsClient() {
 
           <Dialog open={openForm} onOpenChange={(o) => { setOpenForm(o); if (!o) setEditingId(null) }}>
             <DialogTrigger asChild>
-              <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-full px-5 h-10">
+              <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-primary text-primary-foreground rounded-full px-5 h-10 hover:bg-primary/90">
                 <Plus className="size-4" />
                 Saisir un mouvement
               </Button>
@@ -290,7 +290,7 @@ export function TransactionsClient() {
                 </Field>
                 <DialogFooter className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-2">
                   <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto" onClick={() => setOpenForm(false)}>Annuler</Button>
-                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700">{editingId ? "Sauvegarder" : "Valider"}</Button>
+                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">{editingId ? "Sauvegarder" : "Valider"}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
