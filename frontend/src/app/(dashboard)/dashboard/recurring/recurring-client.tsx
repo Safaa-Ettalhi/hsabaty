@@ -171,7 +171,7 @@ export function RecurringClient() {
 
           <Dialog open={open && !editing} onOpenChange={(o) => { setOpen(o); if (!o) form.reset({ description: "", montant: 0, type: "depense", categorie: "", frequence: "mensuel" }) }}>
             <DialogTrigger asChild>
-              <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-5 h-10">
+              <Button className="gap-2 shadow-md hover:shadow-lg transition-shadow bg-primary text-primary-foreground rounded-xl px-5 h-10 hover:bg-primary/90">
                 <Plus className="size-4" />
                 Nouveau
               </Button>
@@ -230,7 +230,7 @@ export function RecurringClient() {
                 </div>
                 <DialogFooter className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-2">
                   <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto" onClick={() => setOpen(false)}>Annuler</Button>
-                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700">Enregistrer</Button>
+                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">Enregistrer</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -291,7 +291,7 @@ export function RecurringClient() {
                 </div>
                 <DialogFooter className="pt-4 border-t border-zinc-100 dark:border-zinc-800 mt-2">
                   <Button type="button" variant="ghost" className="rounded-xl w-full sm:w-auto" onClick={() => setEditing(null)}>Annuler</Button>
-                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-violet-600 hover:bg-violet-700">Mettre à jour</Button>
+                  <Button type="submit" className="rounded-xl w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90">Mettre à jour</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
