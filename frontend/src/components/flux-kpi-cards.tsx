@@ -95,7 +95,7 @@ export function FluxCardSolde({
       className={cn(
         "relative overflow-hidden rounded-3xl border p-6 shadow-sm transition-shadow hover:shadow-md",
         positive
-          ? "border-violet-500/20 bg-linear-to-br from-violet-600 to-violet-800 text-white dark:from-violet-700 dark:to-violet-950"
+          ? "border-primary/20 bg-primary text-primary-foreground"
           : "border-amber-500/20 bg-linear-to-br from-amber-600 to-orange-700 text-white",
         className
       )}

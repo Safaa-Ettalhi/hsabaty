@@ -205,7 +205,7 @@ export function ChatPanel() {
           <Button
             type="submit"
             size="icon"
-            className="h-8 w-8 rounded-lg bg-violet-600 text-white shadow-sm transition-transform hover:bg-violet-700 active:scale-95"
+            className="h-8 w-8 rounded-lg bg-primary text-primary-foreground shadow-sm transition-transform hover:bg-primary/90 active:scale-95"
             disabled={!input.trim() || isLoading}
           >
             <IconSend className="size-4 -ml-0.5" />
@@ -218,7 +218,7 @@ export function ChatPanel() {
   const sidebarContent = (
     <>
       <div className="relative z-10 shrink-0 border-b border-zinc-200/80 bg-zinc-50/80 p-4 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-        <Button className="w-full justify-start gap-2 rounded-full bg-violet-600 font-medium text-white shadow-md hover:bg-violet-700" onClick={handleNewChat}>
+        <Button className="w-full justify-start gap-2 rounded-full bg-primary font-medium text-primary-foreground shadow-md hover:bg-primary/90" onClick={handleNewChat}>
           <IconPlus className="size-4" />
           Nouvelle session
         </Button>
@@ -360,7 +360,7 @@ export function ChatPanel() {
                       className={cn(
                         "max-w-[85%] px-5 py-3.5 text-sm leading-relaxed",
                         m.role === "user"
-                          ? "rounded-2xl rounded-tr-sm bg-violet-600 text-white shadow-sm dark:bg-violet-600"
+                          ? "rounded-2xl rounded-tr-sm bg-primary text-primary-foreground shadow-sm dark:bg-primary"
                           : "rounded-2xl rounded-tl-sm border border-zinc-200/80 bg-white text-foreground shadow-sm dark:border-zinc-800 dark:bg-zinc-900/90"
                       )}
                     >
