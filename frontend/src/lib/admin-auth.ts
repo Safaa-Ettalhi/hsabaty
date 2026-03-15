@@ -59,3 +59,19 @@ export function adminHasPermission(permission: string): boolean {
   if (u.role === "super_admin") return true
   return u.permissions?.includes(permission) ?? false
 }
+
+export function updateAdminUser(admin: Partial<AdminUser>) {
+  if (typeof window === "undefined") return
+  const current = getAdminUser()
+  if (!current) return
+  const updated = { ...current, ...admin }
+  const userJson = JSON.stringify(updated)
+  
+  if (sessionStorage.getItem(ADMIN_USER_KEY)) {
+    sessionStorage.setItem(ADMIN_USER_KEY, userJson)
+  }
+  if (localStorage.getItem(ADMIN_USER_KEY)) {
+    localStorage.setItem(ADMIN_USER_KEY, userJson)
+  }
+}
+
