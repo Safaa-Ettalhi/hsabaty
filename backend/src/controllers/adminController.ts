@@ -4,6 +4,7 @@ import { Transaction } from '../models/Transaction';
 import { Budget } from '../models/Budget';
 import { Objectif } from '../models/Objectif';
 import { Admin } from '../models/Admin';
+import { Conversation } from '../models/Conversation';
 import { asyncHandler, ErreurApp } from '../middleware/gestionErreurs';
 import { AuthentifieRequest } from '../middleware/authentification';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
@@ -50,6 +51,19 @@ export class AdminController {
     const budgetsActifs = await Budget.countDocuments({ actif: true });
     const totalObjectifs = await Objectif.countDocuments();
     const objectifsActifs = await Objectif.countDocuments({ actif: true });
+
+    // Statistiques IA
+    const statsIA = await Conversation.aggregate([
+      { $group: { _id: null, totalMessages: { $sum: { $size: "$messages" } }, totalConversations: { $sum: 1 } } }
+    ]);
+    const totalMessagesIA = statsIA.length > 0 ? statsIA[0].totalMessages : 0;
+    const totalConversationsIA = statsIA.length > 0 ? statsIA[0].totalConversations : 0;
+
+    const statsIAMois = await Conversation.aggregate([
+      { $match: { createdAt: { $gte: debutMois, $lte: finMois } } },
+      { $group: { _id: null, totalMessages: { $sum: { $size: "$messages" } } } }
+    ]);
+    const messagesMoisIA = statsIAMois.length > 0 ? statsIAMois[0].totalMessages : 0;
 
     // Évolution des utilisateurs (6 derniers mois)
     const evolutionUtilisateurs = [];
@@ -105,6 +119,11 @@ export class AdminController {
         objectifs: {
           total: totalObjectifs,
           actifs: objectifsActifs
+        },
+        ia: {
+          totalMessages: totalMessagesIA,
+          totalConversations: totalConversationsIA,
+          messagesMois: messagesMoisIA
         }
       }
     });
