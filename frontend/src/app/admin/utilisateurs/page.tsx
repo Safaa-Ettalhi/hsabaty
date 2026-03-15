@@ -121,8 +121,8 @@ export default function AdminUtilisateursPage() {
 
       {loading ? (
         <div className="space-y-4">
-           <Skeleton className="h-14 w-full rounded-2xl" />
-           <Skeleton className="h-64 w-full rounded-2xl" />
+          <Skeleton className="h-14 w-full rounded-2xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
         </div>
       ) : (
         <div className="space-y-6">
@@ -205,21 +205,21 @@ export default function AdminUtilisateursPage() {
             </Table>
           </section>
 
-        
+
 
           {/* Delete Confirmation Modal (Ultra Minimalist) */}
           <Dialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
             <DialogContent className="max-w-90 rounded-[24px] p-6 shadow-2xl border-border/50 bg-background/90 backdrop-blur-2xl text-center gap-6">
               <div className="flex flex-col items-center gap-4 mt-4">
-                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-500">
-                   <Trash2 className="size-6" />
-                 </div>
-                 <div className="space-y-2">
-                   <DialogTitle className="text-lg font-semibold tracking-tight">Supprimer le compte</DialogTitle>
-                   <DialogDescription className="text-sm text-balance text-muted-foreground">
-                     Êtes-vous sûr de vouloir supprimer <strong className="font-medium text-foreground">{userToDelete?.email}</strong> ? Toutes les données seront effacées.
-                   </DialogDescription>
-                 </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-500">
+                  <Trash2 className="size-6" />
+                </div>
+                <div className="space-y-2">
+                  <DialogTitle className="text-lg font-semibold tracking-tight">Supprimer le compte</DialogTitle>
+                  <DialogDescription className="text-sm text-balance text-muted-foreground">
+                    Êtes-vous sûr de vouloir supprimer <strong className="font-medium text-foreground">{userToDelete?.email}</strong> ? Toutes les données seront effacées.
+                  </DialogDescription>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 w-full mt-2">
