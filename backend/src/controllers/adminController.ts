@@ -6,7 +6,6 @@ import { Objectif } from '../models/Objectif';
 import { Admin } from '../models/Admin';
 import { asyncHandler, ErreurApp } from '../middleware/gestionErreurs';
 import { AuthentifieRequest } from '../middleware/authentification';
-import mongoose from 'mongoose';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
 
 
@@ -149,43 +148,10 @@ export class AdminController {
     });
   });
 
-//details d'un utilisateur
-  static obtenirUtilisateur = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const utilisateur = await Utilisateur.findById(req.params.id).select('-motDePasse');
-    
-    if (!utilisateur) {
-      throw new ErreurApp('Utilisateur non trouvé', 404);
-    }
 
-// stats user
-    const totalTransactions = await Transaction.countDocuments({
-      utilisateurId: utilisateur._id
-    });
-
-    const totalBudgets = await Budget.countDocuments({
-      utilisateurId: utilisateur._id
-    });
-
-    const totalObjectifs = await Objectif.countDocuments({
-      utilisateurId: utilisateur._id
-    });
-
-    res.json({
-      succes: true,
-      donnees: {
-        utilisateur,
-        statistiques: {
-          totalTransactions,
-          totalBudgets,
-          totalObjectifs
-        }
-      }
-    });
-  });
-
-//modifier un utilisateur
+//modifier status  un utilisateur 
   static modifierUtilisateur = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const { nom, prenom, email } = req.body;
+    const { actif } = req.body;
 
     const utilisateur = await Utilisateur.findById(req.params.id);
     
@@ -193,9 +159,7 @@ export class AdminController {
       throw new ErreurApp('Utilisateur non trouvé', 404);
     }
 
-    if (nom) utilisateur.nom = nom;
-    if (prenom !== undefined) utilisateur.prenom = prenom;
-    if (email) utilisateur.email = email;
+    if (actif !== undefined) utilisateur.actif = actif;
 
     await utilisateur.save();
 
@@ -223,140 +187,6 @@ export class AdminController {
     res.json({
       succes: true,
       message: 'Utilisateur et toutes ses données supprimés avec succès'
-    });
-  });
-
-//toutes les transactions avec filtres
-  static listerTransactions = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const { page = 1, limite = 50, utilisateurId, type, dateDebut, dateFin } = req.query;
-
-    const filtre: any = {};
-
-    if (utilisateurId) {
-      filtre.utilisateurId = new mongoose.Types.ObjectId(utilisateurId as string);
-    }
-
-    if (type) {
-      filtre.type = type;
-    }
-
-    if (dateDebut || dateFin) {
-      filtre.date = {};
-      if (dateDebut) filtre.date.$gte = new Date(dateDebut as string);
-      if (dateFin) filtre.date.$lte = new Date(dateFin as string);
-    }
-
-    const skip = (Number(page) - 1) * Number(limite);
-
-    const transactions = await Transaction.find(filtre)
-      .populate('utilisateurId', 'email nom prenom')
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(Number(limite));
-
-    const total = await Transaction.countDocuments(filtre);
-
-    res.json({
-      succes: true,
-      donnees: {
-        transactions,
-        pagination: {
-          page: Number(page),
-          limite: Number(limite),
-          total,
-          pages: Math.ceil(total / Number(limite))
-        }
-      }
-    });
-  });
-
-//supprimer une transaction
-  static supprimerTransaction = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const transaction = await Transaction.findByIdAndDelete(req.params.id);
-
-    if (!transaction) {
-      throw new ErreurApp('Transaction non trouvée', 404);
-    }
-
-    res.json({
-      succes: true,
-      message: 'Transaction supprimée avec succès'
-    });
-  });
-
-//liste tous les budgets
-  static listerBudgets = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const { page = 1, limite = 50, utilisateurId, actif } = req.query;
-
-    const filtre: any = {};
-
-    if (utilisateurId) {
-      filtre.utilisateurId = new mongoose.Types.ObjectId(utilisateurId as string);
-    }
-
-    if (actif !== undefined) {
-      filtre.actif = actif === 'true';
-    }
-
-    const skip = (Number(page) - 1) * Number(limite);
-
-    const budgets = await Budget.find(filtre)
-      .populate('utilisateurId', 'email nom prenom')
-      .sort({ dateCreation: -1 })
-      .skip(skip)
-      .limit(Number(limite));
-
-    const total = await Budget.countDocuments(filtre);
-
-    res.json({
-      succes: true,
-      donnees: {
-        budgets,
-        pagination: {
-          page: Number(page),
-          limite: Number(limite),
-          total,
-          pages: Math.ceil(total / Number(limite))
-        }
-      }
-    });
-  });
-
-//liste tous les objectifs
-  static listerObjectifs = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
-    const { page = 1, limite = 50, utilisateurId, actif } = req.query;
-
-    const filtre: any = {};
-
-    if (utilisateurId) {
-      filtre.utilisateurId = new mongoose.Types.ObjectId(utilisateurId as string);
-    }
-
-    if (actif !== undefined) {
-      filtre.actif = actif === 'true';
-    }
-
-    const skip = (Number(page) - 1) * Number(limite);
-
-    const objectifs = await Objectif.find(filtre)
-      .populate('utilisateurId', 'email nom prenom')
-      .sort({ dateCreation: -1 })
-      .skip(skip)
-      .limit(Number(limite));
-
-    const total = await Objectif.countDocuments(filtre);
-
-    res.json({
-      succes: true,
-      donnees: {
-        objectifs,
-        pagination: {
-          page: Number(page),
-          limite: Number(limite),
-          total,
-          pages: Math.ceil(total / Number(limite))
-        }
-      }
     });
   });
 
