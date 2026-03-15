@@ -3,6 +3,8 @@
 import { usePathname } from "next/navigation"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { AdminSiteHeader } from "@/components/admin-site-header"
 
 export function AdminShellClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -10,7 +12,7 @@ export function AdminShellClient({ children }: { children: React.ReactNode }) {
 
   if (isLogin) {
     return (
-      <div className="relative flex min-h-svh flex-col items-center justify-center p-6">
+      <div className="relative flex min-h-svh flex-col items-center justify-center p-6 bg-zinc-50/50 dark:bg-zinc-950/50">
         <div className="absolute right-4 top-4">
           <ThemeToggle />
         </div>
@@ -20,16 +22,21 @@ export function AdminShellClient({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-svh">
-      <AdminSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center justify-end border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
-          <ThemeToggle />
-        </header>
-        <main className="flex-1 overflow-auto bg-zinc-50/80 dark:bg-zinc-950/50">
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AdminSidebar variant="inset" />
+      <SidebarInset>
+        <AdminSiteHeader />
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-zinc-50/80 dark:bg-zinc-950/50">
           {children}
-        </main>
-      </div>
-    </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

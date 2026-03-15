@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChevronLeft, ChevronRight, Plus, Trash2, Shield } from "lucide-react"
+import { IconUserEdit } from "@tabler/icons-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -58,12 +59,20 @@ const createSchema = z.object({
   role: z.enum(["super_admin", "admin", "moderateur"]),
 })
 
+const editSchema = z.object({
+  email: z.string().email(),
+  nom: z.string().min(1),
+  prenom: z.string().optional(),
+  role: z.enum(["super_admin", "admin", "moderateur"]),
+})
+
 export default function AdminAdminsPage() {
   const canManage = adminHasPermission("gestion_admins")
   const [list, setList] = useState<AdminRow[]>([])
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 })
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
+  const [adminToEdit, setAdminToEdit] = useState<AdminRow | null>(null)
   const page = pagination.page
 
   const createForm = useForm<z.infer<typeof createSchema>>({
@@ -76,6 +85,22 @@ export default function AdminAdminsPage() {
       role: "admin",
     },
   })
+
+  const editForm = useForm<z.infer<typeof editSchema>>({
+    resolver: zodResolver(editSchema),
+    defaultValues: { email: "", nom: "", prenom: "", role: "admin" },
+  })
+
+  useEffect(() => {
+    if (adminToEdit) {
+      editForm.reset({
+        email: adminToEdit.email,
+        nom: adminToEdit.nom,
+        prenom: adminToEdit.prenom || "",
+        role: adminToEdit.role as "super_admin" | "admin" | "moderateur",
+      })
+    }
+  }, [adminToEdit, editForm])
 
   function load(p = 1) {
     if (!canManage) return
@@ -111,6 +136,21 @@ export default function AdminAdminsPage() {
       setCreateOpen(false)
       createForm.reset()
       load(1)
+    } else toast.error(res.message)
+  }
+
+  async function onEdit(data: z.infer<typeof editSchema>) {
+    if (!adminToEdit) return
+    const res = await adminApi.put(`/api/admin/admins/${adminToEdit._id}`, {
+      email: data.email,
+      nom: data.nom,
+      prenom: data.prenom || undefined,
+      role: data.role,
+    })
+    if (res.succes) {
+      toast.success("Administrateur mis à jour")
+      setAdminToEdit(null)
+      load(page)
     } else toast.error(res.message)
   }
 
@@ -266,6 +306,14 @@ export default function AdminAdminsPage() {
                         <Button
                           variant="outline"
                           size="icon"
+                          onClick={() => setAdminToEdit(a)}
+                          className="rounded-xl text-violet-600 dark:text-violet-400"
+                        >
+                          <IconUserEdit className="size-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
                           className="rounded-xl text-rose-600"
                           onClick={() => supprimer(a)}
                         >
@@ -278,6 +326,57 @@ export default function AdminAdminsPage() {
               </TableBody>
             </Table>
           </section>
+
+          <Dialog open={!!adminToEdit} onOpenChange={(open) => !open && setAdminToEdit(null)}>
+            <DialogContent className="max-w-md rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>Éditer l'administrateur</DialogTitle>
+              </DialogHeader>
+              <form
+                onSubmit={editForm.handleSubmit(onEdit)}
+                className="space-y-4 pt-2"
+              >
+                <Field>
+                  <FieldLabel>Email</FieldLabel>
+                  <Input type="email" className={inputClass} {...editForm.register("email")} />
+                </Field>
+                <Field>
+                  <FieldLabel>Nom</FieldLabel>
+                  <Input className={inputClass} {...editForm.register("nom")} />
+                </Field>
+                <Field>
+                  <FieldLabel>Prénom</FieldLabel>
+                  <Input className={inputClass} {...editForm.register("prenom")} />
+                </Field>
+                <Field>
+                  <FieldLabel>Rôle</FieldLabel>
+                  <Select
+                    value={editForm.watch("role")}
+                    onValueChange={(v) =>
+                      editForm.setValue("role", v as "super_admin" | "admin" | "moderateur")
+                    }
+                  >
+                    <SelectTrigger className={cn(inputClass, "h-11")}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="moderateur">Modérateur</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="super_admin">Super admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Button
+                  type="submit"
+                  className="rounded-xl"
+                  disabled={editForm.formState.isSubmitting}
+                >
+                  Sauvegarder
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm text-zinc-500">
               {pagination.total} admin(s) · page {pagination.page}/{pagination.pages}

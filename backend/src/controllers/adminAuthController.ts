@@ -65,6 +65,37 @@ export class AdminAuthController {
     });
   });
 
+  static modifierProfil = asyncHandler(async (req: AuthentifieRequest, res: Response, _next: NextFunction) => {
+    const { nom, prenom, email, motDePasse } = req.body;
+    const admin = await Admin.findById(req.adminId);
+    
+    if (!admin) {
+      throw new ErreurApp('Administrateur non trouvé', 404);
+    }
+
+    if (nom) admin.nom = nom;
+    if (prenom !== undefined) admin.prenom = prenom;
+    if (email) admin.email = email;
+    if (motDePasse) admin.motDePasse = motDePasse;
+
+    await admin.save();
+
+    res.json({
+      succes: true,
+      message: 'Profil modifié avec succès',
+      donnees: {
+        admin: {
+          id: admin._id,
+          prenom: admin.prenom,
+          nom: admin.nom,
+          email: admin.email,
+          role: admin.role,
+          permissions: admin.permissions
+        }
+      }
+    });
+  });
+
   static deconnecter = asyncHandler(async (_req: AuthentifieRequest, res: Response, _next: NextFunction) => {
     res.json({
       succes: true,

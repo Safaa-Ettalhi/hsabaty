@@ -8,6 +8,7 @@ const router = express.Router();
 //routes d'authentification admin
 router.post('/connecter', limiterConnexion, AdminAuthController.connecter);
 router.get('/moi', authentifierJWT, verifierAdmin, AdminAuthController.obtenirAdminActuel);
+router.put('/moi', authentifierJWT, verifierAdmin, AdminAuthController.modifierProfil);
 router.post('/deconnecter', authentifierJWT, verifierAdmin, AdminAuthController.deconnecter);
 
 export default router;
