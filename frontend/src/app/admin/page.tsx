@@ -12,7 +12,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { Users, ArrowUpCircle, ArrowDownCircle, Banknote } from "lucide-react"
+import { Users, ArrowUpCircle, ArrowDownCircle, Banknote, MessageSquare } from "lucide-react"
 import { FluxCardSolde, FluxCardEntrees, FluxCardSorties } from "@/components/flux-kpi-cards"
 
 type Stats = {
@@ -36,6 +36,11 @@ type Stats = {
   objectifs: {
     total: number
     actifs: number
+  }
+  ia: {
+    totalMessages: number
+    totalConversations: number
+    messagesMois: number
   }
 }
 
@@ -139,7 +144,7 @@ export default function AdminDashboardPage() {
       />
 
       <div className="space-y-8">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <FluxCardSolde
             title="Utilisateurs inscrits"
             value={data.utilisateurs.total}
@@ -171,6 +176,21 @@ export default function AdminDashboardPage() {
             </p>
             <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
               Actifs sur le total global
+            </p>
+          </div>
+
+          <div className="relative overflow-hidden rounded-3xl border border-emerald-500/15 bg-linear-to-br from-white to-emerald-50/50 p-6 shadow-sm dark:border-emerald-500/10 dark:from-zinc-900 dark:to-emerald-950/20">
+            <div className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+              <MessageSquare className="size-5" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600/90 dark:text-emerald-400/90">
+              Volume Requêtes IA
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-emerald-800 dark:text-emerald-400 md:text-3xl">
+              {data.ia.totalMessages} req.
+            </p>
+            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+              {data.ia.messagesMois} ce mois-ci ({data.ia.totalConversations} sessions)
             </p>
           </div>
         </div>
