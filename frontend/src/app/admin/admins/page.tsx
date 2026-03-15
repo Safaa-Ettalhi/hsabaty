@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { adminApi } from "@/lib/admin-api"
-import { adminHasPermission } from "@/lib/admin-auth"
+import { adminHasPermission, getAdminUser } from "@/lib/admin-auth"
 import { DashboardPageShell, DashboardPageHeader } from "@/components/dashboard-page-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,14 +56,11 @@ const createSchema = z.object({
   motDePasse: z.string().min(8, "Min. 8 caractères"),
   nom: z.string().min(1),
   prenom: z.string().optional(),
-  role: z.enum(["super_admin", "admin", "moderateur"]),
+  role: z.enum(["super_admin", "admin"]),
 })
 
 const editSchema = z.object({
-  email: z.string().email(),
-  nom: z.string().min(1),
-  prenom: z.string().optional(),
-  role: z.enum(["super_admin", "admin", "moderateur"]),
+  role: z.enum(["super_admin", "admin"]),
 })
 
 const roleStyles: Record<string, { label: string; styles: string; dot: string }> = {
@@ -77,15 +74,11 @@ const roleStyles: Record<string, { label: string; styles: string; dot: string }>
     styles: "border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-400",
     dot: "bg-blue-500",
   },
-  moderateur: {
-    label: "Modérateur",
-    styles: "border-orange-500/20 bg-orange-500/10 text-orange-700 dark:text-orange-400",
-    dot: "bg-orange-500",
-  },
 }
 
 export default function AdminAdminsPage() {
   const canManage = adminHasPermission("gestion_admins")
+  const me = getAdminUser()
   const [list, setList] = useState<AdminRow[]>([])
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 })
   const [loading, setLoading] = useState(true)
@@ -101,16 +94,13 @@ export default function AdminAdminsPage() {
 
   const editForm = useForm<z.infer<typeof editSchema>>({
     resolver: zodResolver(editSchema),
-    defaultValues: { email: "", nom: "", prenom: "", role: "admin" },
+    defaultValues: { role: "admin" },
   })
 
   useEffect(() => {
     if (adminToEdit) {
       editForm.reset({
-        email: adminToEdit.email,
-        nom: adminToEdit.nom,
-        prenom: adminToEdit.prenom || "",
-        role: adminToEdit.role as "super_admin" | "admin" | "moderateur",
+        role: adminToEdit.role as "super_admin" | "admin",
       })
     }
   }, [adminToEdit])
@@ -153,9 +143,6 @@ export default function AdminAdminsPage() {
   async function onEdit(data: z.infer<typeof editSchema>) {
     if (!adminToEdit) return
     const res = await adminApi.put(`/api/admin/admins/${adminToEdit._id}`, {
-      email: data.email,
-      nom: data.nom,
-      prenom: data.prenom || undefined,
       role: data.role,
     })
     if (res.succes) {
@@ -238,13 +225,12 @@ export default function AdminAdminsPage() {
               <FieldLabel className="text-sm font-medium">Rôle</FieldLabel>
               <Select
                 value={createForm.watch("role")}
-                onValueChange={(v) => createForm.setValue("role", v as "super_admin" | "admin" | "moderateur")}
+                onValueChange={(v) => createForm.setValue("role", v as "super_admin" | "admin")}
               >
                 <SelectTrigger className={cn(inputClass, "shadow-none ring-0 w-full")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="moderateur">Modérateur</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="super_admin">Super admin</SelectItem>
                 </SelectContent>
@@ -321,12 +307,15 @@ export default function AdminAdminsPage() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {a._id === me?.id ? (
+                          <span className="text-[11px] text-muted-foreground italic px-2">Votre compte</span>
+                        ) : (
                         <div className="flex items-center justify-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             className="rounded-xl h-8 w-8 text-zinc-500 hover:text-foreground hover:bg-muted"
-                            title="Modifier"
+                            title="Modifier le rôle"
                             onClick={() => setAdminToEdit(a)}
                           >
                             <Edit className="size-4" />
@@ -353,6 +342,7 @@ export default function AdminAdminsPage() {
                             <Trash2 className="size-4" />
                           </Button>
                         </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   )
@@ -367,35 +357,24 @@ export default function AdminAdminsPage() {
               <DialogHeader className="mb-2">
                 <DialogTitle className="text-xl font-semibold tracking-tight">Modifier l&apos;administrateur</DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
-                  Modifier les informations ou changer le rôle de cet admin.
+                  Modifier le rôle de cet admin.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={editForm.handleSubmit(onEdit)} className="space-y-4 pt-1">
-                <Field>
-                  <FieldLabel className="text-sm font-medium">Email</FieldLabel>
-                  <Input type="email" className={cn(inputClass, "shadow-none")} {...editForm.register("email")} />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field>
-                    <FieldLabel className="text-sm font-medium">Nom</FieldLabel>
-                    <Input className={cn(inputClass, "shadow-none")} {...editForm.register("nom")} />
-                  </Field>
-                  <Field>
-                    <FieldLabel className="text-sm font-medium">Prénom</FieldLabel>
-                    <Input className={cn(inputClass, "shadow-none")} {...editForm.register("prenom")} />
-                  </Field>
+                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 p-4 mb-4">
+                  <p className="text-sm font-medium text-foreground">{adminToEdit?.prenom ? `${adminToEdit.prenom} ` : ""}{adminToEdit?.nom}</p>
+                  <p className="text-xs text-muted-foreground">{adminToEdit?.email}</p>
                 </div>
                 <Field>
                   <FieldLabel className="text-sm font-medium">Rôle</FieldLabel>
                   <Select
                     value={editForm.watch("role")}
-                    onValueChange={(v) => editForm.setValue("role", v as "super_admin" | "admin" | "moderateur")}
+                    onValueChange={(v) => editForm.setValue("role", v as "super_admin" | "admin")}
                   >
                     <SelectTrigger className={cn(inputClass, "shadow-none ring-0 w-full")}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="moderateur">Modérateur</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="super_admin">Super admin</SelectItem>
                     </SelectContent>
