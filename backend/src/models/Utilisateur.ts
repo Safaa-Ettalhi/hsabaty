@@ -6,6 +6,7 @@ export interface IUtilisateur extends Document {
   motDePasse: string;
   nom: string;
   prenom?: string;
+  actif?: boolean;
   dateCreation: Date;
   derniereConnexion?: Date;
   resetPasswordToken?: string;
@@ -35,6 +36,10 @@ const utilisateurSchema = new Schema<IUtilisateur>({
   prenom: {
     type: String,
     trim: true
+  },
+  actif: {
+    type: Boolean,
+    default: true
   },
   dateCreation: {
     type: Date,
