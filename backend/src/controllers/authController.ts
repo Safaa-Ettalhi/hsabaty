@@ -57,6 +57,10 @@ export class AuthController {
       throw new ErreurApp('Email ou mot de passe incorrect', 401);
     }
 
+    if (utilisateur.actif === false) {
+      throw new ErreurApp('Compte désactivé. Veuillez contacter l\'administration.', 403);
+    }
+
     const motDePasseValide = await utilisateur.comparerMotDePasse(motDePasse);
     if (!motDePasseValide) {
       throw new ErreurApp('Email ou mot de passe incorrect', 401);
