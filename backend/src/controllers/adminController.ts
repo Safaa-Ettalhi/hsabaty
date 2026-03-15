@@ -110,12 +110,12 @@ export class AdminController {
     });
   });
 
-//liste tous les utilisateurs avec pagination
+  //liste tous les utilisateurs avec pagination
   static listerUtilisateurs = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const { page = 1, limite = 50, recherche, actif: _actif } = req.query;
 
     const filtre: any = {};
-    
+
     if (recherche) {
       filtre.$or = [
         { email: { $regex: recherche, $options: 'i' } },
@@ -149,12 +149,12 @@ export class AdminController {
   });
 
 
-//modifier status  un utilisateur 
+  //modifier status  un utilisateur 
   static modifierUtilisateur = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const { actif } = req.body;
 
     const utilisateur = await Utilisateur.findById(req.params.id);
-    
+
     if (!utilisateur) {
       throw new ErreurApp('Utilisateur non trouvé', 404);
     }
@@ -170,10 +170,10 @@ export class AdminController {
     });
   });
 
-//supprimer un utilisateur
+  //supprimer un utilisateur
   static supprimerUtilisateur = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const utilisateur = await Utilisateur.findById(req.params.id);
-    
+
     if (!utilisateur) {
       throw new ErreurApp('Utilisateur non trouvé', 404);
     }
@@ -190,7 +190,7 @@ export class AdminController {
     });
   });
 
-//liste tous les admins
+  //liste tous les admins
   static listerAdmins = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const { page = 1, limite = 50, role, actif } = req.query;
 
@@ -228,7 +228,7 @@ export class AdminController {
     });
   });
 
-//creer un admin
+  //creer un admin
   static creerAdmin = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const { email, motDePasse, nom, prenom, role, permissions } = req.body;
 
@@ -264,12 +264,12 @@ export class AdminController {
     });
   });
 
-//modifier un admin
+  //modifier un admin
   static modifierAdmin = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const { nom, prenom, email, role, permissions, actif } = req.body;
 
     const admin = await Admin.findById(req.params.id);
-    
+
     if (!admin) {
       throw new ErreurApp('Administrateur non trouvé', 404);
     }
@@ -294,10 +294,10 @@ export class AdminController {
     });
   });
 
-//supprimer un admin
+  //supprimer un admin
   static supprimerAdmin = asyncHandler(async (req: AuthentifieRequest, res: Response) => {
     const admin = await Admin.findById(req.params.id);
-    
+
     if (!admin) {
       throw new ErreurApp('Administrateur non trouvé', 404);
     }

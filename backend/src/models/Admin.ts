@@ -6,7 +6,7 @@ export interface IAdmin extends Document {
   motDePasse: string;
   nom: string;
   prenom?: string;
-  role: 'super_admin' | 'admin' | 'moderateur';
+  role: 'super_admin' | 'admin';
   permissions: string[];
   actif: boolean;
   derniereConnexion?: Date;
@@ -41,7 +41,7 @@ const adminSchema = new Schema<IAdmin>({
   role: {
     type: String,
     required: true,
-    enum: ['super_admin', 'admin', 'moderateur'],
+    enum: ['super_admin', 'admin'],
     default: 'admin'
   },
   permissions: [{
@@ -107,11 +107,6 @@ adminSchema.pre('save', function(next) {
         'gestion_transactions',
         'gestion_budgets',
         'gestion_objectifs',
-        'voir_statistiques',
-        'moderation_contenu'
-      ];
-    } else if (this.role === 'moderateur') {
-      this.permissions = [
         'voir_statistiques',
         'moderation_contenu'
       ];
