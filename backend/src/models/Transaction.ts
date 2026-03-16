@@ -81,8 +81,27 @@ const transactionSchema = new Schema<ITransaction>({
   timestamps: true
 });
 
-transactionSchema.index({ utilisateurId: 1, date: -1 });
-transactionSchema.index({ utilisateurId: 1, categorie: 1 });
 transactionSchema.index({ utilisateurId: 1, type: 1, date: -1 });
+
+// Middleware pour synchronisation sémantique 
+transactionSchema.post('save', async function(doc) {
+  try {
+    const { VectorService } = await import('../services/vectorService');
+    await VectorService.upsertTransaction(doc);
+  } catch (e) {
+    console.error('[TransactionModel] Erreur synchro Pinecone:', e);
+  }
+});
+
+transactionSchema.post('findOneAndDelete', async function(doc) {
+  if (doc) {
+    try {
+      const { VectorService } = await import('../services/vectorService');
+      await VectorService.supprimerTransaction(doc._id.toString());
+    } catch (e) {
+      console.error('[TransactionModel] Erreur suppression Pinecone:', e);
+    }
+  }
+});
 
 export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);
