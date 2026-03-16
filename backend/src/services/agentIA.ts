@@ -62,33 +62,7 @@ export class ServiceAgentIA {
     const langue = this.detecterLangue(messageUtilisateur);
     const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
     (contexte as any).langue = langue;
-    // Désactivation de la détection directe pour prioriser l'intelligence du LLM
-    // Cela permet une meilleure catégorisation et évite les faux positifs (ex: "pour" détecté comme objectif)
-    /*
-    const intentionInitiale = this.detecterIntention(messageUtilisateur);
-    if (intentionInitiale) {
-      let actionDirecte: any = null;
-      try {
-        if (intentionInitiale.type === 'creer_budget' && intentionInitiale.parametres) {
-          actionDirecte = await this.executerAction(utilisateurId, 'creer_budget', intentionInitiale.parametres);
-        } else if (intentionInitiale.type === 'creer_objectif' && intentionInitiale.parametres) {
-          actionDirecte = await this.executerAction(utilisateurId, 'creer_objectif', intentionInitiale.parametres);
-        } else if (intentionInitiale.type === 'creer_transaction_recurrente' && intentionInitiale.parametres) {
-          actionDirecte = await this.executerAction(utilisateurId, 'creer_transaction_recurrente', intentionInitiale.parametres);
-        } else if (intentionInitiale.type === 'ajouter_transaction' && intentionInitiale.parametres) {
-          actionDirecte = await this.executerAction(utilisateurId, 'ajouter_transaction', intentionInitiale.parametres);
-        }
-      } catch (e) {
-        console.error('[ServiceAgentIA] Erreur lors de l\'exécution directe de l\'intention:', e);
-      }
 
-      if (actionDirecte) {
-        const reponseDirecte = this.genererReponseDepuisAction(actionDirecte, contexte);
-        const newConvId = await this.sauvegarderMessage(utilisateurId, messageUtilisateur, reponseDirecte, actionDirecte, conversationId);
-        return { reponse: reponseDirecte, action: actionDirecte, conversationId: newConvId };
-      }
-    }
-    */
 
     let conversation = null;
     if (conversationId && mongoose.Types.ObjectId.isValid(conversationId)) {
