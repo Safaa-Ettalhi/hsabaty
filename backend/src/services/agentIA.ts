@@ -62,6 +62,9 @@ export class ServiceAgentIA {
     const langue = this.detecterLangue(messageUtilisateur);
     const contexte = await this.obtenirContexteUtilisateur(utilisateurId);
     (contexte as any).langue = langue;
+    // Désactivation de la détection directe pour prioriser l'intelligence du LLM
+    // Cela permet une meilleure catégorisation et évite les faux positifs (ex: "pour" détecté comme objectif)
+    /*
     const intentionInitiale = this.detecterIntention(messageUtilisateur);
     if (intentionInitiale) {
       let actionDirecte: any = null;
@@ -85,6 +88,7 @@ export class ServiceAgentIA {
         return { reponse: reponseDirecte, action: actionDirecte, conversationId: newConvId };
       }
     }
+    */
 
     let conversation = null;
     if (conversationId && mongoose.Types.ObjectId.isValid(conversationId)) {
@@ -1187,6 +1191,18 @@ STYLE
           },
           required: []
         }
+      },
+      {
+        name: 'recherche_semantique',
+        description: 'Recherche des transactions par sens sémantique (ex: "où sont mes cafés ?", "dépenses de plaisir"). À utiliser quand la recherche par description simple risque d\'échouer.',
+        parameters: {
+          type: 'object',
+          properties: {
+            requete: { type: 'string', description: 'Le sens de la recherche en langage naturel' },
+            limite: { type: 'number', description: 'Nombre de résultats (défaut 5)' }
+          },
+          required: ['requete']
+        }
       }
     ];
   }
@@ -1221,10 +1237,32 @@ STYLE
         }
 
         const limite = parametres.limite || 10;
-        const transactionsTrouvees = await Transaction.find(filtreRecherche)
+        let transactionsTrouvees = await Transaction.find(filtreRecherche)
           .sort({ date: -1 })
           .limit(limite)
           .select('_id montant type categorie description date');
+
+        // Fallback sémantique si aucun résultat direct n'est trouvé
+        if (transactionsTrouvees.length === 0 && (parametres.description || parametres.categorie)) {
+          console.log('[ServiceAgentIA] Aucun résultat direct, tentative de recherche sémantique...');
+          const { VectorService } = await import('./vectorService');
+          const query = parametres.description || parametres.categorie;
+          const sim = await VectorService.rechercherSimilaires(utilisateurId, query, limite);
+          if (sim && sim.length > 0) {
+            return {
+              type: 'transactions_trouvees',
+              nombre: sim.length,
+              transactions: sim.map((t: any) => ({
+                id: (t.id || t._id || '').toString(),
+                montant: t.montant,
+                type: t.type,
+                categorie: t.categorie,
+                description: t.description,
+                date: t.date
+              }))
+            };
+          }
+        }
 
         return {
           type: 'transactions_trouvees',
@@ -1406,6 +1444,23 @@ STYLE
           details: transAModifier2,
           modifications: modsEffectuees,
           message: `Transaction modifiée: ${modsEffectuees.join(', ')}`
+        };
+      }
+
+      case 'recherche_semantique': {
+        const { VectorService } = await import('./vectorService');
+        const searchResults = await VectorService.rechercherSimilaires(utilisateurId, parametres.requete, parametres.limite || 5);
+        return {
+          type: 'transactions_trouvees',
+          nombre: searchResults.length,
+          transactions: searchResults.map((t: any) => ({
+            id: t.id,
+            montant: t.montant,
+            type: t.type,
+            categorie: t.categorie,
+            description: t.description,
+            date: t.date
+          }))
         };
       }
 
