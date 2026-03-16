@@ -14,6 +14,10 @@ export function validerEnv(): void {
     manquantes.push('SESSION_SECRET');
   }
 
+  if (!process.env.PINECONE_API_KEY?.trim()) {
+    manquantes.push('PINECONE_API_KEY');
+  }
+
   if (manquantes.length > 0) {
     throw new Error(
       `Variables d'environnement requises manquantes: ${manquantes.join(', ')}. ` +
