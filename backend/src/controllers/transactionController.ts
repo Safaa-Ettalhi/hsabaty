@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { Transaction } from '../models/Transaction';
 import { asyncHandler, ErreurApp } from '../middleware/gestionErreurs';
 import { AuthentifieRequest } from '../middleware/authentification';
-import { ExportService } from '../services/exportService';
+import { ExportService, VectorService } from '../services';
 import mongoose from 'mongoose';
 import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subDays } from 'date-fns';
 
@@ -30,6 +30,8 @@ export class TransactionController {
     });
 
     await transaction.save();
+
+    VectorService.upsertTransaction(transaction).catch(e => console.error('[TransactionController] Pinecone error:', e));
 
     res.status(201).json({
       succes: true,
@@ -134,6 +136,8 @@ export class TransactionController {
     transaction.dateModification = new Date();
     await transaction.save();
 
+    VectorService.upsertTransaction(transaction).catch(e => console.error('[TransactionController] Pinecone error:', e));
+
     res.json({
       succes: true,
       message: 'Transaction mise à jour avec succès',
@@ -151,6 +155,8 @@ export class TransactionController {
     if (!transaction) {
       throw new ErreurApp('Transaction non trouvée', 404);
     }
+
+    VectorService.supprimerTransaction(transaction._id.toString()).catch(e => console.error('[TransactionController] Pinecone delete error:', e));
 
     res.json({
       succes: true,
