@@ -108,6 +108,10 @@ const demarrerServeur = async () => {
     }
 
     CronService.demarrerTachesProgrammees();
+    
+    // Initialisation Pinecone
+    const { VectorService } = await import('./services/vectorService');
+    await VectorService.init();
 
     // Démarrer le serveur Express
     app.listen(PORT, () => {
