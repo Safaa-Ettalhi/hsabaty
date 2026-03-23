@@ -1,82 +1,120 @@
 # Référence API Hssabaty
 
-Cette documentation décrit les principaux points de terminaison de l'API Backend.
-L'URL de base est généralement `http://localhost:3000/api`.
+Cette documentation reflète les routes actuellement exposées par le backend.
+URL de base: `http://localhost:3000/api`.
 
-Toutes les routes (sauf `/auth/*` et `/admin-auth/*`) nécessitent une authentification via Bearer Token ou Session.
+## Authentification et protection
 
-## 🔐 Authentification (`/api/auth`)
+- Auth utilisateur: Bearer token JWT ou session.
+- La plupart des routes métiers sont protégées.
+- Routes publiques principales: `POST /api/auth/inscrire`, `POST /api/auth/connecter`, `POST /api/auth/mot-de-passe-oublie`, `POST /api/auth/reinitialiser-mot-de-passe`.
+- Les routes admin utilisent `JWT admin` et des permissions dédiées.
 
-*   `POST /auth/inscription` : Créer un nouveau compte utilisateur.
-*   `POST /auth/connexion` : Se connecter (retourne token/session).
-*   `POST /auth/deconnexion` : Se déconnecter.
-*   `GET /auth/profil` : Obtenir les informations de l'utilisateur connecté.
-*   `PUT /auth/profil` : Mettre à jour le profil.
+##  Authentification utilisateur (`/api/auth`)
 
-## 💰 Transactions (`/api/transactions`)
+- `POST /auth/inscrire`
+- `POST /auth/connecter`
+- `POST /auth/deconnecter`
+- `GET /auth/moi`
+- `PUT /auth/moi`
+- `PUT /auth/modifier-mot-de-passe`
+- `POST /auth/mot-de-passe-oublie`
+- `POST /auth/reinitialiser-mot-de-passe`
 
-*   `GET /transactions` : Lister les transactions (avec filtres: date, catégorie, etc.).
-*   `POST /transactions` : Créer une nouvelle transaction.
-*   `GET /transactions/:id` : Détails d'une transaction.
-*   `PUT /transactions/:id` : Modifier une transaction.
-*   `DELETE /transactions/:id` : Supprimer une transaction.
-*   `GET /transactions/stats` : Statistiques des transactions.
+##  Dashboard (`/api/dashboard`)
 
-## 🔄 Transactions Récurrentes (`/api/transactions-recurrentes`)
+- `GET /dashboard/metriques`
+- `GET /dashboard/tendances-mensuelles`
 
-*   `GET /transactions-recurrentes` : Liste des abonnements/factures récurrentes.
-*   `POST /transactions-recurrentes` : Ajouter une transaction récurrente.
-*   `PUT /transactions-recurrentes/:id` : Modifier.
-*   `DELETE /transactions-recurrentes/:id` : Supprimer.
+##  Transactions (`/api/transactions`)
 
-## 📊 Budgets (`/api/budgets`)
+- `POST /transactions`
+- `GET /transactions`
+- `GET /transactions/statistiques`
+- `GET /transactions/export/csv`
+- `GET /transactions/export/excel`
+- `GET /transactions/:id`
+- `PUT /transactions/:id`
+- `DELETE /transactions/:id`
 
-*   `GET /budgets` : Liste des budgets définis.
-*   `POST /budgets` : Créer un budget.
-*   `PUT /budgets/:id` : Mettre à jour un budget.
-*   `DELETE /budgets/:id` : Supprimer un budget.
-*   `GET /budgets/suivi` : Suivi de la consommation des budgets.
+##  Transactions récurrentes (`/api/transactions-recurrentes`)
 
-## 🎯 Objectifs (`/api/objectifs`)
+- `POST /transactions-recurrentes`
+- `GET /transactions-recurrentes`
+- `GET /transactions-recurrentes/generer`
+- `GET /transactions-recurrentes/:id`
+- `PUT /transactions-recurrentes/:id`
+- `DELETE /transactions-recurrentes/:id`
 
-*   `GET /objectifs` : Liste des objectifs financiers.
-*   `POST /objectifs` : Créer un objectif d'épargne.
-*   `PUT /objectifs/:id` : Mettre à jour la progression ou les détails.
-*   `DELETE /objectifs/:id` : Supprimer un objectif.
+##  Budgets (`/api/budgets`)
 
-## 📈 Investissements (`/api/investissements`)
+- `POST /budgets`
+- `GET /budgets`
+- `GET /budgets/:id`
+- `PUT /budgets/:id`
+- `DELETE /budgets/:id`
 
-*   `GET /investissements` : Liste des investissements.
-*   `POST /investissements` : Ajouter un investissement.
-*   `PUT /investissements/:id` : Mettre à jour un investissement.
-*   `DELETE /investissements/:id` : Supprimer un investissement.
+##  Objectifs (`/api/objectifs`)
 
-## 🤖 Agent IA (`/api/agent-ia`)
+- `POST /objectifs`
+- `GET /objectifs`
+- `GET /objectifs/:id`
+- `PUT /objectifs/:id`
+- `POST /objectifs/:id/contribution`
+- `DELETE /objectifs/:id`
 
-*   `POST /agent-ia/chat` : Envoyer un message à l'assistant IA.
-    *   **Body** : `{ "message": "Analyser mes dépenses du mois dernier" }`
-*   `GET /agent-ia/historique` : Historique des conversations avec l'IA.
-*   `POST /agent-ia/analyse` : Demander une analyse spécifique (ex: graphiques, résumés).
+##  Investissements (`/api/investissements`)
 
-## 💡 Conseils (`/api/conseils`)
+- `POST /investissements`
+- `GET /investissements`
+- `GET /investissements/:id`
+- `PUT /investissements/:id`
+- `DELETE /investissements/:id`
 
-*   `GET /conseils` : Obtenir des conseils financiers personnalisés générés par l'IA.
-*   `POST /conseils/generer` : Forcer la génération de nouveaux conseils basés sur les données récentes.
+##  Agent IA (`/api/agent-ia`)
 
-## 📄 Rapports (`/api/rapports`)
+- `POST /agent-ia/message`
+- `GET /agent-ia/historique`
+- `GET /agent-ia/conversation/:id`
+- `DELETE /agent-ia/conversation/:id`
+- `POST /agent-ia/categoriser`
 
-*   `GET /rapports/mensuel` : Rapport mensuel (PDF/JSON).
-*   `GET /rapports/annuel` : Rapport annuel.
-*   `POST /rapports/export` : Exporter les données (CSV/Excel).
+##  Conseils (`/api/conseils`)
 
-## 🛡️ Admin (`/api/admin`) et `/api/admin-auth`
+- `GET /conseils/insights`
+- `GET /conseils/recommandations/reduction-depenses`
+- `GET /conseils/recommandations/optimisation-epargne`
+- `GET /conseils/depenses-inhabituelles`
+- `GET /conseils/planification`
 
-*   Routes réservées aux super-administrateurs pour la gestion de la plateforme.
-*   `POST /admin-auth/connexion`
-*   `GET /admin/users` : Gestion des utilisateurs.
-*   `GET /admin/stats` : Statistiques globales de la plateforme.
+##  Rapports (`/api/rapports`)
 
-## 🕸️ GraphQL (`/graphql`)
+- `GET /rapports/depenses`
+- `GET /rapports/revenus`
+- `GET /rapports/epargne`
+- `GET /rapports/mensuel`
+- `GET /rapports/flux-tresorerie`
+- `GET /rapports/export/pdf`
+- `POST /rapports/partager-email`
 
-Un endpoint GraphQL est disponible pour des requêtes flexibles.
-Vous pouvez explorer le schéma via un client GraphQL (ex: Altair, Postman) à l'adresse `http://localhost:3000/graphql` (si activé en dev).
+##  Admin Auth (`/api/admin/auth`)
+
+- `POST /admin/auth/connecter`
+- `GET /admin/auth/moi`
+- `PUT /admin/auth/moi`
+- `POST /admin/auth/deconnecter`
+
+##  Admin (`/api/admin`)
+
+- `GET /admin/statistiques`
+- `GET /admin/utilisateurs`
+- `PUT /admin/utilisateurs/:id`
+- `DELETE /admin/utilisateurs/:id`
+- `GET /admin/admins`
+- `POST /admin/admins`
+- `PUT /admin/admins/:id`
+- `DELETE /admin/admins/:id`
+
+##  GraphQL (`/api/graphql`)
+
+Endpoint disponible sur `http://localhost:3000/api/graphql` (protégé par authentification).
