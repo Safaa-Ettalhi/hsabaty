@@ -20,7 +20,7 @@ Bienvenue dans la documentation du projet **Hssabaty**. Cette plateforme SaaS of
 *   **Langage** : TypeScript
 *   **Framework** : Express.js
 *   **Base de Données** : MongoDB (Mongoose)
-*   **Cache & Session** : Redis
+*   **Session & Cache** : Session persistée (MongoDB) + cache Redis optionnel
 *   **Authentification** : JWT & Session
 *   **AI & Vector Store** : OpenAI, Anthropic, Google Gemini, Pinecone
 *   **Outils** : Zod (Validation), PDFKit (Rapports), GraphQL
@@ -29,7 +29,7 @@ Bienvenue dans la documentation du projet **Hssabaty**. Cette plateforme SaaS of
 *   **Framework** : Next.js 16 (App Router)
 *   **UI Library** : React 19, Shadcn UI, Radix UI
 *   **Styling** : Tailwind CSS
-*   **Gestion d'État & Formulaires** : React Hook Form, TanStack Query (supposé/recommandé), Zod
+*   **Gestion d'État & Formulaires** : React Hook Form, Zod
 *   **Charts** : Recharts, Chart.js
 
 ### Infrastructure
@@ -38,6 +38,11 @@ Bienvenue dans la documentation du projet **Hssabaty**. Cette plateforme SaaS of
 ## 🚀 Démarrage Rapide
 
 Pour installer et lancer le projet localement, consultez le [Guide d'Installation](docs/SETUP_GUIDE.md).
+
+### Ports par défaut
+
+*   **Backend** : `http://localhost:3000`
+*   **Frontend** : `http://localhost:3001` (si 3000 déjà utilisé)
 
 ## 📚 Documentation Détaillée
 
