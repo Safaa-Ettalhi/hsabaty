@@ -1,6 +1,6 @@
 # Architecture du Projet Hssabaty
 
-## 🏗️ Architecture Globale
+## Architecture Globale
 
 Hssabaty est une application web full-stack moderne, suivant le modèle client-serveur.
 
@@ -33,7 +33,7 @@ Les principaux modèles Mongoose définissent la structure des données :
 
 ## 🧠 Flux de l'Intelligence Artificielle (Agent IA)
 
-L'Agent IA (`agentIAController.ts`, `agentIAService.ts`) est au cœur de l'expérience utilisateur avancée.
+L'Agent IA (`agentIAController.ts`, `agentIA.ts`) est au cœur de l'expérience utilisateur avancée.
 
 1.  **Réception de la requête** : L'utilisateur pose une question ou demande une analyse via le Frontend.
 2.  **Traitement (Backend)** :
@@ -49,7 +49,7 @@ L'Agent IA (`agentIAController.ts`, `agentIAService.ts`) est au cœur de l'expé
 ## 🌐 API & Communication
 
 *   **REST API** : La communication principale se fait via des endpoints REST (`/api/*`).
-*   **GraphQL** : Une interface GraphQL est également disponible (`/graphql`) pour des requêtes de données plus flexibles.
+*   **GraphQL** : Une interface GraphQL est également disponible (`/api/graphql`) pour des requêtes de données plus flexibles.
 *   **Sécurité** :
     *   Middleware d'authentification (`authentification.ts`) protège les routes sensibles.
     *   Validation des données entrantes avec Zod/Express Validator.

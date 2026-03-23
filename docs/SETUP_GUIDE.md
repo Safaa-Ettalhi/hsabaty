@@ -38,7 +38,7 @@ cd hsabaty
 
     ```env
     PORT=3000
-    MONGO_URI=mongodb://localhost:27017/hssabaty
+    MONGODB_URI=mongodb://localhost:27017/hssabaty
     REDIS_URL=redis://localhost:6379
     SESSION_SECRET=votre_secret_session_fort
     JWT_SECRET=votre_secret_jwt_fort
@@ -47,10 +47,9 @@ cd hsabaty
     # Clés API pour l'IA (Optionnel pour le dev local basique)
     OPENAI_API_KEY=votre_openai_key
     ANTHROPIC_API_KEY=votre_anthropic_key
-    GOOGLE_API_KEY=votre_google_key
+    GEMINI_API_KEY=votre_google_key
     PINECONE_API_KEY=votre_pinecone_key
-    PINECONE_ENV=gcp-starter
-    PINECONE_INDEX=votre_index
+    PINECONE_INDEX_NAME=votre_index
     ```
 
 4.  **Lancez le serveur de développement :**
@@ -88,17 +87,17 @@ cd hsabaty
     ```bash
     npm run dev
     ```
-    L'application sera accessible sur `http://localhost:3001` (ou 3000 si le backend utilise un autre port).
+    L'application sera accessible sur `http://localhost:3001` si le backend tourne déjà sur `3000`.
 
 ## 🐳 Utilisation avec Docker (Recommandé)
 
 Le projet contient des configurations Docker pour faciliter le déploiement et le développement.
 
-1.  **Démarrer tous les services (Backend + DB + Redis) :**
-    À la racine du projet (là où se trouve `docker-compose.yml`), exécutez :
+1.  **Démarrer les services de développement (Backend + DB + Redis) :**
+    À la racine du projet, exécutez :
 
     ```bash
-    docker-compose up -d --build
+    docker-compose -f docker-compose.dev.yml up -d --build
     ```
 
     Cela démarrera :
@@ -106,11 +105,11 @@ Le projet contient des configurations Docker pour faciliter le déploiement et l
     *   Redis
     *   Le serveur Backend (Node.js)
 
-    *Note : Le frontend peut être lancé séparément ou ajouté au compose si nécessaire.*
+    *Note : Le frontend se lance séparément avec `npm run dev` dans `/frontend`.*
 
 2.  **Arrêter les services :**
     ```bash
-    docker-compose down
+    docker-compose -f docker-compose.dev.yml down
     ```
 
 ## 🧪 Scripts Utiles
@@ -127,6 +126,6 @@ Le projet contient des configurations Docker pour faciliter le déploiement et l
 
 ## ⚠️ Dépannage Courant
 
-*   **Erreur de connexion MongoDB** : Vérifiez que votre instance MongoDB est en cours d'exécution et que `MONGO_URI` est correct.
+*   **Erreur de connexion MongoDB** : Vérifiez que votre instance MongoDB est en cours d'exécution et que `MONGODB_URI` est correct.
 *   **Erreur CORS** : Assurez-vous que `CORS_ORIGIN` dans le `.env` du backend correspond à l'URL de votre frontend (ex: `http://localhost:3001`).
 *   **Redis** : Si vous ne disposez pas de Redis localement, utilisez Docker ou commentez temporairement les parties liées à la session Redis (non recommandé pour la prod).

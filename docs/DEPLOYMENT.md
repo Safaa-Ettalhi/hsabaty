@@ -1,21 +1,48 @@
 # Guide de Déploiement
 
-Ce document détaille les procédures pour déployer l'application **Hssabaty** en production.
+Ce document décrit le déploiement de **Hssabaty** avec Docker Compose.
 
-## 🐳 Déploiement avec Docker (Production)
+## 🐳 Modes Docker disponibles
 
-Pour un déploiement robuste et isolé, utilisez Docker Compose.
+- **Développement**: `docker-compose.dev.yml`
+- **Production**: `docker-compose.yml`
 
-1.  **Configuration** :
-    Assurez-vous que vos variables d'environnement (`.env`) sont configurées avec des valeurs de production (mots de passe forts, URL réelles).
-    Le fichier `docker-compose.yml` (ou une variante `prod`) doit être utilisé.
+## Développement avec Docker
 
-2.  **Lancement** :
-    ```bash
-    docker-compose -f docker-compose.yml up -d --build
-    ```
+1. Préparez `backend/.env` avec vos variables locales.
+2. Lancez la stack dev:
 
-    Cela construira les images optimisées pour la production et lancera les conteneurs en arrière-plan.
+```bash
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+3. Arrêtez la stack dev:
+
+```bash
+docker-compose -f docker-compose.dev.yml down
+```
+
+## Production avec Docker
+
+1. Préparez un `.env` à la racine (utilisé par `docker-compose.yml`) avec au minimum:
+   - `SESSION_SECRET`
+   - `JWT_SECRET`
+   - `JWT_EXPIRE` (optionnel, défaut `7d`)
+   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` (selon fournisseur IA)
+   - `IA_PROVIDER`, `IA_MODEL`
+   - `CORS_ORIGIN`
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+2. Lancez la stack prod:
+
+```bash
+docker-compose -f docker-compose.yml up -d --build
+```
+
+3. Arrêtez la stack prod:
+
+```bash
+docker-compose -f docker-compose.yml down
+```
 
 ## ☁️ Hébergement Cloud (Recommandations)
 

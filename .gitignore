@@ -7,6 +7,8 @@ dist/
 build/
 **/dist/
 **/build/
+**/.next/
+**/.turbo/
 
 # Environment variables
 .env
