@@ -23,7 +23,7 @@ Bienvenue dans la documentation du projet **Hssabaty**. Cette plateforme SaaS of
 *   **Session & Cache** : Session persistée (MongoDB) + cache Redis optionnel
 *   **Authentification** : JWT & Session
 *   **AI & Vector Store** : OpenAI, Anthropic, Google Gemini, Pinecone
-*   **Outils** : Zod (Validation), PDFKit (Rapports), GraphQL
+*   **Outils** : Zod (Validation), PDFKit (Rapports), exports CSV/Excel
 
 ### Frontend (Next.js)
 *   **Framework** : Next.js 16 (App Router)

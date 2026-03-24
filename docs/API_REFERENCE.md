@@ -114,7 +114,3 @@ URL de base: `http://localhost:3000/api`.
 - `POST /admin/admins`
 - `PUT /admin/admins/:id`
 - `DELETE /admin/admins/:id`
-
-##  GraphQL (`/api/graphql`)
-
-Endpoint disponible sur `http://localhost:3000/api/graphql` (protégé par authentification).

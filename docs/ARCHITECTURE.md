@@ -4,7 +4,7 @@
 
 Hssabaty est une application web full-stack moderne, suivant le modèle client-serveur.
 
-*   **Frontend (Single Page Application)** : Next.js (App Router), React, Tailwind CSS. Gère l'interface utilisateur, les interactions et l'état de l'application. Communique avec le Backend via une API REST sécurisée et potentiellement GraphQL.
+*   **Frontend (Single Page Application)** : Next.js (App Router), React, Tailwind CSS. Gère l'interface utilisateur, les interactions et l'état de l'application. Communique avec le Backend via une API REST sécurisée.
 *   **Backend (API Server)** : Node.js (Express), TypeScript. Gère la logique métier, l'authentification, les interactions avec la base de données et les appels aux services d'IA (LLMs).
 *   **Base de Données** : MongoDB. Stocke les données utilisateurs, transactions, budgets, objectifs, conversations, et l'historique des interactions avec l'IA.
 *   **Cache & Session** : Redis. Utilisé pour gérer les sessions utilisateurs et le cache pour améliorer les performances (par exemple, pour la conversation IA ou les données fréquemment consultées).
@@ -48,8 +48,7 @@ L'Agent IA (`agentIAController.ts`, `agentIA.ts`) est au cœur de l'expérience 
 
 ## 🌐 API & Communication
 
-*   **REST API** : La communication principale se fait via des endpoints REST (`/api/*`).
-*   **GraphQL** : Une interface GraphQL est également disponible (`/api/graphql`) pour des requêtes de données plus flexibles.
+*   **REST API** : La communication se fait via des endpoints REST (`/api/*`).
 *   **Sécurité** :
     *   Middleware d'authentification (`authentification.ts`) protège les routes sensibles.
     *   Validation des données entrantes avec Zod/Express Validator.
@@ -63,7 +62,6 @@ backend/
 ├── src/
 │   ├── config/       # Configuration (DB, Env, Redis, Session)
 │   ├── controllers/  # Logique de traitement des requêtes
-│   ├── graphql/      # Schémas et Resolveurs GraphQL
 │   ├── middleware/   # Auth, Erreurs, Sécurité
 │   ├── models/       # Schémas Mongoose
 │   ├── routes/       # Définition des endpoints API
