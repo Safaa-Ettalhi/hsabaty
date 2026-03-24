@@ -578,26 +578,6 @@
       ]
     },
     {
-      "name": "GraphQL",
-      "item": [
-        {
-          "name": "Query Dashboard + Transactions",
-          "request": {
-            "method": "POST",
-            "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type", "value": "application/json"}
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"query\": \"query { dashboard(periode: \\\"mois\\\") { metriques { solde revenus depenses tauxEpargne } } transactions(limite: 5) { id description montant type date } }\"\n}"
-            },
-            "url": "{{baseUrl}}/api/graphql"
-          }
-        }
-      ]
-    },
-    {
       "name": "Admin - Auth",
       "item": [
         {
