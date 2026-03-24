@@ -1,4 +1,3 @@
-// IMPORTANT: Charger dotenv AVANT tous les autres imports qui utilisent process.env
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -11,8 +10,6 @@ import { connecterBaseDeDonnees } from './config/database';
 import { configurerSession } from './config/session';
 import { gestionnaireErreurs } from './middleware/gestionErreurs';
 import { limiterAPI } from './middleware/securite';
-import { authentifier } from './middleware/authentification';
-
 // Routes
 import authRoutes from './routes/authRoutes';
 import transactionRoutes from './routes/transactionRoutes';
@@ -24,7 +21,6 @@ import rapportRoutes from './routes/rapportRoutes';
 import transactionRecurrenteRoutes from './routes/transactionRecurrenteRoutes';
 import conseilsRoutes from './routes/conseilsRoutes';
 import investissementRoutes from './routes/investissementRoutes';
-import { graphqlMiddleware } from './routes/graphqlRoutes';
 import adminAuthRoutes from './routes/adminAuthRoutes';
 import adminRoutes from './routes/adminRoutes';
 import { CronService } from './services';
@@ -61,8 +57,7 @@ app.get('/api', (_req, res) => {
       'agent-ia': '/api/agent-ia/message',
       'transactions-recurrentes': '/api/transactions-recurrentes',
       conseils: '/api/conseils',
-      investissements: '/api/investissements',
-      graphql: '/api/graphql'
+      investissements: '/api/investissements'
     },
     timestamp: new Date().toISOString()
   });
@@ -86,7 +81,6 @@ app.use('/api/rapports', rapportRoutes);
 app.use('/api/transactions-recurrentes', transactionRecurrenteRoutes);
 app.use('/api/conseils', conseilsRoutes);
 app.use('/api/investissements', investissementRoutes);
-app.use('/api/graphql', authentifier, graphqlMiddleware);
 
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
@@ -109,11 +103,9 @@ const demarrerServeur = async () => {
 
     CronService.demarrerTachesProgrammees();
     
-    // Initialisation Pinecone
     const { VectorService } = await import('./services/vectorService');
     await VectorService.init();
 
-    // Démarrer le serveur Express
     app.listen(PORT, () => {
       console.log(`1: Serveur démarré sur le port ${PORT}`);
       console.log(`2: Environnement: ${process.env.NODE_ENV || 'development'}`);
