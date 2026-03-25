@@ -116,7 +116,7 @@ Le projet contient des configurations Docker pour faciliter le déploiement et l
 
 *   **Backend** :
     *   `npm run test` : Lance la suite de tests avec Jest.
-    *   `npm run build` : Compile le TypeScript en JavaScript.
+    *   `npm run build` : Vérifie la syntaxe du point d'entrée (`node --check`).
     *   `npm run creer-super-admin` : Script pour initialiser un utilisateur super admin.
     *   `npm run sync-vectors` : Synchronise les données vectorielles pour l'IA (Pinecone).
 

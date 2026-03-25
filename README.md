@@ -17,7 +17,7 @@ Bienvenue dans la documentation du projet **Hssabaty**. Cette plateforme SaaS of
 ## 🛠️ Stack Technologique
 
 ### Backend (Node.js/Express)
-*   **Langage** : TypeScript
+*   **Langage** : JavaScript (Node.js)
 *   **Framework** : Express.js
 *   **Base de Données** : MongoDB (Mongoose)
 *   **Session & Cache** : Session persistée (MongoDB) + cache Redis optionnel
