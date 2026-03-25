@@ -1,5 +1,9 @@
 node_modules/
 dist/
+
+# Source maps (inutiles sans fichiers .ts sources)
+src/**/*.js.map
+src/**/*.d.ts.map
 .env
 *.log
 .DS_Store
