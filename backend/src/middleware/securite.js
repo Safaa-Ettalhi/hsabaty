@@ -1,6 +1,5 @@
 const express_rate_limit = require("express-rate-limit");
-//limiter les tentatives de connexion
-exports.limiterConnexion = express_rate_limit({
+const limiterConnexion = express_rate_limit({
     windowMs: 15 * 60 * 1000,
     max: 5,
     message: {
@@ -10,8 +9,7 @@ exports.limiterConnexion = express_rate_limit({
     standardHeaders: true,
     legacyHeaders: false,
 });
-//limiter les requêtes à l'API
-exports.limiterAPI = express_rate_limit({
+const limiterAPI = express_rate_limit({
     windowMs: 15 * 60 * 1000,
     max: 100,
     message: {
@@ -21,8 +19,7 @@ exports.limiterAPI = express_rate_limit({
     standardHeaders: true,
     legacyHeaders: false,
 });
-//limiter les requêtes à l'agent IA
-exports.limiterAgentIA = express_rate_limit({
+const limiterAgentIA = express_rate_limit({
     windowMs: 60 * 1000,
     max: 10,
     message: {
@@ -32,16 +29,9 @@ exports.limiterAgentIA = express_rate_limit({
     standardHeaders: true,
     legacyHeaders: false,
 });
-//valider les données JSON
-const validerJSON = (req, res, next) => {
-    if (req.is('application/json')) {
-        next();
-    }
-    else {
-        res.status(400).json({
-            succes: false,
-            message: 'Le contenu doit être au format JSON'
-        });
-    }
-};
-exports.validerJSON = validerJSON;
+function validerJSON(req, res, next) {
+  if (req.is("application/json")) return next();
+  return res.status(400).json({ succes: false, message: "Le contenu doit être au format JSON" });
+}
+
+module.exports = { limiterConnexion, limiterAPI, limiterAgentIA, validerJSON };
