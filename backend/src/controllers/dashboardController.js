@@ -2,9 +2,8 @@ const calculsFinanciers = require("../services/calculsFinanciers");
 const gestionErreurs = require("../middleware/gestionErreurs");
 const date_fns = require("date-fns");
 const serviceCalculs = new calculsFinanciers.ServiceCalculsFinanciers();
-class DashboardController {
-}
-exports.DashboardController = DashboardController;
+
+const DashboardController = {};
 DashboardController.obtenirMetriques = gestionErreurs.asyncHandler(async (req, res) => {
     const { periode, dateDebut: dateDebutStr, dateFin: dateFinStr } = req.query;
     let dateDebut;
@@ -95,3 +94,4 @@ DashboardController.tendancesMensuelles = gestionErreurs.asyncHandler(async (req
         donnees: { tendances }
     });
 });
+module.exports = { DashboardController };

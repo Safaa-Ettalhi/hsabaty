@@ -4,9 +4,8 @@ const gestionErreurs = require("../middleware/gestionErreurs");
 const mongoose = require("mongoose");
 const date_fns = require("date-fns");
 const serviceCalculs = new calculsFinanciers.ServiceCalculsFinanciers();
-class BudgetController {
-}
-exports.BudgetController = BudgetController;
+
+const BudgetController = {};
 //creer un budget
 BudgetController.creer = gestionErreurs.asyncHandler(async (req, res) => {
     const { nom, montant, categorie, periode } = req.body;
@@ -137,3 +136,5 @@ BudgetController.supprimer = gestionErreurs.asyncHandler(async (req, res) => {
         message: 'Budget supprimé avec succès'
     });
 });
+
+module.exports = { BudgetController };

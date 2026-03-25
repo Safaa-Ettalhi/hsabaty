@@ -3,9 +3,8 @@ const calculsFinanciers = require("../services/calculsFinanciers");
 const gestionErreurs = require("../middleware/gestionErreurs");
 const mongoose = require("mongoose");
 const serviceCalculs = new calculsFinanciers.ServiceCalculsFinanciers();
-class ObjectifController {
-}
-exports.ObjectifController = ObjectifController;
+
+const ObjectifController = {};
 //nouveau objectif
 ObjectifController.creer = gestionErreurs.asyncHandler(async (req, res) => {
     const { nom, montantCible, dateLimite, categorie, type, description } = req.body;
@@ -136,3 +135,4 @@ ObjectifController.supprimer = gestionErreurs.asyncHandler(async (req, res) => {
         message: 'Objectif supprimé avec succès'
     });
 });
+module.exports = { ObjectifController };

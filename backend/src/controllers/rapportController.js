@@ -7,9 +7,8 @@ const gestionErreurs = require("../middleware/gestionErreurs");
 const mongoose = require("mongoose");
 const date_fns = require("date-fns");
 const serviceCalculs = new calculsFinanciers.ServiceCalculsFinanciers();
-class RapportController {
-}
-exports.RapportController = RapportController;
+
+const RapportController = {};
 //rapport de dépenses
 RapportController.rapportDepenses = gestionErreurs.asyncHandler(async (req, res) => {
     const { dateDebut, dateFin, categorie } = req.query;
@@ -248,3 +247,5 @@ RapportController.partagerParEmail = gestionErreurs.asyncHandler(async (req, res
         message: 'Rapport envoyé par email avec succès'
     });
 });
+
+module.exports = { RapportController };

@@ -8,9 +8,8 @@ const mongoose = require("mongoose");
 const date_fns = require("date-fns");
 const serviceAgentIA = new agentIA.ServiceAgentIA();
 const serviceCalculs = new calculsFinanciers.ServiceCalculsFinanciers();
-class ConseilsController {
-}
-exports.ConseilsController = ConseilsController;
+
+const ConseilsController = {};
 //conseils et insights financiers
 ConseilsController.obtenirInsights = gestionErreurs.asyncHandler(async (req, res) => {
     if (!req.utilisateurId) {
@@ -258,3 +257,5 @@ IMPORTANT: RÉPONDS TOUJOURS EN FRANÇAIS ET UTILISE LE DIRHAM MAROCAIN (MAD ou 
         }
     });
 });
+
+module.exports = { ConseilsController };

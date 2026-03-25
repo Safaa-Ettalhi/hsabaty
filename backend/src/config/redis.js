@@ -18,9 +18,8 @@ async function obtenirClientRedis() {
         reconnectStrategy: false,
       },
     });
-    client.on("error", () => {}); // on ignore les erreurs Redis
+    client.on("error", () => {}); 
 
-    // Ne jamais bloquer le démarrage du serveur si Redis est lent/down
     await Promise.race([
       client.connect(),
       new Promise((_, reject) => setTimeout(() => reject(new Error("Redis timeout")), 5000)),

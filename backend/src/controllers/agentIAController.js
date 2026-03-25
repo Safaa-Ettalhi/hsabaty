@@ -1,9 +1,8 @@
 const agentIA = require("../services/agentIA");
 const gestionErreurs = require("../middleware/gestionErreurs");
 const serviceAgentIA = new agentIA.ServiceAgentIA();
-class AgentIAController {
-}
-exports.AgentIAController = AgentIAController;
+
+const AgentIAController = {};
 //envoyer un message à l'agent IA
 AgentIAController.envoyerMessage = gestionErreurs.asyncHandler(async (req, res) => {
     const { message, conversationId } = req.body;
@@ -78,3 +77,5 @@ AgentIAController.categoriser = gestionErreurs.asyncHandler(async (req, res) => 
         }
     });
 });
+
+module.exports = { AgentIAController };

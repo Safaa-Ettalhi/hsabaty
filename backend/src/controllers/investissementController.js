@@ -1,9 +1,8 @@
 const Investissement = require("../models/Investissement");
 const gestionErreurs = require("../middleware/gestionErreurs");
 const mongoose = require("mongoose");
-class InvestissementController {
-}
-exports.InvestissementController = InvestissementController;
+
+const InvestissementController = {};
 InvestissementController.creer = gestionErreurs.asyncHandler(async (req, res) => {
     const { nom, type, montantInvesti, valeurActuelle, rendementPourcentage, dateAchat, description } = req.body;
     const investissement = new Investissement.Investissement({
@@ -97,3 +96,4 @@ InvestissementController.supprimer = gestionErreurs.asyncHandler(async (req, res
         throw new gestionErreurs.ErreurApp('Investissement non trouvé', 404);
     res.json({ succes: true, message: 'Investissement supprimé' });
 });
+module.exports = { InvestissementController };

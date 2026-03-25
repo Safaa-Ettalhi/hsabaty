@@ -3,9 +3,8 @@ const Transaction = require("../models/Transaction");
 const gestionErreurs = require("../middleware/gestionErreurs");
 const mongoose = require("mongoose");
 const date_fns = require("date-fns");
-class TransactionRecurrenteController {
-}
-exports.TransactionRecurrenteController = TransactionRecurrenteController;
+
+const TransactionRecurrenteController = {};
 //creer une transaction recurrente
 TransactionRecurrenteController.creer = gestionErreurs.asyncHandler(async (req, res) => {
     const { montant, type, categorie, sousCategorie, description, frequence, jourDuMois, jourDeLaSemaine } = req.body;
@@ -192,3 +191,5 @@ TransactionRecurrenteController.genererTransactions = gestionErreurs.asyncHandle
         donnees: { transactions: transactionsCreees }
     });
 });
+
+module.exports = { TransactionRecurrenteController };

@@ -6,9 +6,8 @@ const Admin = require("../models/Admin");
 const Conversation = require("../models/Conversation");
 const gestionErreurs = require("../middleware/gestionErreurs");
 const date_fns = require("date-fns");
-class AdminController {
-}
-exports.AdminController = AdminController;
+
+const AdminController = {};
 AdminController.obtenirStatistiquesGlobales = gestionErreurs.asyncHandler(async (_req, res) => {
     const maintenant = new Date();
     const debutMois = date_fns.startOfMonth(maintenant);
@@ -279,3 +278,4 @@ AdminController.supprimerAdmin = gestionErreurs.asyncHandler(async (req, res) =>
         message: 'Administrateur supprimé avec succès'
     });
 });
+module.exports = { AdminController };

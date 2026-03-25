@@ -3,9 +3,8 @@ const gestionErreurs = require("../middleware/gestionErreurs");
 const services = require("../services");
 const mongoose = require("mongoose");
 const date_fns = require("date-fns");
-class TransactionController {
-}
-exports.TransactionController = TransactionController;
+
+const TransactionController = {};
 //creer une transaction
 TransactionController.creer = gestionErreurs.asyncHandler(async (req, res) => {
     if (!req.utilisateurId) {
@@ -140,6 +139,8 @@ TransactionController.supprimer = gestionErreurs.asyncHandler(async (req, res) =
         message: 'Transaction supprimée avec succès'
     });
 });
+
+module.exports = { TransactionController };
 //statistiques des transactions
 TransactionController.obtenirStatistiques = gestionErreurs.asyncHandler(async (req, res) => {
     const { periode = 'mois' } = req.query;

@@ -3,9 +3,8 @@ const Utilisateur = require("../models/Utilisateur");
 const jwtService = require("../services/jwtService");
 const emailService = require("../services/emailService");
 const gestionErreurs = require("../middleware/gestionErreurs");
-class AuthController {
-}
-exports.AuthController = AuthController;
+
+const AuthController = {};
 //inscription d'un utilisateur
 AuthController.inscrire = gestionErreurs.asyncHandler(async (req, res, _next) => {
     const { email, motDePasse, nom, prenom } = req.body;
@@ -180,3 +179,5 @@ AuthController.reinitialiserMotDePasse = gestionErreurs.asyncHandler(async (req,
     await utilisateur.save();
     res.json({ succes: true, message: 'Mot de passe réinitialisé. Connectez-vous avec votre nouveau mot de passe.' });
 });
+
+module.exports = { AuthController };

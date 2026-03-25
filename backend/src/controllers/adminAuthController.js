@@ -1,9 +1,8 @@
 const Admin = require("../models/Admin");
 const jwtService = require("../services/jwtService");
 const gestionErreurs = require("../middleware/gestionErreurs");
-class AdminAuthController {
-}
-exports.AdminAuthController = AdminAuthController;
+
+const AdminAuthController = {};
 AdminAuthController.connecter = gestionErreurs.asyncHandler(async (req, res, _next) => {
     const { email, motDePasse } = req.body;
     const admin = await Admin.Admin.findOne({ email });
@@ -84,3 +83,5 @@ AdminAuthController.deconnecter = gestionErreurs.asyncHandler(async (_req, res, 
         message: 'Déconnexion réussie'
     });
 });
+
+module.exports = { AdminAuthController };
