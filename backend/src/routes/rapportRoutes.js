@@ -1,0 +1,15 @@
+const express = require("express");
+const rapportController = require("../controllers/rapportController");
+const authentification = require("../middleware/authentification");
+const middleware = require("../validators/middleware");
+const schemas = require("../validators/schemas");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.get('/depenses', rapportController.RapportController.rapportDepenses);
+router.get('/revenus', rapportController.RapportController.rapportRevenus);
+router.get('/epargne', rapportController.RapportController.rapportEpargne);
+router.get('/mensuel', rapportController.RapportController.rapportMensuel);
+router.get('/flux-tresorerie', rapportController.RapportController.fluxTresorerie);
+router.get('/export/pdf', rapportController.RapportController.exporterPDF);
+router.post('/partager-email', middleware.validerBody(schemas.rapportPartagerEmailSchema), rapportController.RapportController.partagerParEmail);
+module.exports = router;

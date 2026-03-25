@@ -1,0 +1,10 @@
+const express = require("express");
+const dashboardController = require("../controllers/dashboardController");
+const authentification = require("../middleware/authentification");
+const middleware = require("../validators/middleware");
+const schemas = require("../validators/schemas");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.get('/metriques', middleware.validerQuery(schemas.dashboardMetriquesQuerySchema), dashboardController.DashboardController.obtenirMetriques);
+router.get('/tendances-mensuelles', dashboardController.DashboardController.tendancesMensuelles);
+module.exports = router;

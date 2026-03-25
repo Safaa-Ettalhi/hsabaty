@@ -1,0 +1,14 @@
+const express = require("express");
+const transactionRecurrenteController = require("../controllers/transactionRecurrenteController");
+const authentification = require("../middleware/authentification");
+const middleware = require("../validators/middleware");
+const schemas = require("../validators/schemas");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.post('/', middleware.validerBody(schemas.transactionRecurrenteCreerSchema), transactionRecurrenteController.TransactionRecurrenteController.creer);
+router.get('/', transactionRecurrenteController.TransactionRecurrenteController.obtenirToutes);
+router.get('/generer', transactionRecurrenteController.TransactionRecurrenteController.genererTransactions);
+router.get('/:id', transactionRecurrenteController.TransactionRecurrenteController.obtenirParId);
+router.put('/:id', transactionRecurrenteController.TransactionRecurrenteController.mettreAJour);
+router.delete('/:id', transactionRecurrenteController.TransactionRecurrenteController.supprimer);
+module.exports = router;

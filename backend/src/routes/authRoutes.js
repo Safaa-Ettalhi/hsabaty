@@ -1,0 +1,16 @@
+const express = require("express");
+const authController = require("../controllers/authController");
+const securite = require("../middleware/securite");
+const authentification = require("../middleware/authentification");
+const middleware = require("../validators/middleware");
+const schemas = require("../validators/schemas");
+const router = express.Router();
+router.post('/inscrire', securite.limiterConnexion, middleware.validerBody(schemas.authInscriptionSchema), authController.AuthController.inscrire);
+router.post('/connecter', securite.limiterConnexion, middleware.validerBody(schemas.authConnexionSchema), authController.AuthController.connecter);
+router.post('/deconnecter', authentification.authentifier, authController.AuthController.deconnecter);
+router.get('/moi', authentification.authentifier, authController.AuthController.obtenirUtilisateurActuel);
+router.put('/moi', authentification.authentifier, middleware.validerBody(schemas.authProfilModifierSchema), authController.AuthController.modifierProfil);
+router.put('/modifier-mot-de-passe', authentification.authentifier, middleware.validerBody(schemas.authModifierMotDePasseSchema), authController.AuthController.modifierMotDePasse);
+router.post('/mot-de-passe-oublie', securite.limiterConnexion, middleware.validerBody(schemas.authMotDePasseOublieSchema), authController.AuthController.demanderReinitialisation);
+router.post('/reinitialiser-mot-de-passe', securite.limiterConnexion, middleware.validerBody(schemas.authReinitialiserMotDePasseSchema), authController.AuthController.reinitialiserMotDePasse);
+module.exports = router;

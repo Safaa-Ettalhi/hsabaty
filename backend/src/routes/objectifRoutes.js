@@ -1,0 +1,14 @@
+const express = require("express");
+const objectifController = require("../controllers/objectifController");
+const authentification = require("../middleware/authentification");
+const middleware = require("../validators/middleware");
+const schemas = require("../validators/schemas");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.post('/', middleware.validerBody(schemas.objectifCreerSchema), objectifController.ObjectifController.creer);
+router.get('/', objectifController.ObjectifController.obtenirTous);
+router.get('/:id', objectifController.ObjectifController.obtenirParId);
+router.put('/:id', middleware.validerBody(schemas.objectifModifierSchema), objectifController.ObjectifController.mettreAJour);
+router.post('/:id/contribution', middleware.validerBody(schemas.objectifContributionSchema), objectifController.ObjectifController.ajouterContribution);
+router.delete('/:id', objectifController.ObjectifController.supprimer);
+module.exports = router;

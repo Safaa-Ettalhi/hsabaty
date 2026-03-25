@@ -1,0 +1,11 @@
+const express = require("express");
+const conseilsController = require("../controllers/conseilsController");
+const authentification = require("../middleware/authentification");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.get('/insights', conseilsController.ConseilsController.obtenirInsights);
+router.get('/recommandations/reduction-depenses', conseilsController.ConseilsController.obtenirRecommandationsReductionDepenses);
+router.get('/recommandations/optimisation-epargne', conseilsController.ConseilsController.obtenirRecommandationsOptimisationEpargne);
+router.get('/depenses-inhabituelles', conseilsController.ConseilsController.detecterDepensesInhabituelles);
+router.get('/planification', conseilsController.ConseilsController.obtenirConseilsPlanification);
+module.exports = router;

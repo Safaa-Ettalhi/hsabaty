@@ -1,0 +1,14 @@
+const express = require("express");
+const agentIAController = require("../controllers/agentIAController");
+const authentification = require("../middleware/authentification");
+const securite = require("../middleware/securite");
+const middleware = require("../validators/middleware");
+const schemas = require("../validators/schemas");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.post('/message', securite.limiterAgentIA, middleware.validerBody(schemas.agentIAMessageSchema), agentIAController.AgentIAController.envoyerMessage);
+router.get('/historique', agentIAController.AgentIAController.obtenirHistorique);
+router.get('/conversation/:id', agentIAController.AgentIAController.obtenirConversation);
+router.delete('/conversation/:id', agentIAController.AgentIAController.supprimerConversation);
+router.post('/categoriser', agentIAController.AgentIAController.categoriser);
+module.exports = router;

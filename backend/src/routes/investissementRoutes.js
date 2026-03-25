@@ -1,0 +1,11 @@
+const express = require("express");
+const investissementController = require("../controllers/investissementController");
+const authentification = require("../middleware/authentification");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.post('/', investissementController.InvestissementController.creer);
+router.get('/', investissementController.InvestissementController.obtenirTous);
+router.get('/:id', investissementController.InvestissementController.obtenirParId);
+router.put('/:id', investissementController.InvestissementController.mettreAJour);
+router.delete('/:id', investissementController.InvestissementController.supprimer);
+module.exports = router;

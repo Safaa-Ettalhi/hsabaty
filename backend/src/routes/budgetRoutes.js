@@ -1,0 +1,13 @@
+const express = require("express");
+const budgetController = require("../controllers/budgetController");
+const authentification = require("../middleware/authentification");
+const middleware = require("../validators/middleware");
+const schemas = require("../validators/schemas");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.post('/', middleware.validerBody(schemas.budgetCreerSchema), budgetController.BudgetController.creer);
+router.get('/', budgetController.BudgetController.obtenirTous);
+router.get('/:id', budgetController.BudgetController.obtenirParId);
+router.put('/:id', middleware.validerBody(schemas.budgetModifierSchema), budgetController.BudgetController.mettreAJour);
+router.delete('/:id', budgetController.BudgetController.supprimer);
+module.exports = router;

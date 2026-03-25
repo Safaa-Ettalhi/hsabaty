@@ -1,0 +1,16 @@
+const express = require("express");
+const transactionController = require("../controllers/transactionController");
+const authentification = require("../middleware/authentification");
+const middleware = require("../validators/middleware");
+const schemas = require("../validators/schemas");
+const router = express.Router();
+router.use(authentification.authentifier);
+router.post('/', middleware.validerBody(schemas.transactionCreerSchema), transactionController.TransactionController.creer);
+router.get('/', middleware.validerQuery(schemas.transactionListeQuerySchema), transactionController.TransactionController.obtenirToutes);
+router.get('/statistiques', transactionController.TransactionController.obtenirStatistiques);
+router.get('/export/csv', transactionController.TransactionController.exporterCSV);
+router.get('/export/excel', transactionController.TransactionController.exporterExcel);
+router.get('/:id', transactionController.TransactionController.obtenirParId);
+router.put('/:id', middleware.validerBody(schemas.transactionModifierSchema), transactionController.TransactionController.mettreAJour);
+router.delete('/:id', transactionController.TransactionController.supprimer);
+module.exports = router;
