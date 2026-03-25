@@ -1,29 +1,19 @@
 const jsonwebtoken = require("jsonwebtoken");
 const dotenv = require("dotenv");
 dotenv.config();
+
+function signer(payload) {
+    return jsonwebtoken.sign(payload, JWTService.secret, { expiresIn: JWTService.expire });
+}
+
 class JWTService {
     //générer un token JWT pour un utilisateur
     static genererToken(utilisateurId, email, role = 'utilisateur') {
-        const payload = {
-            id: utilisateurId,
-            email,
-            role
-        };
-        return jsonwebtoken.sign(payload, this.secret, {
-            expiresIn: this.expire
-        });
+        return signer({ id: utilisateurId, email, role });
     }
     //générer un token JWT pour un admin
     static genererTokenAdmin(adminId, email, role) {
-        const payload = {
-            id: adminId,
-            email,
-            role: 'admin',
-            adminRole: role
-        };
-        return jsonwebtoken.sign(payload, this.secret, {
-            expiresIn: this.expire
-        });
+        return signer({ id: adminId, email, role: 'admin', adminRole: role });
     }
     //vérifier et décoder un token JWT
     static verifierToken(token) {

@@ -15,13 +15,8 @@ class EmailService {
             subject: sujet,
             html: contenu
         };
-        if (pieceJointe) {
-            mailOptions.attachments = [{
-                    filename: pieceJointe.filename,
-                    content: pieceJointe.content,
-                    contentType: pieceJointe.contentType
-                }];
-        }
+        if (pieceJointe)
+            mailOptions.attachments = [pieceJointe];
         try {
             await this.transporter.sendMail(mailOptions);
             console.log(` Email envoyé à ${destinataire}`);
@@ -29,8 +24,8 @@ class EmailService {
         catch (error) {
             console.error(' Erreur lors de l\'envoi de l\'email:', error);
             if (error?.responseCode === 550 && error?.response?.includes('Sender Identity')) {
-                const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
-                throw new Error(`SendGrid: L'adresse d'expéditeur "${fromEmail}" n'est pas vérifiée. ` +
+                const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+                throw new Error(`SendGrid: L'adresse d'expéditeur "${from}" n'est pas vérifiée. ` +
                     `Allez sur https://sendgrid.com/docs/for-developers/sending-email/sender-identity/ ` +
                     `pour vérifier votre identité d'expéditeur dans SendGrid.`);
             }

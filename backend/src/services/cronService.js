@@ -3,6 +3,18 @@ const TransactionRecurrente = require("../models/TransactionRecurrente");
 const Transaction = require("../models/Transaction");
 const rapportMensuelService = require("./rapportMensuelService");
 const date_fns = require("date-fns");
+
+const AJOUT_PAR_FREQUENCE = {
+    hebdomadaire: (d) => date_fns.addWeeks(d, 1),
+    mensuel: (d) => date_fns.addMonths(d, 1),
+    trimestriel: (d) => date_fns.addMonths(d, 3),
+    annuel: (d) => date_fns.addYears(d, 1),
+};
+
+function debutJour(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 class CronService {
     //générer automatiquement les transactions récurrentes dues
     static async genererTransactionsRecurrentes() {
@@ -18,8 +30,8 @@ class CronService {
                     utilisateurId: tr.utilisateurId,
                     transactionRecurrenteId: tr._id,
                     date: {
-                        $gte: new Date(tr.prochaineDate.getFullYear(), tr.prochaineDate.getMonth(), tr.prochaineDate.getDate()),
-                        $lt: new Date(tr.prochaineDate.getFullYear(), tr.prochaineDate.getMonth(), tr.prochaineDate.getDate() + 1)
+                        $gte: debutJour(tr.prochaineDate),
+                        $lt: date_fns.addDays(debutJour(tr.prochaineDate), 1)
                     }
                 });
                 if (transactionExistante) {
@@ -37,20 +49,8 @@ class CronService {
                     transactionRecurrenteId: tr._id
                 });
                 await transaction.save();
-                let nouvelleDate = new Date(tr.prochaineDate);
-                if (tr.frequence === 'hebdomadaire') {
-                    nouvelleDate = date_fns.addWeeks(nouvelleDate, 1);
-                }
-                else if (tr.frequence === 'mensuel') {
-                    nouvelleDate = date_fns.addMonths(nouvelleDate, 1);
-                }
-                else if (tr.frequence === 'trimestriel') {
-                    nouvelleDate = date_fns.addMonths(nouvelleDate, 3);
-                }
-                else if (tr.frequence === 'annuel') {
-                    nouvelleDate = date_fns.addYears(nouvelleDate, 1);
-                }
-                tr.prochaineDate = nouvelleDate;
+                const ajouter = AJOUT_PAR_FREQUENCE[tr.frequence];
+                tr.prochaineDate = ajouter ? ajouter(new Date(tr.prochaineDate)) : new Date(tr.prochaineDate);
                 await tr.save();
             }
             catch (error) {

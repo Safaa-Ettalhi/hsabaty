@@ -3,10 +3,32 @@ const Budget = require("../models/Budget");
 const Objectif = require("../models/Objectif");
 const mongoose = require("mongoose");
 const date_fns = require("date-fns");
+
+function oid(id) {
+    return new mongoose.Types.ObjectId(id);
+}
+
+function sommeMontants(transactions) {
+    return transactions.reduce((sum, t) => sum + (t.montant || 0), 0);
+}
+
+function pourcentage(part, total) {
+    if (!total)
+        return 0;
+    return (part / total) * 100;
+}
+
+function formatterCategorie(nom) {
+    let categorie = nom ? String(nom).trim() : 'Autres';
+    if (!categorie)
+        categorie = 'Autres';
+    return categorie.charAt(0).toUpperCase() + categorie.slice(1).toLowerCase();
+}
+
 class ServiceCalculsFinanciers {
     async calculerSolde(utilisateurId) {
         const transactions = await Transaction.Transaction.find({
-            utilisateurId: new mongoose.Types.ObjectId(utilisateurId)
+            utilisateurId: oid(utilisateurId)
         });
         return transactions.reduce((total, transaction) => {
             return total + (transaction.type === 'revenu' ? transaction.montant : -transaction.montant);
@@ -14,19 +36,19 @@ class ServiceCalculsFinanciers {
     }
     async calculerRevenus(utilisateurId, dateDebut, dateFin) {
         const transactions = await Transaction.Transaction.find({
-            utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+            utilisateurId: oid(utilisateurId),
             type: 'revenu',
             date: { $gte: dateDebut, $lte: dateFin }
         });
-        return transactions.reduce((total, transaction) => total + transaction.montant, 0);
+        return sommeMontants(transactions);
     }
     async calculerDepenses(utilisateurId, dateDebut, dateFin) {
         const transactions = await Transaction.Transaction.find({
-            utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+            utilisateurId: oid(utilisateurId),
             type: 'depense',
             date: { $gte: dateDebut, $lte: dateFin }
         });
-        return transactions.reduce((total, transaction) => total + transaction.montant, 0);
+        return sommeMontants(transactions);
     }
     async comparerPeriodesFinancieres(utilisateurId) {
         const maintenant = new Date();
@@ -82,11 +104,11 @@ class ServiceCalculsFinanciers {
     }
     async obtenirRepartitionDepenses(utilisateurId, dateDebut, dateFin) {
         const transactions = await Transaction.Transaction.find({
-            utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+            utilisateurId: oid(utilisateurId),
             type: 'depense',
             date: { $gte: dateDebut, $lte: dateFin }
         });
-        const totalDepenses = transactions.reduce((sum, t) => sum + t.montant, 0);
+        const totalDepenses = sommeMontants(transactions);
         const parCategorie = transactions.reduce((acc, transaction) => {
             const categorie = transaction.categorie;
             if (!acc[categorie]) {
@@ -99,20 +121,19 @@ class ServiceCalculsFinanciers {
             .map(([categorie, montant]) => ({
             categorie,
             montant,
-            pourcentage: totalDepenses > 0 ? (montant / totalDepenses) * 100 : 0
+            pourcentage: pourcentage(montant, totalDepenses)
         }))
             .sort((a, b) => b.montant - a.montant);
     }
     async obtenirRepartitionRevenus(utilisateurId, dateDebut, dateFin) {
         const transactions = await Transaction.Transaction.find({
-            utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+            utilisateurId: oid(utilisateurId),
             type: 'revenu',
             date: { $gte: dateDebut, $lte: dateFin }
         });
-        const totalRevenus = transactions.reduce((sum, t) => sum + t.montant, 0);
+        const totalRevenus = sommeMontants(transactions);
         const parCategorie = transactions.reduce((acc, transaction) => {
-            let categorie = transaction.categorie ? transaction.categorie.trim() : 'Autres';
-            categorie = categorie.charAt(0).toUpperCase() + categorie.slice(1).toLowerCase();
+            const categorie = formatterCategorie(transaction.categorie);
             if (!acc[categorie]) {
                 acc[categorie] = 0;
             }
@@ -123,13 +144,13 @@ class ServiceCalculsFinanciers {
             .map(([categorie, montant]) => ({
             categorie,
             montant,
-            pourcentage: totalRevenus > 0 ? (montant / totalRevenus) * 100 : 0
+            pourcentage: pourcentage(montant, totalRevenus)
         }))
             .sort((a, b) => b.montant - a.montant);
     }
     async obtenirTopDepenses(utilisateurId, dateDebut, dateFin, limite = 5) {
         const transactions = await Transaction.Transaction.find({
-            utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+            utilisateurId: oid(utilisateurId),
             type: 'depense',
             date: { $gte: dateDebut, $lte: dateFin }
         })
@@ -144,7 +165,7 @@ class ServiceCalculsFinanciers {
     }
     async obtenirEvolutionSolde(utilisateurId, dateDebut, dateFin, granularite = 'jour') {
         const transactions = await Transaction.Transaction.find({
-            utilisateurId: new mongoose.Types.ObjectId(utilisateurId),
+            utilisateurId: oid(utilisateurId),
             date: { $gte: dateDebut, $lte: dateFin }
         }).sort({ date: 1 });
         const evolution = {};

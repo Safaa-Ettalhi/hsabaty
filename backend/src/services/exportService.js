@@ -7,6 +7,31 @@ const exportsDir = path.join(process.cwd(), 'exports');
 if (!fs.existsSync(exportsDir)) {
     fs.mkdirSync(exportsDir, { recursive: true });
 }
+
+function valeurOuSans(valeur) {
+    return valeur ? valeur : 'sans';
+}
+
+function formaterTags(tags) {
+    return Array.isArray(tags) && tags.length ? tags.join(', ') : 'sans';
+}
+
+function typeLabel(type) {
+    return type === 'depense' ? 'Dépense' : 'Revenu';
+}
+
+function ligneTransactionPourExport(t, { dateAsString }) {
+    return {
+        date: dateAsString ? new Date(t.date).toLocaleDateString('fr-FR') : new Date(t.date),
+        description: t.description,
+        categorie: valeurOuSans(t.categorie),
+        sousCategorie: valeurOuSans(t.sousCategorie),
+        montant: t.montant,
+        type: typeLabel(t.type),
+        tags: formaterTags(t.tags)
+    };
+}
+
 class ExportService {
     //exporter les transactions en CSV
     static async exporterTransactionsCSV(utilisateurId, transactions) {
@@ -24,17 +49,7 @@ class ExportService {
                 { id: 'tags', title: 'Tags' }
             ]
         });
-        const donnees = transactions.map(t => ({
-            date: new Date(t.date).toLocaleDateString('fr-FR'),
-            description: t.description,
-            categorie: t.categorie || 'sans',
-            sousCategorie: t.sousCategorie || 'sans',
-            montant: t.montant,
-            type: t.type === 'depense' ? 'Dépense' : 'Revenu',
-            tags: Array.isArray(t.tags) && t.tags.length
-                ? t.tags.join(', ')
-                : 'sans'
-        }));
+        const donnees = transactions.map((t) => ligneTransactionPourExport(t, { dateAsString: true }));
         await csvWriter.writeRecords(donnees);
         return filePath;
     }
@@ -57,19 +72,7 @@ class ExportService {
             pattern: 'solid',
             fgColor: { argb: 'FFE0E0E0' }
         };
-        transactions.forEach(transaction => {
-            worksheet.addRow({
-                date: new Date(transaction.date),
-                description: transaction.description,
-                categorie: transaction.categorie || 'sans',
-                sousCategorie: transaction.sousCategorie || 'sans',
-                montant: transaction.montant,
-                type: transaction.type === 'depense' ? 'Dépense' : 'Revenu',
-                tags: Array.isArray(transaction.tags) && transaction.tags.length
-                    ? transaction.tags.join(', ')
-                    : 'sans'
-            });
-        });
+        transactions.forEach((t) => worksheet.addRow(ligneTransactionPourExport(t, { dateAsString: false })));
         worksheet.getColumn('date').numFmt = 'dd/mm/yyyy';
         worksheet.getColumn('montant').numFmt = '#,##0.00';
         worksheet.getColumn('montant').alignment = { horizontal: 'right' };

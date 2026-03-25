@@ -4,6 +4,13 @@ const exportService = require("./exportService");
 const emailService = require("./emailService");
 const date_fns = require("date-fns");
 const serviceCalculs = new calculsFinanciers.ServiceCalculsFinanciers();
+
+function periodeMois(mois, annee) {
+    const maintenant = new Date();
+    const date = mois && annee ? new Date(annee, mois - 1, 1) : date_fns.subMonths(maintenant, 1);
+    return { date, debut: date_fns.startOfMonth(date), fin: date_fns.endOfMonth(date) };
+}
+
 class RapportMensuelService {
     //générer et envoyer le rapport mensuel pour un utilisateur
     static async genererEtEnvoyerRapportMensuel(utilisateurId, mois, annee) {
@@ -11,12 +18,7 @@ class RapportMensuelService {
         if (!utilisateur) {
             return;
         }
-        const maintenant = new Date();
-        const date = mois && annee
-            ? new Date(annee, mois - 1, 1)
-            : date_fns.subMonths(maintenant, 1);
-        const debut = date_fns.startOfMonth(date);
-        const fin = date_fns.endOfMonth(date);
+        const { date, debut, fin } = periodeMois(mois, annee);
         const revenus = await serviceCalculs.calculerRevenus(utilisateurId, debut, fin);
         const depenses = await serviceCalculs.calculerDepenses(utilisateurId, debut, fin);
         const epargne = revenus - depenses;

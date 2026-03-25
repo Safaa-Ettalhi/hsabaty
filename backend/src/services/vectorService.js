@@ -17,10 +17,8 @@ class VectorService {
         }
     }
     static async genererEmbedding(texte) {
-        if (!this.gemini) {
-            console.error('[VectorService] Gemini non configuré pour les embeddings');
+        if (!this.gemini)
             return [];
-        }
         try {
             const model = this.gemini.getGenerativeModel({ model: 'models/gemini-embedding-001' });
             const result = await model.embedContent(texte);

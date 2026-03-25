@@ -7,6 +7,19 @@ const Objectif = require("../models/Objectif");
 const Conversation = require("../models/Conversation");
 const mongoose = require("mongoose");
 const date_fns = require("date-fns");
+
+function estErreurQuota(error) {
+    const msg = error?.message || '';
+    const status = error?.status || error?.response?.status;
+    return status === 429 ||
+        status === 403 ||
+        status === 401 ||
+        msg.includes('quota') ||
+        msg.includes('Quota') ||
+        msg.includes('billing') ||
+        msg.includes('credit');
+}
+
 class ServiceAgentIA {
     constructor() {
         this.provider = process.env.IA_PROVIDER || 'gemini';
@@ -171,16 +184,8 @@ class ServiceAgentIA {
                     }
                 }
                 catch (geminiError) {
-                    const errorMessage = geminiError?.message || '';
                     const errorStatus = geminiError?.status || geminiError?.response?.status;
-                    const isQuotaError = errorStatus === 429 ||
-                        errorStatus === 403 ||
-                        errorStatus === 401 ||
-                        errorMessage.includes('quota') ||
-                        errorMessage.includes('Quota') ||
-                        errorMessage.includes('billing') ||
-                        errorMessage.includes('credit');
-                    if (isQuotaError && process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_FALLBACK === 'true') {
+                    if (estErreurQuota(geminiError) && process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_FALLBACK === 'true') {
                         console.warn(`[ServiceAgentIA] ⚠️ Crédit Gemini épuisé (${errorStatus}), basculement vers Nemotron 3 Nano 30B A3B`);
                         try {
                             reponseIA = await this.appelerNemotronViaOpenRouter(messagesHistorique, messageUtilisateur, promptSystem);
@@ -216,7 +221,7 @@ class ServiceAgentIA {
                         }
                     }
                     else {
-                        console.warn('[ServiceAgentIA] Erreur Gemini, utilisation de la détection d\'intention:', errorMessage);
+                        console.warn('[ServiceAgentIA] Erreur Gemini, utilisation de la détection d\'intention:', geminiError?.message || '');
                         const intention = this.detecterIntention(messageUtilisateur);
                         if (intention) {
                             action = await this.executerActionDetectee(utilisateurId, intention);
@@ -253,13 +258,7 @@ class ServiceAgentIA {
         catch (error) {
             console.error('Erreur lors du traitement du message:', error);
             const msg = error?.message || '';
-            const isQuotaError = error?.status === 429 ||
-                error?.status === 403 ||
-                error?.status === 401 ||
-                msg.includes('quota') ||
-                msg.includes('Quota') ||
-                msg.includes('billing') ||
-                msg.includes('credit');
+            const isQuotaError = estErreurQuota(error);
             if ((isQuotaError || error?.status === 503 || msg.includes('503') || msg.includes('Service Unavailable')) && this.provider === 'gemini') {
                 if (isQuotaError && process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_FALLBACK === 'true') {
                     console.warn('[ServiceAgentIA] ⚠️ Crédit Gemini épuisé, basculement vers Nemotron 3 Nano 30B A3B');
